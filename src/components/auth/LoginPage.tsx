@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { Music, Waves, Zap } from "lucide-react";
+import { Music, Waves, Zap, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
 export const LoginPage = () => {
@@ -15,6 +15,8 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, sendMagicLink } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isAdminLogin = searchParams.get("admin") === "true";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +98,20 @@ export const LoginPage = () => {
         <div className="flex items-center justify-center">
           <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border shadow-intense">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+              {isAdminLogin && (
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield className="h-5 w-5 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Administrator Access</span>
+                </div>
+              )}
+              <CardTitle className="text-2xl font-bold">
+                {isAdminLogin ? "Admin Login" : "Welcome Back"}
+              </CardTitle>
               <CardDescription>
-                Access your SoundCloud Groups dashboard
+                {isAdminLogin 
+                  ? "Access administrative functions and backend controls" 
+                  : "Access your SoundCloud Groups dashboard"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>

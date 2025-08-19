@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Waves, Music, Users, Zap, ArrowRight, LogIn } from "lucide-react";
+import { Waves, Music, Users, Zap, ArrowRight, LogIn, Settings } from "lucide-react";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
 const Index = () => {
@@ -21,6 +21,13 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              className="text-white/60 hover:text-white/80 text-sm flex items-center gap-1.5 transition-colors"
+              onClick={() => navigate("/auth?admin=true")}
+            >
+              <Settings className="h-3.5 w-3.5" />
+              Admin Login
+            </button>
             <Button 
               variant="outline" 
               className="border-white/20 text-white hover:bg-white/10"

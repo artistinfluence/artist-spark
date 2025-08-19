@@ -122,22 +122,46 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       const hasNewSpotifyUrl = formData.spotify_url && formData.spotify_url !== hadSpotifyUrl;
       
       if (hasNewSpotifyUrl) {
+        setIsClassifying(true);
         toast({
           title: "Auto-Classifying",
           description: "Analyzing Spotify profile for genre classification...",
         });
         
-        // Update member data first, then trigger classification
-        onUpdate();
-        
-        // Use setTimeout to ensure modal has updated with new Spotify URL
-        setTimeout(() => {
-          handleAutoClassify();
-        }, 100);
-      } else {
-        // Only refresh if not auto-classifying
-        onUpdate();
+        try {
+          const { data, error: classifyError } = await supabase.functions.invoke('classify-track', {
+            body: {
+              trackUrl: formData.spotify_url,
+              memberId: member.id
+            }
+          });
+
+          if (classifyError) throw classifyError;
+
+          if (data?.success) {
+            toast({
+              title: "Classification Complete",
+              description: `Classified as ${data.classification.family} with ${data.classification.subgenres.length} subgenres`,
+            });
+            if (data.updatedMember) {
+              setDisplayMember(data.updatedMember);
+            }
+          } else {
+            throw new Error(data?.error || 'Classification failed');
+          }
+        } catch (classifyError: any) {
+          console.error('Error classifying artist:', classifyError);
+          toast({
+            title: "Classification Error", 
+            description: classifyError.message || "Failed to classify artist genres",
+            variant: "destructive"
+          });
+        } finally {
+          setIsClassifying(false);
+        }
       }
+      
+      onUpdate();
       
     } catch (error) {
       console.error('Error updating member:', error);
@@ -389,19 +413,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Genres</h3>
-              {member.spotify_url && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAutoClassify}
-                  disabled={isClassifying || isLoading}
-                  className="flex items-center gap-2"
-                >
-                  {isClassifying && (
-                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                  )}
-                  {isClassifying ? 'Classifying...' : 'Auto-Classify from Spotify'}
-                </Button>
+              {isClassifying && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                  Classifying from Spotify...
+                </div>
               )}
             </div>
             <div className="space-y-3">

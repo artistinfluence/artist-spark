@@ -21,6 +21,7 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
+  Music,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
@@ -79,6 +80,8 @@ export const MembersPage = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkClassifying, setIsBulkClassifying] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ processed: 0, total: 0 });
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
@@ -164,6 +167,85 @@ export const MembersPage = () => {
     }
   };
 
+  const handleBulkClassify = async (scope: 'all' | 'spotify-only' = 'spotify-only') => {
+    const membersToClassify = scope === 'all' 
+      ? members 
+      : members.filter(member => member.spotify_url);
+
+    if (membersToClassify.length === 0) {
+      toast({
+        title: "No members to classify",
+        description: scope === 'all' 
+          ? "No members found in the current filter"
+          : "No members with Spotify URLs found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsBulkClassifying(true);
+    setBulkProgress({ processed: 0, total: membersToClassify.length });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('bulk-classify-members', {
+        body: {
+          memberIds: membersToClassify.map(m => m.id),
+          scope
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Bulk Classification Started",
+        description: `Processing ${membersToClassify.length} members in the background. This may take a few minutes.`,
+      });
+
+      // Poll for progress updates
+      const pollInterval = setInterval(async () => {
+        try {
+          const { data: progressData } = await supabase.functions.invoke('bulk-classify-status', {
+            body: { jobId: data.jobId }
+          });
+
+          if (progressData) {
+            setBulkProgress({ 
+              processed: progressData.processed, 
+              total: progressData.total 
+            });
+
+            if (progressData.completed) {
+              clearInterval(pollInterval);
+              setIsBulkClassifying(false);
+              toast({
+                title: "Bulk Classification Complete",
+                description: `Successfully processed ${progressData.processed} members`,
+              });
+              fetchMembers(); // Refresh the members list
+            }
+          }
+        } catch (error) {
+          console.error('Error polling progress:', error);
+        }
+      }, 2000);
+
+      // Cleanup interval after 10 minutes max
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setIsBulkClassifying(false);
+      }, 600000);
+
+    } catch (error: any) {
+      console.error('Error starting bulk classification:', error);
+      toast({
+        title: "Bulk Classification Failed",
+        description: error.message || "Failed to start bulk classification",
+        variant: "destructive"
+      });
+      setIsBulkClassifying(false);
+    }
+  };
+
   const filteredMembers = members.filter(member =>
     member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.primary_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -238,9 +320,17 @@ export const MembersPage = () => {
           <h1 className="text-3xl font-bold text-foreground">Members</h1>
           <p className="text-muted-foreground">Manage member accounts and permissions</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="w-4 h-4" />
-          {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-4">
+          {isBulkClassifying && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+              Bulk Classification: {bulkProgress.processed}/{bulkProgress.total}
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="w-4 h-4" />
+            {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
+          </div>
         </div>
       </div>
 
@@ -283,6 +373,46 @@ export const MembersPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bulk Actions */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Music className="w-5 h-5" />
+            Genre Classification
+          </CardTitle>
+          <CardDescription>
+            Automatically classify members' genres using their Spotify profiles
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <Button 
+              onClick={() => handleBulkClassify('spotify-only')}
+              disabled={isBulkClassifying}
+              className="flex items-center gap-2"
+            >
+              {isBulkClassifying ? (
+                <div className="animate-spin h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full"></div>
+              ) : (
+                <Music className="w-4 h-4" />
+              )}
+              Re-Classify Members with Spotify URLs
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => handleBulkClassify('all')}
+              disabled={isBulkClassifying}
+              className="flex items-center gap-2"
+            >
+              Force Re-Classify All Members
+            </Button>
+            <div className="text-sm text-muted-foreground flex items-center">
+              {members.filter(m => m.spotify_url).length} members have Spotify URLs
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>

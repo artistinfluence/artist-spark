@@ -168,6 +168,7 @@ export type Database = {
       }
       members: {
         Row: {
+          classification_source: string | null
           created_at: string | null
           credits_given: number | null
           credits_used: number | null
@@ -175,6 +176,7 @@ export type Database = {
           families: string[] | null
           followers: number | null
           id: string
+          last_classified_at: string | null
           last_submission_at: string | null
           monthly_credit_limit: number | null
           monthly_submission_limit: number | null
@@ -186,6 +188,7 @@ export type Database = {
           soundcloud_followers: number | null
           soundcloud_url: string | null
           spotify_genres: string[] | null
+          spotify_genres_updated_at: string | null
           spotify_url: string | null
           status: Database["public"]["Enums"]["member_status"] | null
           subgenres: string[] | null
@@ -193,6 +196,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          classification_source?: string | null
           created_at?: string | null
           credits_given?: number | null
           credits_used?: number | null
@@ -200,6 +204,7 @@ export type Database = {
           families?: string[] | null
           followers?: number | null
           id?: string
+          last_classified_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
           monthly_submission_limit?: number | null
@@ -211,6 +216,7 @@ export type Database = {
           soundcloud_followers?: number | null
           soundcloud_url?: string | null
           spotify_genres?: string[] | null
+          spotify_genres_updated_at?: string | null
           spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
@@ -218,6 +224,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          classification_source?: string | null
           created_at?: string | null
           credits_given?: number | null
           credits_used?: number | null
@@ -225,6 +232,7 @@ export type Database = {
           families?: string[] | null
           followers?: number | null
           id?: string
+          last_classified_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
           monthly_submission_limit?: number | null
@@ -236,6 +244,7 @@ export type Database = {
           soundcloud_followers?: number | null
           soundcloud_url?: string | null
           spotify_genres?: string[] | null
+          spotify_genres_updated_at?: string | null
           spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null

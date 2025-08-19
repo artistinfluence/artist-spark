@@ -373,6 +373,9 @@ serve(async (req) => {
           families: [classification.family],
           subgenres: classification.subgenres,
           spotify_genres: artistGenres,
+          last_classified_at: new Date().toISOString(),
+          classification_source: 'auto',
+          spotify_genres_updated_at: new Date().toISOString()
         })
         .eq('id', memberId)
         .select('*')

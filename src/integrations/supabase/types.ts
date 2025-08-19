@@ -253,6 +253,118 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          credits_allocated: number
+          id: string
+          position: number
+          proof_submitted_at: string | null
+          proof_url: string | null
+          queue_id: string
+          status: string
+          submission_id: string
+          supporter_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          credits_allocated?: number
+          id?: string
+          position: number
+          proof_submitted_at?: string | null
+          proof_url?: string | null
+          queue_id: string
+          status?: string
+          submission_id: string
+          supporter_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          credits_allocated?: number
+          id?: string
+          position?: number
+          proof_submitted_at?: string | null
+          proof_url?: string | null
+          queue_id?: string
+          status?: string
+          submission_id?: string
+          supporter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_assignments_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_assignments_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_assignments_supporter_id_fkey"
+            columns: ["supporter_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      queues: {
+        Row: {
+          approved_at: string | null
+          approved_by_id: string | null
+          created_at: string
+          created_by_id: string | null
+          date: string
+          filled_slots: number
+          id: string
+          notes: string | null
+          published_at: string | null
+          status: string
+          total_slots: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_id?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          date: string
+          filled_slots?: number
+          id?: string
+          notes?: string | null
+          published_at?: string | null
+          status?: string
+          total_slots?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_id?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          date?: string
+          filled_slots?: number
+          id?: string
+          notes?: string | null
+          published_at?: string | null
+          status?: string
+          total_slots?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           adjacency_matrix: Json | null

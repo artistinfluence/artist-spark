@@ -15,6 +15,8 @@ import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
+import { QueueManagement } from "@/components/dashboard/QueueManagement";
+import { MemberQueue } from "@/components/portal/MemberQueue";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -74,7 +76,7 @@ const App = () => (
             >
               <Route index element={<DashboardOverview />} />
               <Route path="submissions" element={<SubmissionsPage />} />
-              <Route path="queue" element={<div className="p-8 text-center text-muted-foreground">Queue page coming soon...</div>} />
+              <Route path="queue" element={<QueueManagement />} />
               <Route path="members" element={<MembersPage />} />
               <Route path="inquiries" element={<div className="p-8 text-center text-muted-foreground">Inquiries page coming soon...</div>} />
               <Route path="complaints" element={<div className="p-8 text-center text-muted-foreground">Complaints page coming soon...</div>} />
@@ -93,6 +95,7 @@ const App = () => (
               } 
             >
               <Route index element={<MemberDashboard />} />
+              <Route path="queue" element={<MemberQueue />} />
               <Route path="submit" element={<SubmitTrack />} />
               <Route path="history" element={<MemberHistory />} />
               <Route path="profile" element={<div className="p-8 text-center text-muted-foreground">Profile page coming soon...</div>} />

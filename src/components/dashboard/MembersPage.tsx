@@ -18,8 +18,10 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { MemberDetailModal } from './MemberDetailModal';
 
 type MemberStatus = 'active' | 'needs_reconnect';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
@@ -32,6 +34,12 @@ interface Member {
   status: MemberStatus;
   size_tier: SizeTier;
   followers: number;
+  soundcloud_followers: number;
+  soundcloud_url: string;
+  spotify_url: string;
+  spotify_genres: string[];
+  families: string[];
+  subgenres: string[];
   monthly_submission_limit: number;
   submissions_this_month: number;
   net_credits: number;
@@ -66,6 +74,8 @@ export const MembersPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
@@ -332,18 +342,39 @@ export const MembersPage = () => {
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{member.name}</span>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Mail className="w-3 h-3" />
-                            {member.primary_email}
-                          </div>
-                        </div>
-                      </TableCell>
+                 <TableBody>
+                   {filteredMembers.map((member) => (
+                     <TableRow 
+                       key={member.id} 
+                       className="cursor-pointer hover:bg-muted/50"
+                       onClick={() => {
+                         setSelectedMember(member);
+                         setIsModalOpen(true);
+                       }}
+                     >
+                       <TableCell>
+                         <div className="flex flex-col">
+                           <div className="flex items-center gap-2">
+                             <span className="font-medium">{member.name}</span>
+                              <div className="flex gap-1">
+                                {member.soundcloud_url && (
+                                  <span title="SoundCloud">
+                                    <ExternalLink className="w-3 h-3 text-orange-500" />
+                                  </span>
+                                )}
+                                {member.spotify_url && (
+                                  <span title="Spotify">
+                                    <ExternalLink className="w-3 h-3 text-green-500" />
+                                  </span>
+                                )}
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                             <Mail className="w-3 h-3" />
+                             {member.primary_email}
+                           </div>
+                         </div>
+                       </TableCell>
                       <TableCell>
                         {getStatusBadge(member.status)}
                       </TableCell>
@@ -373,35 +404,54 @@ export const MembersPage = () => {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {member.status === 'active' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateMemberStatus(member.id, 'needs_reconnect')}
-                            >
-                              Flag Issue
-                            </Button>
-                          )}
-                          {member.status === 'needs_reconnect' && (
-                            <Button
-                              size="sm"
-                              onClick={() => updateMemberStatus(member.id, 'active')}
-                            >
-                              Resolve
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                       <TableCell>
+                         <div className="flex gap-1">
+                           {member.status === 'active' && (
+                             <Button
+                               size="sm"
+                               variant="outline"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 updateMemberStatus(member.id, 'needs_reconnect');
+                               }}
+                             >
+                               Flag Issue
+                             </Button>
+                           )}
+                           {member.status === 'needs_reconnect' && (
+                             <Button
+                               size="sm"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 updateMemberStatus(member.id, 'active');
+                               }}
+                             >
+                               Resolve
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
+                     </TableRow>
+                   ))}
+                 </TableBody>
+               </Table>
+             </div>
+           )}
+         </CardContent>
+       </Card>
+
+       {/* Member Detail Modal */}
+       <MemberDetailModal
+         member={selectedMember}
+         isOpen={isModalOpen}
+         onClose={() => {
+           setIsModalOpen(false);
+           setSelectedMember(null);
+         }}
+         onUpdate={() => {
+           fetchMembers();
+         }}
+       />
+     </div>
   );
 };

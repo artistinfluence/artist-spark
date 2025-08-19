@@ -183,6 +183,10 @@ export type Database = {
           primary_email: string | null
           reach_factor: number | null
           size_tier: Database["public"]["Enums"]["size_tier"] | null
+          soundcloud_followers: number | null
+          soundcloud_url: string | null
+          spotify_genres: string[] | null
+          spotify_url: string | null
           status: Database["public"]["Enums"]["member_status"] | null
           subgenres: string[] | null
           submissions_this_month: number | null
@@ -204,6 +208,10 @@ export type Database = {
           primary_email?: string | null
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
+          soundcloud_followers?: number | null
+          soundcloud_url?: string | null
+          spotify_genres?: string[] | null
+          spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
@@ -225,6 +233,10 @@ export type Database = {
           primary_email?: string | null
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
+          soundcloud_followers?: number | null
+          soundcloud_url?: string | null
+          spotify_genres?: string[] | null
+          spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null

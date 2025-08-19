@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          active: boolean
+          body_html: string
+          body_text: string | null
+          created_at: string
+          id: string
+          name: string
+          subject: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          active?: boolean
+          body_html: string
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          subject: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          active?: boolean
+          body_html?: string
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       genre_families: {
         Row: {
           active: boolean | null
@@ -250,6 +286,45 @@ export type Database = {
           subgenres?: string[] | null
           submissions_this_month?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          read: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          read?: boolean
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read?: boolean
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -613,6 +688,15 @@ export type Database = {
       complaint_status: "todo" | "in_progress" | "done"
       inquiry_status: "undecided" | "admitted" | "rejected"
       member_status: "active" | "needs_reconnect"
+      notification_type:
+        | "info"
+        | "success"
+        | "warning"
+        | "error"
+        | "submission"
+        | "inquiry"
+        | "queue"
+        | "support"
       size_tier: "T1" | "T2" | "T3" | "T4"
       submission_status: "new" | "approved" | "rejected" | "pending" | "qa_flag"
       target_band_mode: "balance" | "size"
@@ -747,6 +831,16 @@ export const Constants = {
       complaint_status: ["todo", "in_progress", "done"],
       inquiry_status: ["undecided", "admitted", "rejected"],
       member_status: ["active", "needs_reconnect"],
+      notification_type: [
+        "info",
+        "success",
+        "warning",
+        "error",
+        "submission",
+        "inquiry",
+        "queue",
+        "support",
+      ],
       size_tier: ["T1", "T2", "T3", "T4"],
       submission_status: ["new", "approved", "rejected", "pending", "qa_flag"],
       target_band_mode: ["balance", "size"],

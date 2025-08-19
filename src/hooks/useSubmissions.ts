@@ -34,10 +34,10 @@ export const useSubmissions = () => {
       const newStats = {
         total: data.length,
         new: data.filter(s => s.status === 'new').length,
-        pending: data.filter(s => s.status === 'pending').length,
+        pending: data.filter(s => (s.status as string) === 'pending').length,
         approved: data.filter(s => s.status === 'approved').length,
         rejected: data.filter(s => s.status === 'rejected').length,
-        qa_flag: data.filter(s => s.status === 'qa_flag').length,
+        qa_flag: data.filter(s => (s.status as string) === 'qa_flag').length,
       };
 
       setStats(newStats);

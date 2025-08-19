@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+type SubmissionStatus = 'new' | 'pending' | 'approved' | 'rejected' | 'qa_flag';
+
 interface Submission {
   id: string;
   track_url: string;
@@ -66,7 +68,7 @@ export const SubmissionsPage = () => {
         .order(sortBy, { ascending: false });
 
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        query = query.eq('status', statusFilter as SubmissionStatus);
       }
 
       const { data, error } = await query;
@@ -89,7 +91,7 @@ export const SubmissionsPage = () => {
     fetchSubmissions();
   }, [statusFilter, sortBy]);
 
-  const updateSubmissionStatus = async (submissionId: string, newStatus: string) => {
+  const updateSubmissionStatus = async (submissionId: string, newStatus: SubmissionStatus) => {
     try {
       const { error } = await supabase
         .from('submissions')
@@ -100,7 +102,7 @@ export const SubmissionsPage = () => {
 
       toast({
         title: "Status Updated",
-        description: `Submission status changed to ${statusConfig[newStatus as keyof typeof statusConfig]?.label || newStatus}`,
+        description: `Submission status changed to ${statusConfig[newStatus]?.label || newStatus}`,
       });
 
       fetchSubmissions();

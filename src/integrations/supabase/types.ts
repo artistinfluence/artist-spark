@@ -481,7 +481,7 @@ export type Database = {
       inquiry_status: "undecided" | "admitted" | "rejected"
       member_status: "active" | "needs_reconnect"
       size_tier: "T1" | "T2" | "T3" | "T4"
-      submission_status: "new" | "approved" | "rejected"
+      submission_status: "new" | "approved" | "rejected" | "pending" | "qa_flag"
       target_band_mode: "balance" | "size"
     }
     CompositeTypes: {
@@ -615,7 +615,7 @@ export const Constants = {
       inquiry_status: ["undecided", "admitted", "rejected"],
       member_status: ["active", "needs_reconnect"],
       size_tier: ["T1", "T2", "T3", "T4"],
-      submission_status: ["new", "approved", "rejected"],
+      submission_status: ["new", "approved", "rejected", "pending", "qa_flag"],
       target_band_mode: ["balance", "size"],
     },
   },

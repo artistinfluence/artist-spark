@@ -108,7 +108,7 @@ export const MemberPortalLayout = () => {
             <Button 
               variant="ghost" 
               onClick={handleSignOut} 
-              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+              className="w-full justify-start text-sidebar-foreground hover:text-accent hover:bg-accent/10"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out

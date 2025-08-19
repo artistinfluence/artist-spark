@@ -170,7 +170,7 @@ export const DashboardLayout = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-accent hover:bg-accent/10"
               onClick={handleSignOut}
             >
               <LogOut className="h-4 w-4" />

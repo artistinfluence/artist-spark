@@ -111,29 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // First check if email is authorized (admin/moderator or member)
-      const { data: isAuthorized } = await supabase
-        .rpc('check_user_is_member', { _user_email: email });
-      
-      const { data: adminUser } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['admin', 'moderator']);
-      
-      const hasAdminRole = adminUser?.some(au => {
-        // Check if this email belongs to an admin user
-        return true; // We'll check this after sign in
-      });
-
-      if (!isAuthorized && !hasAdminRole) {
-        toast({
-          title: "Access Denied",
-          description: "This email is not authorized to access the system.",
-          variant: "destructive",
-        });
-        return { error: { message: "Unauthorized email" } };
-      }
-
+      // Attempt to sign in first
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -145,14 +123,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
-        });
+        return { error };
       }
 
-      return { error };
+      // After successful sign-in, we'll check authorization in the auth state change handler
+      // The fetchUserData function will get the roles, and if the user has no roles and is not a member,
+      // we can handle that in the UI routing logic
+      
+      toast({
+        title: "Welcome back!",
+        description: "You have been signed in successfully.",
+      });
+
+      return { error: null };
     } catch (error: any) {
       toast({
         title: "Login Failed",

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
+import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -33,11 +35,14 @@ const AuthenticatedRedirect = () => {
   }
   
   if (user) {
-    // Redirect based on user role
+    // Check if user has any valid role or membership
     if (isAdmin || isModerator) {
       return <Navigate to="/dashboard" replace />;
     } else if (isMember) {
       return <Navigate to="/portal" replace />;
+    } else {
+      // User is authenticated but not authorized
+      return <Navigate to="/unauthorized" replace />;
     }
   }
   
@@ -54,6 +59,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthenticatedRedirect />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
             
             {/* Admin Dashboard - Only admins and moderators */}
             <Route 

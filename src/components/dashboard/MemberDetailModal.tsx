@@ -114,7 +114,29 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       });
 
       setIsEditing(false);
-      onUpdate();
+      
+      // Auto-classify if Spotify URL was added or changed
+      const hadSpotifyUrl = member.spotify_url;
+      const hasNewSpotifyUrl = formData.spotify_url && formData.spotify_url !== hadSpotifyUrl;
+      
+      if (hasNewSpotifyUrl) {
+        toast({
+          title: "Auto-Classifying",
+          description: "Analyzing Spotify profile for genre classification...",
+        });
+        
+        // Update member data first, then trigger classification
+        onUpdate();
+        
+        // Use setTimeout to ensure modal has updated with new Spotify URL
+        setTimeout(() => {
+          handleAutoClassify();
+        }, 100);
+      } else {
+        // Only refresh if not auto-classifying
+        onUpdate();
+      }
+      
     } catch (error) {
       console.error('Error updating member:', error);
       toast({

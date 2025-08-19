@@ -22,6 +22,7 @@ import { QueueManagement } from "@/components/dashboard/QueueManagement";
 import { MemberQueue } from "@/components/portal/MemberQueue";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
 import Index from "./pages/Index";
+import PreviewTool from "./pages/PreviewTool";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/preview" element={<PreviewTool />} />
             <Route path="/auth" element={<AuthenticatedRedirect />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             

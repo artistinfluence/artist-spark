@@ -43,7 +43,7 @@ export const SubmissionsPage = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [sortBy, setSortBy] = useState('submitted_at');
 
   const statusConfig = {
@@ -67,7 +67,11 @@ export const SubmissionsPage = () => {
         `)
         .order(sortBy, { ascending: false });
 
-      if (statusFilter !== 'all') {
+      if (statusFilter === 'active') {
+        query = query.in('status', ['new', 'pending', 'rejected', 'qa_flag']);
+      } else if (statusFilter === 'completed') {
+        query = query.eq('status', 'approved');
+      } else if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter as SubmissionStatus);
       }
 
@@ -185,12 +189,13 @@ export const SubmissionsPage = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="qa_flag">QA Flag</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>

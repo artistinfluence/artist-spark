@@ -80,7 +80,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
       setNotes(submission.notes || '');
       setQaReason(submission.qa_reason || '');
       setStatus(submission.status as SubmissionStatus);
-      setFamily(submission.family || '');
+      setFamily(submission.family || 'none');
     }
   }, [submission]);
 
@@ -103,7 +103,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           status,
           notes,
           qa_reason: qaReason,
-          family,
+          family: family === 'none' ? null : family,
         })
         .eq('id', submission.id);
 
@@ -229,7 +229,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                     <SelectValue placeholder="Select genre family" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Not set</SelectItem>
+                    <SelectItem value="none">Not set</SelectItem>
                     <SelectItem value="Electronic">Electronic</SelectItem>
                     <SelectItem value="Hip Hop">Hip Hop</SelectItem>
                     <SelectItem value="Rock">Rock</SelectItem>

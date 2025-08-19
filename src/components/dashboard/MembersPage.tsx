@@ -366,7 +366,7 @@ export const MembersPage = () => {
                     <SortableHeader column="size_tier">Tier</SortableHeader>
                     <SortableHeader column="followers">Followers</SortableHeader>
                     <SortableHeader column="submissions_this_month">Activity</SortableHeader>
-                    <SortableHeader column="net_credits">Credits</SortableHeader>
+                    <SortableHeader column="net_credits">Monthly Reposts</SortableHeader>
                     <SortableHeader column="created_at">Joined</SortableHeader>
                     <TableHead>Actions</TableHead>
                   </TableRow>

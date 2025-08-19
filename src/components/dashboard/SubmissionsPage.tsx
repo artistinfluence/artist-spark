@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { SubmissionDetailModal } from './SubmissionDetailModal';
 import {
   FileText,
   Search,
@@ -17,6 +18,8 @@ import {
   AlertTriangle,
   ExternalLink,
   Calendar,
+  ArrowUpDown,
+  Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -29,12 +32,21 @@ interface Submission {
   status: string;
   submitted_at: string;
   notes: string;
+  qa_reason: string;
   family: string;
   subgenres: string[];
   member_id: string;
+  support_url: string;
+  need_live_link: boolean;
+  expected_reach_planned: number;
+  expected_reach_max: number;
+  expected_reach_min: number;
   members: {
+    id: string;
     name: string;
     primary_email: string;
+    size_tier: string;
+    status: string;
   };
 }
 
@@ -45,6 +57,9 @@ export const SubmissionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
   const [sortBy, setSortBy] = useState('submitted_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const statusConfig = {
     new: { label: 'New', color: 'bg-primary', icon: FileText },
@@ -61,11 +76,14 @@ export const SubmissionsPage = () => {
         .select(`
           *,
           members:member_id (
+            id,
             name,
-            primary_email
+            primary_email,
+            size_tier,
+            status
           )
         `)
-        .order(sortBy, { ascending: false });
+        .order(sortBy, { ascending: sortDirection === 'asc' });
 
       if (statusFilter === 'active') {
         query = query.in('status', ['new', 'pending', 'rejected', 'qa_flag']);
@@ -93,7 +111,7 @@ export const SubmissionsPage = () => {
 
   useEffect(() => {
     fetchSubmissions();
-  }, [statusFilter, sortBy]);
+  }, [statusFilter, sortBy, sortDirection]);
 
   const updateSubmissionStatus = async (submissionId: string, newStatus: SubmissionStatus) => {
     try {
@@ -124,6 +142,20 @@ export const SubmissionsPage = () => {
     submission.members?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     submission.track_url?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const handleViewDetails = (submission: Submission) => {
+    setSelectedSubmission(submission);
+    setModalOpen(true);
+  };
 
   const getStatusBadge = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig] || {
@@ -231,10 +263,42 @@ export const SubmissionsPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Artist</TableHead>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('artist_name')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Artist
+                        <ArrowUpDown className="w-3 h-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('member_id')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Member
+                        <ArrowUpDown className="w-3 h-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        <ArrowUpDown className="w-3 h-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('submitted_at')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Submitted
+                        <ArrowUpDown className="w-3 h-3" />
+                      </div>
+                    </TableHead>
                     <TableHead>Genre</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -285,6 +349,14 @@ export const SubmissionsPage = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewDetails(submission)}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
                           {submission.status === 'new' && (
                             <>
                               <Button
@@ -322,6 +394,16 @@ export const SubmissionsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <SubmissionDetailModal
+        submission={selectedSubmission}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onUpdate={() => {
+          fetchSubmissions();
+          setModalOpen(false);
+        }}
+      />
     </div>
   );
 };

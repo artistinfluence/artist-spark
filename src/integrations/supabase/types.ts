@@ -439,9 +439,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_user_is_member: {
+        Args: { _user_email: string }
+        Returns: boolean
+      }
+      get_member_for_user: {
+        Args: { _user_email: string }
+        Returns: {
+          emails: string[]
+          id: string
+          monthly_submission_limit: number
+          name: string
+          net_credits: number
+          primary_email: string
+          size_tier: Database["public"]["Enums"]["size_tier"]
+          status: Database["public"]["Enums"]["member_status"]
+          submissions_this_month: number
+        }[]
+      }
       get_member_id_for_user: {
         Args: { _user_id: string }
         Returns: string
+      }
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
       }
       has_role: {
         Args: {

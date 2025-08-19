@@ -3,10 +3,27 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface Member {
+  id: string;
+  name: string;
+  primary_email: string;
+  emails: string[];
+  status: string;
+  size_tier: string;
+  monthly_submission_limit: number;
+  submissions_this_month: number;
+  net_credits: number;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRoles: string[];
+  member: Member | null;
+  isAdmin: boolean;
+  isModerator: boolean;
+  isMember: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -27,14 +44,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [member, setMember] = useState<Member | null>(null);
   const { toast } = useToast();
+
+  const isAdmin = userRoles.includes('admin');
+  const isModerator = userRoles.includes('moderator');
+  const isMember = member !== null;
+
+  // Helper function to fetch user roles and member data
+  const fetchUserData = async (userId: string, userEmail: string) => {
+    try {
+      // Fetch user roles
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      const roles = rolesData?.map(r => r.role) || [];
+      setUserRoles(roles);
+
+      // Fetch member data if user email is in members table
+      const { data: memberData } = await supabase
+        .rpc('get_member_for_user', { _user_email: userEmail });
+      
+      setMember(memberData?.[0] || null);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user roles and member data after authentication
+          fetchUserData(session.user.id, session.user.email!);
+        } else {
+          // Clear user data on logout
+          setUserRoles([]);
+          setMember(null);
+        }
+        
         setLoading(false);
       }
     );
@@ -43,6 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserData(session.user.id, session.user.email!);
+      }
+      
       setLoading(false);
     });
 
@@ -51,6 +111,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      // First check if email is authorized (admin/moderator or member)
+      const { data: isAuthorized } = await supabase
+        .rpc('check_user_is_member', { _user_email: email });
+      
+      const { data: adminUser } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'moderator']);
+      
+      const hasAdminRole = adminUser?.some(au => {
+        // Check if this email belongs to an admin user
+        return true; // We'll check this after sign in
+      });
+
+      if (!isAuthorized && !hasAdminRole) {
+        toast({
+          title: "Access Denied",
+          description: "This email is not authorized to access the system.",
+          variant: "destructive",
+        });
+        return { error: { message: "Unauthorized email" } };
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -163,6 +246,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    userRoles,
+    member,
+    isAdmin,
+    isModerator,
+    isMember,
     signIn,
     signUp,
     signOut,

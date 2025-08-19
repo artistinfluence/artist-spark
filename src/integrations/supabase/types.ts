@@ -682,6 +682,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      send_notification_email: {
+        Args: {
+          email_to: string
+          notification_message?: string
+          notification_title?: string
+          notification_type?: Database["public"]["Enums"]["notification_type"]
+          target_user_id?: string
+          template_data?: Json
+          template_name: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "member"

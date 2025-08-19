@@ -16,6 +16,7 @@ import {
   Waves,
   Home,
 } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem {
   name: string;
@@ -195,6 +196,9 @@ export const DashboardLayout = () => {
             </Button>
             <div className="flex-1">
               <h1 className="text-xl font-semibold">Dashboard</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <NotificationBell />
             </div>
           </div>
         </header>

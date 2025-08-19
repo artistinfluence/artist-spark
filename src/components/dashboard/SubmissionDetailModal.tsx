@@ -74,6 +74,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   const [status, setStatus] = useState<SubmissionStatus>('new');
   const [family, setFamily] = useState('');
   const [saving, setSaving] = useState(false);
+  const [classifying, setClassifying] = useState(false);
 
   React.useEffect(() => {
     if (submission) {
@@ -90,6 +91,55 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
     approved: { label: 'Approved', color: 'bg-green-500', icon: CheckCircle },
     rejected: { label: 'Rejected', color: 'bg-red-500', icon: XCircle },
     qa_flag: { label: 'QA Flag', color: 'bg-orange-500', icon: AlertTriangle },
+  };
+
+  const handleAutoClassify = async () => {
+    if (!submission?.track_url) {
+      toast({
+        title: "Error",
+        description: "No track URL found for classification",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setClassifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('classify-track', {
+        body: { 
+          trackUrl: submission.track_url,
+          submissionId: submission.id 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setFamily(data.classification.family);
+        toast({
+          title: "Auto-Classification Complete",
+          description: `Classified as ${data.classification.family} - ${data.classification.subgenres.join(', ')}`,
+        });
+        
+        // Refresh the submission data
+        onUpdate();
+      } else {
+        toast({
+          title: "Classification Failed",
+          description: data.error || "Could not classify track automatically",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Auto-classification error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to auto-classify track. Please try manual classification.",
+        variant: "destructive",
+      });
+    } finally {
+      setClassifying(false);
+    }
   };
 
   const handleSave = async () => {
@@ -224,19 +274,30 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm font-medium">Genre Family</Label>
-                <Select value={family} onValueChange={setFamily}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select genre family" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not set</SelectItem>
-                    <SelectItem value="Electronic">Electronic</SelectItem>
-                    <SelectItem value="Hip Hop">Hip Hop</SelectItem>
-                    <SelectItem value="Rock">Rock</SelectItem>
-                    <SelectItem value="Pop">Pop</SelectItem>
-                    <SelectItem value="Alternative">Alternative</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2 mt-1">
+                  <Select value={family} onValueChange={setFamily}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select genre family" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not set</SelectItem>
+                      <SelectItem value="Electronic">Electronic</SelectItem>
+                      <SelectItem value="Hip Hop">Hip Hop</SelectItem>
+                      <SelectItem value="Rock">Rock</SelectItem>
+                      <SelectItem value="Pop">Pop</SelectItem>
+                      <SelectItem value="Alternative">Alternative</SelectItem>
+                      <SelectItem value="R&B">R&B</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAutoClassify()}
+                    disabled={classifying}
+                  >
+                    {classifying ? 'Classifying...' : 'Auto-Classify'}
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label className="text-sm font-medium">Subgenres</Label>

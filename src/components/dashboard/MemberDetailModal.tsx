@@ -137,8 +137,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       return;
     }
 
+    console.log('Starting classification for:', member.spotify_url);
     setIsClassifying(true);
+    
     try {
+      console.log('Calling classify-track function...');
       const { data, error } = await supabase.functions.invoke('classify-track', {
         body: {
           trackUrl: member.spotify_url,
@@ -146,21 +149,29 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         }
       });
 
-      if (error) throw error;
+      console.log('Function response:', { data, error });
 
-      if (data.success) {
+      if (error) {
+        console.error('Function error:', error);
+        throw error;
+      }
+
+      if (data?.success) {
+        console.log('Classification successful:', data);
         toast({
           title: "Classification Complete",
           description: `Classified as ${data.classification.family} with ${data.classification.subgenres.length} subgenres`,
         });
+        // Refresh the modal data
         onUpdate();
       } else {
-        throw new Error(data.error || 'Classification failed');
+        console.error('Classification failed:', data);
+        throw new Error(data?.error || 'Classification failed');
       }
     } catch (error: any) {
       console.error('Error classifying artist:', error);
       toast({
-        title: "Classification Error",
+        title: "Classification Error", 
         description: error.message || "Failed to classify artist genres",
         variant: "destructive"
       });
@@ -356,8 +367,12 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   variant="outline" 
                   size="sm" 
                   onClick={handleAutoClassify}
-                  disabled={isClassifying}
+                  disabled={isClassifying || isLoading}
+                  className="flex items-center gap-2"
                 >
+                  {isClassifying && (
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                  )}
                   {isClassifying ? 'Classifying...' : 'Auto-Classify from Spotify'}
                 </Button>
               )}

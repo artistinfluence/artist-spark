@@ -19,6 +19,8 @@ import {
   CheckCircle,
   XCircle,
   ExternalLink,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
@@ -74,6 +76,7 @@ export const MembersPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -94,7 +97,7 @@ export const MembersPage = () => {
       let query = supabase
         .from('members')
         .select('*')
-        .order(sortBy, { ascending: false });
+        .order(sortBy, { ascending: sortDirection === 'asc' });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter as MemberStatus);
@@ -135,7 +138,7 @@ export const MembersPage = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [statusFilter, tierFilter, sortBy]);
+  }, [statusFilter, tierFilter, sortBy, sortDirection]);
 
   const updateMemberStatus = async (memberId: string, newStatus: MemberStatus) => {
     try {
@@ -192,6 +195,31 @@ export const MembersPage = () => {
       </Badge>
     );
   };
+
+  const handleColumnSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortableHeader = ({ column, children }: { column: string; children: React.ReactNode }) => (
+    <TableHead 
+      className="cursor-pointer hover:bg-muted/50 select-none"
+      onClick={() => handleColumnSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortBy === column && (
+          sortDirection === 'asc' ? 
+            <ChevronUp className="w-4 h-4" /> : 
+            <ChevronDown className="w-4 h-4" />
+        )}
+      </div>
+    </TableHead>
+  );
 
   if (loading) {
     return (
@@ -333,12 +361,13 @@ export const MembersPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Followers</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Credits</TableHead>
+                    <SortableHeader column="name">Member</SortableHeader>
+                    <SortableHeader column="status">Status</SortableHeader>
+                    <SortableHeader column="size_tier">Tier</SortableHeader>
+                    <SortableHeader column="followers">Followers</SortableHeader>
+                    <SortableHeader column="submissions_this_month">Activity</SortableHeader>
+                    <SortableHeader column="net_credits">Credits</SortableHeader>
+                    <SortableHeader column="created_at">Joined</SortableHeader>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -397,14 +426,19 @@ export const MembersPage = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <span className={member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {member.net_credits}
-                          </span>
-                        </div>
-                      </TableCell>
                        <TableCell>
+                         <div className="text-sm">
+                           <span className={member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}>
+                             {member.net_credits}
+                           </span>
+                         </div>
+                       </TableCell>
+                       <TableCell>
+                         <div className="text-sm text-muted-foreground">
+                           {format(new Date(member.created_at), 'MMM d, yyyy')}
+                         </div>
+                       </TableCell>
+                        <TableCell>
                          <div className="flex gap-1">
                            {member.status === 'active' && (
                              <Button

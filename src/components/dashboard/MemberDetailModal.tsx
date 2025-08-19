@@ -23,6 +23,7 @@ interface Member {
   spotify_genres: string[];
   families: string[];
   subgenres: string[];
+  monthly_submission_limit: number;
   submissions_this_month: number;
   net_credits: number;
   created_at: string;
@@ -46,7 +47,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const [formData, setFormData] = useState({
     soundcloud_url: '',
     spotify_url: '',
-    soundcloud_followers: 0
+    soundcloud_followers: 0,
+    monthly_submission_limit: 4
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,7 +57,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       setFormData({
         soundcloud_url: member.soundcloud_url || '',
         spotify_url: member.spotify_url || '',
-        soundcloud_followers: member.soundcloud_followers || 0
+        soundcloud_followers: member.soundcloud_followers || 0,
+        monthly_submission_limit: member.monthly_submission_limit || 4
       });
     }
   }, [member]);
@@ -97,7 +100,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         .update({
           soundcloud_url: formData.soundcloud_url || null,
           spotify_url: formData.spotify_url || null,
-          soundcloud_followers: formData.soundcloud_followers
+          soundcloud_followers: formData.soundcloud_followers,
+          monthly_submission_limit: formData.monthly_submission_limit
         })
         .eq('id', member.id);
 
@@ -171,8 +175,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 <p className="text-sm text-muted-foreground mt-1">{member.primary_email}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium">Total Followers</Label>
-                <p className="text-sm text-muted-foreground mt-1">{member.followers?.toLocaleString() || 0}</p>
+                <Label className="text-sm font-medium">Member Since</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {new Date(member.created_at).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>
@@ -182,7 +188,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           {/* Platform Links */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Platform Links</h3>
+              <h3 className="text-lg font-semibold">Platform & Limits</h3>
               {!isEditing && (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                   Edit
@@ -265,6 +271,23 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   </p>
                 )}
               </div>
+
+              <div>
+                <Label htmlFor="monthly_submission_limit" className="text-sm font-medium">Monthly Submission Limit</Label>
+                {isEditing ? (
+                  <Input
+                    id="monthly_submission_limit"
+                    type="number"
+                    value={formData.monthly_submission_limit}
+                    onChange={(e) => setFormData({...formData, monthly_submission_limit: parseInt(e.target.value) || 4})}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {member.monthly_submission_limit} reposts per month
+                  </p>
+                )}
+              </div>
             </div>
 
             {isEditing && (
@@ -332,7 +355,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           {/* Activity Stats */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Activity & Stats</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Total Followers</Label>
+                <p className="text-sm text-muted-foreground mt-1">{member.followers?.toLocaleString() || 0}</p>
+              </div>
               <div>
                 <Label className="text-sm font-medium">Submissions This Month</Label>
                 <p className="text-sm text-muted-foreground mt-1">{member.submissions_this_month}</p>
@@ -340,12 +367,6 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               <div>
                 <Label className="text-sm font-medium">Net Credits</Label>
                 <p className="text-sm text-muted-foreground mt-1">{member.net_credits}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Member Since</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {new Date(member.created_at).toLocaleDateString()}
-                </p>
               </div>
             </div>
           </div>

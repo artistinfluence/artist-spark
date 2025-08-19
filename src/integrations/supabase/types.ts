@@ -14,16 +14,451 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      complaints: {
+        Row: {
+          ack_sent_at: string | null
+          created_at: string | null
+          email: string
+          id: string
+          notes: string | null
+          owner_id: string | null
+          resend_message_ids: string[] | null
+          song_url: string | null
+          status: Database["public"]["Enums"]["complaint_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          ack_sent_at?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          resend_message_ids?: string[] | null
+          song_url?: string | null
+          status?: Database["public"]["Enums"]["complaint_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          ack_sent_at?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          resend_message_ids?: string[] | null
+          song_url?: string | null
+          status?: Database["public"]["Enums"]["complaint_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      genre_families: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inquiries: {
+        Row: {
+          admitted_at: string | null
+          admitted_group: string | null
+          created_at: string | null
+          email: string
+          id: string
+          ip_join_confirmed: boolean | null
+          member_id: string | null
+          name: string
+          notes: string | null
+          owner_id: string | null
+          resend_message_ids: string[] | null
+          soundcloud_url: string | null
+          status: Database["public"]["Enums"]["inquiry_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          admitted_at?: string | null
+          admitted_group?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_join_confirmed?: boolean | null
+          member_id?: string | null
+          name: string
+          notes?: string | null
+          owner_id?: string | null
+          resend_message_ids?: string[] | null
+          soundcloud_url?: string | null
+          status?: Database["public"]["Enums"]["inquiry_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          admitted_at?: string | null
+          admitted_group?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_join_confirmed?: boolean | null
+          member_id?: string | null
+          name?: string
+          notes?: string | null
+          owner_id?: string | null
+          resend_message_ids?: string[] | null
+          soundcloud_url?: string | null
+          status?: Database["public"]["Enums"]["inquiry_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_events: {
+        Row: {
+          event_type: string
+          id: string
+          message_id: string
+          meta: Json | null
+          object_id: string
+          object_type: string
+          timestamp: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          message_id: string
+          meta?: Json | null
+          object_id: string
+          object_type: string
+          timestamp?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          message_id?: string
+          meta?: Json | null
+          object_id?: string
+          object_type?: string
+          timestamp?: string | null
+        }
+        Relationships: []
+      }
+      members: {
+        Row: {
+          created_at: string | null
+          credits_given: number | null
+          credits_used: number | null
+          emails: string[] | null
+          families: string[] | null
+          followers: number | null
+          id: string
+          last_submission_at: string | null
+          monthly_credit_limit: number | null
+          monthly_submission_limit: number | null
+          name: string
+          net_credits: number | null
+          primary_email: string | null
+          reach_factor: number | null
+          size_tier: Database["public"]["Enums"]["size_tier"] | null
+          status: Database["public"]["Enums"]["member_status"] | null
+          subgenres: string[] | null
+          submissions_this_month: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_given?: number | null
+          credits_used?: number | null
+          emails?: string[] | null
+          families?: string[] | null
+          followers?: number | null
+          id?: string
+          last_submission_at?: string | null
+          monthly_credit_limit?: number | null
+          monthly_submission_limit?: number | null
+          name: string
+          net_credits?: number | null
+          primary_email?: string | null
+          reach_factor?: number | null
+          size_tier?: Database["public"]["Enums"]["size_tier"] | null
+          status?: Database["public"]["Enums"]["member_status"] | null
+          subgenres?: string[] | null
+          submissions_this_month?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_given?: number | null
+          credits_used?: number | null
+          emails?: string[] | null
+          families?: string[] | null
+          followers?: number | null
+          id?: string
+          last_submission_at?: string | null
+          monthly_credit_limit?: number | null
+          monthly_submission_limit?: number | null
+          name?: string
+          net_credits?: number | null
+          primary_email?: string | null
+          reach_factor?: number | null
+          size_tier?: Database["public"]["Enums"]["size_tier"] | null
+          status?: Database["public"]["Enums"]["member_status"] | null
+          subgenres?: string[] | null
+          submissions_this_month?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          adjacency_matrix: Json | null
+          created_at: string | null
+          decision_sla_hours: number | null
+          default_reach_factor: number | null
+          id: string
+          inactivity_days: number | null
+          preview_cache_days: number | null
+          proof_sla_hours: number | null
+          size_tier_thresholds: Json | null
+          slack_channel: string | null
+          slack_enabled: boolean | null
+          slack_webhook: string | null
+          target_band_mode:
+            | Database["public"]["Enums"]["target_band_mode"]
+            | null
+          updated_at: string | null
+        }
+        Insert: {
+          adjacency_matrix?: Json | null
+          created_at?: string | null
+          decision_sla_hours?: number | null
+          default_reach_factor?: number | null
+          id?: string
+          inactivity_days?: number | null
+          preview_cache_days?: number | null
+          proof_sla_hours?: number | null
+          size_tier_thresholds?: Json | null
+          slack_channel?: string | null
+          slack_enabled?: boolean | null
+          slack_webhook?: string | null
+          target_band_mode?:
+            | Database["public"]["Enums"]["target_band_mode"]
+            | null
+          updated_at?: string | null
+        }
+        Update: {
+          adjacency_matrix?: Json | null
+          created_at?: string | null
+          decision_sla_hours?: number | null
+          default_reach_factor?: number | null
+          id?: string
+          inactivity_days?: number | null
+          preview_cache_days?: number | null
+          proof_sla_hours?: number | null
+          size_tier_thresholds?: Json | null
+          slack_channel?: string | null
+          slack_enabled?: boolean | null
+          slack_webhook?: string | null
+          target_band_mode?:
+            | Database["public"]["Enums"]["target_band_mode"]
+            | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subgenres: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          family_id: string
+          id: string
+          name: string
+          order_index: number | null
+          patterns: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          family_id: string
+          id?: string
+          name: string
+          order_index?: number | null
+          patterns?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          family_id?: string
+          id?: string
+          name?: string
+          order_index?: number | null
+          patterns?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subgenres_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "genre_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          artist_name: string | null
+          created_at: string | null
+          expected_reach_max: number | null
+          expected_reach_min: number | null
+          expected_reach_planned: number | null
+          family: string | null
+          id: string
+          member_id: string
+          need_live_link: boolean | null
+          notes: string | null
+          owner_id: string | null
+          qa_flag: boolean | null
+          qa_reason: string | null
+          resend_message_ids: string[] | null
+          status: Database["public"]["Enums"]["submission_status"] | null
+          subgenres: string[] | null
+          submitted_at: string | null
+          suggested_supporters: string[] | null
+          support_date: string | null
+          support_url: string | null
+          track_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          artist_name?: string | null
+          created_at?: string | null
+          expected_reach_max?: number | null
+          expected_reach_min?: number | null
+          expected_reach_planned?: number | null
+          family?: string | null
+          id?: string
+          member_id: string
+          need_live_link?: boolean | null
+          notes?: string | null
+          owner_id?: string | null
+          qa_flag?: boolean | null
+          qa_reason?: string | null
+          resend_message_ids?: string[] | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          subgenres?: string[] | null
+          submitted_at?: string | null
+          suggested_supporters?: string[] | null
+          support_date?: string | null
+          support_url?: string | null
+          track_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          artist_name?: string | null
+          created_at?: string | null
+          expected_reach_max?: number | null
+          expected_reach_min?: number | null
+          expected_reach_planned?: number | null
+          family?: string | null
+          id?: string
+          member_id?: string
+          need_live_link?: boolean | null
+          notes?: string | null
+          owner_id?: string | null
+          qa_flag?: boolean | null
+          qa_reason?: string | null
+          resend_message_ids?: string[] | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          subgenres?: string[] | null
+          submitted_at?: string | null
+          suggested_supporters?: string[] | null
+          support_date?: string | null
+          support_url?: string | null
+          track_url?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_member_id_for_user: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "member"
+      complaint_status: "todo" | "in_progress" | "done"
+      inquiry_status: "undecided" | "admitted" | "rejected"
+      member_status: "active" | "needs_reconnect"
+      size_tier: "T1" | "T2" | "T3" | "T4"
+      submission_status: "new" | "approved" | "rejected"
+      target_band_mode: "balance" | "size"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +585,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "member"],
+      complaint_status: ["todo", "in_progress", "done"],
+      inquiry_status: ["undecided", "admitted", "rejected"],
+      member_status: ["active", "needs_reconnect"],
+      size_tier: ["T1", "T2", "T3", "T4"],
+      submission_status: ["new", "approved", "rejected"],
+      target_band_mode: ["balance", "size"],
+    },
   },
 } as const

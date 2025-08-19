@@ -9,6 +9,7 @@ import { LoginPage } from "@/components/auth/LoginPage";
 import { RoleBasedRoute } from "@/components/auth/RoleBasedRoute";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
+import { SubmissionsPage } from "@/components/dashboard/SubmissionsPage";
 import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
@@ -71,7 +72,7 @@ const App = () => (
               } 
             >
               <Route index element={<DashboardOverview />} />
-              <Route path="submissions" element={<div className="p-8 text-center text-muted-foreground">Submissions page coming soon...</div>} />
+              <Route path="submissions" element={<SubmissionsPage />} />
               <Route path="queue" element={<div className="p-8 text-center text-muted-foreground">Queue page coming soon...</div>} />
               <Route path="members" element={<div className="p-8 text-center text-muted-foreground">Members page coming soon...</div>} />
               <Route path="inquiries" element={<div className="p-8 text-center text-muted-foreground">Inquiries page coming soon...</div>} />

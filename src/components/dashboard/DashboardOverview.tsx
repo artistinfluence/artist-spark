@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useSubmissions } from "@/hooks/useSubmissions";
 import {
   FileText,
   Clock,
@@ -15,16 +16,17 @@ import {
 
 export const DashboardOverview = () => {
   const navigate = useNavigate();
+  const { stats: submissionStats, loading: statsLoading } = useSubmissions();
 
-  // Mock data - in real app this would come from API
+  // Real data from database
   const stats = [
     {
       title: "New Submissions",
-      value: "12",
+      value: statsLoading ? "..." : submissionStats.new.toString(),
       description: "Pending review",
       icon: FileText,
-      change: "+3",
-      changeType: "positive" as const,
+      change: `${submissionStats.total} total`,
+      changeType: "neutral" as const,
       href: "/dashboard/submissions",
     },
     {
@@ -203,7 +205,7 @@ export const DashboardOverview = () => {
             >
               <FileText className="h-4 w-4" />
               Review New Submissions
-              <Badge variant="secondary" className="ml-auto">12</Badge>
+              <Badge variant="secondary" className="ml-auto">{submissionStats.new}</Badge>
             </Button>
             <Button 
               variant="secondary" 

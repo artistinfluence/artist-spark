@@ -365,7 +365,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 <p className="text-sm text-muted-foreground mt-1">{member.submissions_this_month}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium">Net Credits</Label>
+                <Label className="text-sm font-medium">Net Reposts</Label>
                 <p className="text-sm text-muted-foreground mt-1">{member.net_credits}</p>
               </div>
             </div>

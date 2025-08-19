@@ -51,6 +51,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     monthly_submission_limit: 4
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
 
   useEffect(() => {
     if (member) {
@@ -123,6 +124,48 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAutoClassify = async () => {
+    if (!member?.spotify_url) {
+      toast({
+        title: "No Spotify URL",
+        description: "Please add a Spotify artist URL first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsClassifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('classify-track', {
+        body: {
+          trackUrl: member.spotify_url,
+          memberId: member.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Classification Complete",
+          description: `Classified as ${data.classification.family} with ${data.classification.subgenres.length} subgenres`,
+        });
+        onUpdate();
+      } else {
+        throw new Error(data.error || 'Classification failed');
+      }
+    } catch (error: any) {
+      console.error('Error classifying artist:', error);
+      toast({
+        title: "Classification Error",
+        description: error.message || "Failed to classify artist genres",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClassifying(false);
     }
   };
 
@@ -306,7 +349,19 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 
           {/* Genres */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Genres</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Genres</h3>
+              {member.spotify_url && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleAutoClassify}
+                  disabled={isClassifying}
+                >
+                  {isClassifying ? 'Classifying...' : 'Auto-Classify from Spotify'}
+                </Button>
+              )}
+            </div>
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-medium">Genre Families</Label>

@@ -74,13 +74,18 @@ async function getSpotifyAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-function extractTrackInfo(url: string): { artist?: string; track?: string; spotifyId?: string } {
+function extractTrackInfo(url: string): { artist?: string; track?: string; spotifyId?: string; artistId?: string } {
   try {
     // Handle Spotify URLs
     if (url.includes('spotify.com') || url.includes('open.spotify.com')) {
-      const match = url.match(/track\/([a-zA-Z0-9]+)/);
-      if (match) {
-        return { spotifyId: match[1] };
+      const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
+      if (trackMatch) {
+        return { spotifyId: trackMatch[1] };
+      }
+      
+      const artistMatch = url.match(/artist\/([a-zA-Z0-9]+)/);
+      if (artistMatch) {
+        return { artistId: artistMatch[1] };
       }
     }
     
@@ -132,6 +137,23 @@ async function getSpotifyTrackById(accessToken: string, trackId: string): Promis
 
   if (!response.ok) {
     throw new Error(`Failed to get Spotify track: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+async function getSpotifyArtistById(accessToken: string, artistId: string): Promise<any> {
+  const response = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to get Spotify artist: ${response.statusText}`);
   }
 
   return await response.json();
@@ -205,7 +227,7 @@ serve(async (req) => {
   }
 
   try {
-    const { trackUrl, submissionId } = await req.json();
+    const { trackUrl, submissionId, memberId } = await req.json();
     
     if (!trackUrl) {
       return new Response(
@@ -222,24 +244,74 @@ serve(async (req) => {
     // Get Spotify access token
     const accessToken = await getSpotifyAccessToken();
     
-    // Extract track information from URL
+    // Extract track/artist information from URL
     const trackInfo = extractTrackInfo(trackUrl);
-    console.log('Extracted track info:', trackInfo);
+    console.log('Extracted info:', trackInfo);
     
     let spotifyTrack = null;
+    let artistGenres: string[] = [];
+    let audioFeatures = null;
+    let artistData = null;
     
-    if (trackInfo.spotifyId) {
+    if (trackInfo.artistId) {
+      // Direct Spotify artist URL for member classification
+      artistData = await getSpotifyArtistById(accessToken, trackInfo.artistId);
+      artistGenres.push(...(artistData.genres || []));
+      console.log('Found Spotify artist:', artistData.name);
+    } else if (trackInfo.spotifyId) {
       // Direct Spotify track
       spotifyTrack = await getSpotifyTrackById(accessToken, trackInfo.spotifyId);
+      
+      // Get genres from track artists
+      for (const artist of spotifyTrack.artists) {
+        const artistResponse = await fetch(
+          `https://api.spotify.com/v1/artists/${artist.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+        
+        if (artistResponse.ok) {
+          const artistResponseData = await artistResponse.json();
+          artistGenres.push(...(artistResponseData.genres || []));
+        }
+      }
+      
+      audioFeatures = await getAudioFeatures(accessToken, spotifyTrack.id);
+      console.log('Found Spotify track:', spotifyTrack.name, 'by', spotifyTrack.artists[0].name);
     } else if (trackInfo.artist && trackInfo.track) {
       // Search for SoundCloud track on Spotify
       spotifyTrack = await searchSpotifyTrack(accessToken, trackInfo.artist, trackInfo.track);
+      
+      if (spotifyTrack) {
+        // Get genres from track artists
+        for (const artist of spotifyTrack.artists) {
+          const artistResponse = await fetch(
+            `https://api.spotify.com/v1/artists/${artist.id}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          if (artistResponse.ok) {
+            const artistResponseData = await artistResponse.json();
+            artistGenres.push(...(artistResponseData.genres || []));
+          }
+        }
+        
+        audioFeatures = await getAudioFeatures(accessToken, spotifyTrack.id);
+        console.log('Found Spotify track:', spotifyTrack.name, 'by', spotifyTrack.artists[0].name);
+      }
     }
     
-    if (!spotifyTrack) {
+    if (!spotifyTrack && !artistData) {
       return new Response(
         JSON.stringify({ 
-          error: 'Could not find track on Spotify',
+          error: 'Could not find track or artist on Spotify',
           suggestion: 'Try manually setting the genre classification'
         }),
         { 
@@ -248,29 +320,6 @@ serve(async (req) => {
         }
       );
     }
-
-    console.log('Found Spotify track:', spotifyTrack.name, 'by', spotifyTrack.artists[0].name);
-    
-    // Get genres from artists
-    const artistGenres: string[] = [];
-    for (const artist of spotifyTrack.artists) {
-      const artistResponse = await fetch(
-        `https://api.spotify.com/v1/artists/${artist.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        }
-      );
-      
-      if (artistResponse.ok) {
-        const artistData = await artistResponse.json();
-        artistGenres.push(...(artistData.genres || []));
-      }
-    }
-
-    // Get audio features for additional classification hints
-    const audioFeatures = await getAudioFeatures(accessToken, spotifyTrack.id);
     
     // Classify genres
     const classification = classifyGenres(artistGenres);
@@ -297,14 +346,41 @@ serve(async (req) => {
         console.log('Updated submission with classification');
       }
     }
+    
+    // If memberId provided, update the member
+    if (memberId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({
+          families: [classification.family],
+          subgenres: classification.subgenres,
+          spotify_genres: artistGenres,
+        })
+        .eq('id', memberId);
+      
+      if (updateError) {
+        console.error('Failed to update member:', updateError);
+      } else {
+        console.log('Updated member with classification');
+      }
+    }
 
     const result = {
       success: true,
-      trackInfo: {
+      trackInfo: spotifyTrack ? {
         name: spotifyTrack.name,
         artist: spotifyTrack.artists[0].name,
         spotifyUrl: spotifyTrack.external_urls.spotify,
-      },
+      } : null,
+      artistInfo: artistData ? {
+        name: artistData.name,
+        spotifyUrl: artistData.external_urls.spotify,
+        followers: artistData.followers?.total || 0,
+      } : null,
       classification,
       spotifyGenres: artistGenres,
       audioFeatures: audioFeatures ? {

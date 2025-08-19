@@ -15,6 +15,9 @@ import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
+import { InquiriesPage } from "@/components/dashboard/InquiriesPage";
+import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage"; 
+import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
 import { QueueManagement } from "@/components/dashboard/QueueManagement";
 import { MemberQueue } from "@/components/portal/MemberQueue";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
@@ -78,9 +81,9 @@ const App = () => (
               <Route path="submissions" element={<SubmissionsPage />} />
               <Route path="queue" element={<QueueManagement />} />
               <Route path="members" element={<MembersPage />} />
-              <Route path="inquiries" element={<div className="p-8 text-center text-muted-foreground">Inquiries page coming soon...</div>} />
-              <Route path="complaints" element={<div className="p-8 text-center text-muted-foreground">Complaints page coming soon...</div>} />
-              <Route path="health" element={<div className="p-8 text-center text-muted-foreground">Health dashboard coming soon...</div>} />
+              <Route path="inquiries" element={<InquiriesPage />} />
+              <Route path="complaints" element={<ComplaintsPage />} />
+              <Route path="health" element={<HealthDashboard />} />
               <Route path="admin/genres" element={<div className="p-8 text-center text-muted-foreground">Genre admin coming soon...</div>} />
               <Route path="admin/settings" element={<div className="p-8 text-center text-muted-foreground">Settings coming soon...</div>} />
             </Route>

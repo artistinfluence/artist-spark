@@ -9,12 +9,23 @@ const corsHeaders = {
 
 // Genre mapping logic from Spotify genres to our genre families
 const genreMapping: { [key: string]: { family: string; subgenres: string[] } } = {
-  // Electronic
+  // Electronic / Bass Music
   'edm': { family: 'Electronic', subgenres: ['EDM'] },
   'house': { family: 'Electronic', subgenres: ['House'] },
   'techno': { family: 'Electronic', subgenres: ['Techno'] },
   'trance': { family: 'Electronic', subgenres: ['Trance'] },
   'dubstep': { family: 'Electronic', subgenres: ['Dubstep'] },
+  'brostep': { family: 'Electronic', subgenres: ['Brostep'] },
+  'riddim': { family: 'Electronic', subgenres: ['Riddim'] },
+  'tearout': { family: 'Electronic', subgenres: ['Tearout'] },
+  'melodic dubstep': { family: 'Electronic', subgenres: ['Melodic Dubstep'] },
+  'color bass': { family: 'Electronic', subgenres: ['Color Bass'] },
+  'future riddim': { family: 'Electronic', subgenres: ['Future Riddim'] },
+  'drumstep': { family: 'Electronic', subgenres: ['Drumstep'] },
+  'trapstep': { family: 'Electronic', subgenres: ['Trapstep'] },
+  'bass music': { family: 'Electronic', subgenres: ['Bass Music'] },
+  'uk bass': { family: 'Electronic', subgenres: ['UK Bass'] },
+  'deep dubstep': { family: 'Electronic', subgenres: ['Deep Dubstep'] },
   'future bass': { family: 'Electronic', subgenres: ['Future Bass'] },
   'synth-pop': { family: 'Electronic', subgenres: ['Synth Pop'] },
   'synthpop': { family: 'Electronic', subgenres: ['Synth Pop'] },
@@ -326,11 +337,14 @@ serve(async (req) => {
     
     console.log('Classification result:', classification);
 
+    // Prepare holder for updated member
+    let updatedMember: any = null;
+
     // If submissionId provided, update the submission
     if (submissionId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, serviceRoleKey);
       
       const { error: updateError } = await supabase
         .from('submissions')
@@ -350,21 +364,24 @@ serve(async (req) => {
     // If memberId provided, update the member
     if (memberId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, serviceRoleKey);
       
-      const { error: updateError } = await supabase
+      const { data: updated, error: updateError } = await supabase
         .from('members')
         .update({
           families: [classification.family],
           subgenres: classification.subgenres,
           spotify_genres: artistGenres,
         })
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .select('*')
+        .single();
       
       if (updateError) {
         console.error('Failed to update member:', updateError);
       } else {
+        updatedMember = updated;
         console.log('Updated member with classification');
       }
     }
@@ -389,6 +406,7 @@ serve(async (req) => {
         valence: audioFeatures.valence,
         tempo: audioFeatures.tempo,
       } : null,
+      updatedMember,
     };
 
     return new Response(JSON.stringify(result), {

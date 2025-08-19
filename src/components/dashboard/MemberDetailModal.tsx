@@ -52,6 +52,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
+  const [displayMember, setDisplayMember] = useState<Member | null>(null);
 
   useEffect(() => {
     if (member) {
@@ -61,6 +62,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         soundcloud_followers: member.soundcloud_followers || 0,
         monthly_submission_limit: member.monthly_submission_limit || 4
       });
+      setDisplayMember(member);
     }
   }, [member]);
 
@@ -184,6 +186,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           title: "Classification Complete",
           description: `Classified as ${data.classification.family} with ${data.classification.subgenres.length} subgenres`,
         });
+        if (data.updatedMember) {
+          setDisplayMember(data.updatedMember);
+        }
         // Refresh the modal data
         onUpdate();
       } else {
@@ -403,8 +408,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               <div>
                 <Label className="text-sm font-medium">Genre Families</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {member.families?.length ? (
-                    member.families.map((family, index) => (
+                  {((displayMember?.families ?? member.families)?.length) ? (
+                    (displayMember?.families ?? member.families)!.map((family, index) => (
                       <Badge key={index} variant="secondary">{family}</Badge>
                     ))
                   ) : (
@@ -416,8 +421,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               <div>
                 <Label className="text-sm font-medium">Subgenres</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {member.subgenres?.length ? (
-                    member.subgenres.map((subgenre, index) => (
+                  {((displayMember?.subgenres ?? member.subgenres)?.length) ? (
+                    (displayMember?.subgenres ?? member.subgenres)!.map((subgenre, index) => (
                       <Badge key={index} variant="outline">{subgenre}</Badge>
                     ))
                   ) : (
@@ -426,11 +431,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 </div>
               </div>
 
-              {member.spotify_genres?.length > 0 && (
+              {(displayMember?.spotify_genres ?? member.spotify_genres)?.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium">Spotify Genres</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {member.spotify_genres.map((genre, index) => (
+                    {(displayMember?.spotify_genres ?? member.spotify_genres)!.map((genre, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         <Music className="h-3 w-3 mr-1" />
                         {genre}

@@ -752,6 +752,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      call_send_notification_email: {
+        Args: {
+          email_to: string
+          notification_message?: string
+          notification_title?: string
+          notification_type?: string
+          related_object_id?: string
+          related_object_type?: string
+          template_data: Json
+          template_name: string
+          user_id_param?: string
+        }
+        Returns: undefined
+      }
       check_user_is_member: {
         Args: { _user_email: string }
         Returns: boolean

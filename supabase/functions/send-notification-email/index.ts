@@ -16,7 +16,9 @@ import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx'
 import { TestEmail } from './_templates/test-email.tsx';
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-const resendFrom = Deno.env.get('RESEND_FROM');
+const resendFromEnv = Deno.env.get('RESEND_FROM') || '';
+const fallbackFrom = 'SoundCloud Groups <onboarding@resend.dev>';
+const resendFrom = resendFromEnv.trim() !== '' ? resendFromEnv : fallbackFrom;
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -25,11 +27,11 @@ const supabase = createClient(
 // Validate environment variables - Force redeployment to pick up secrets
 console.log('Environment check on function startup:');
 console.log('- RESEND_API_KEY present:', !!Deno.env.get('RESEND_API_KEY'));
-console.log('- RESEND_FROM present:', !!resendFrom);
-if (!resendFrom) {
-  console.error('RESEND_FROM environment variable is not set');
+console.log('- RESEND_FROM provided:', resendFromEnv.trim() !== '');
+if (resendFromEnv.trim() === '') {
+  console.warn('RESEND_FROM is not set; using fallback:', fallbackFrom);
 } else {
-  console.log('RESEND_FROM configured:', resendFrom);
+  console.log('RESEND_FROM configured:', resendFromEnv);
 }
 
 const corsHeaders = {
@@ -194,14 +196,12 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = await renderAsync(emailElement);
     console.log('Email HTML rendered successfully');
 
-    // Validate RESEND_FROM before sending
-    if (!resendFrom) {
-      throw new Error('RESEND_FROM environment variable is not set. Please configure it in Supabase secrets.');
-    }
-
-    // Use simple email format for better compatibility
-    const fromField = resendFrom;
-    console.log('Sending email from:', fromField);
+// Determine FROM field (env or fallback)
+const fromField = resendFrom;
+if (resendFromEnv.trim() === '') {
+  console.warn('Using fallback FROM address:', fromField);
+}
+console.log('Sending email from:', fromField);
 
     // Send email via Resend
     const { data: emailResponse, error: emailError } = await resend.emails.send({

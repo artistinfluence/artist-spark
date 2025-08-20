@@ -196,8 +196,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('RESEND_FROM environment variable is not set. Please configure it in Supabase secrets.');
     }
 
-    // Construct from field
-    const fromField = `SoundCloud Groups <${resendFrom}>`;
+    // Use simple email format for better compatibility
+    const fromField = resendFrom;
     console.log('Sending email from:', fromField);
 
     // Send email via Resend

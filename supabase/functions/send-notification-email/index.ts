@@ -13,13 +13,21 @@ import { ReconnectInfluencePlannerEmail } from './_templates/reconnect-influence
 import { RequestLiveLinkEmail } from './_templates/request-live-link.tsx';
 import { TrackingLinkEmail } from './_templates/tracking-link.tsx';
 import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx';
+import { TestEmail } from './_templates/test-email.tsx';
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-const resendFrom = Deno.env.get('RESEND_FROM') || 'onboarding@resend.dev';
+const resendFrom = Deno.env.get('RESEND_FROM');
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
+
+// Validate RESEND_FROM secret
+if (!resendFrom) {
+  console.error('RESEND_FROM environment variable is not set');
+} else {
+  console.log('RESEND_FROM configured:', resendFrom);
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,14 +151,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Select and render template
     let emailElement;
     
-    if (testEmail) {
-      // Simple test email
-      emailElement = React.createElement('div', {}, 
-        React.createElement('h1', {}, 'Test Email'),
-        React.createElement('p', {}, 'This is a test email from SoundCloud Groups automation system.'),
-        React.createElement('p', {}, `Template: ${template}`),
-        React.createElement('p', {}, `Sent at: ${new Date().toISOString()}`)
-      );
+    if (testEmail || template === 'test') {
+      // Use proper test email template
+      emailElement = React.createElement(TestEmail, {
+        firstName: data.firstName || 'Test User'
+      });
     } else {
       switch (template) {
         case 'submission-confirmation':
@@ -186,9 +191,18 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = await renderAsync(emailElement);
     console.log('Email HTML rendered successfully');
 
+    // Validate RESEND_FROM before sending
+    if (!resendFrom) {
+      throw new Error('RESEND_FROM environment variable is not set. Please configure it in Supabase secrets.');
+    }
+
+    // Construct from field
+    const fromField = `SoundCloud Groups <${resendFrom}>`;
+    console.log('Sending email from:', fromField);
+
     // Send email via Resend
     const { data: emailResponse, error: emailError } = await resend.emails.send({
-      from: `SoundCloud Groups <${resendFrom}>`,
+      from: fromField,
       to: [to],
       subject: subject,
       html: emailHtml,

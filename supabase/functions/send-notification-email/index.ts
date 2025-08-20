@@ -15,6 +15,7 @@ import { TrackingLinkEmail } from './_templates/tracking-link.tsx';
 import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx';
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const resendFrom = Deno.env.get('RESEND_FROM') || 'onboarding@resend.dev';
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -187,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const { data: emailResponse, error: emailError } = await resend.emails.send({
-      from: 'SoundCloud Groups <onboarding@resend.dev>', // Using verified domain temporarily
+      from: `SoundCloud Groups <${resendFrom}>`,
       to: [to],
       subject: subject,
       html: emailHtml,

@@ -107,6 +107,37 @@ export const InquiriesPage: React.FC = () => {
 
       if (error) throw error;
 
+      // Send email notification for status changes
+      if (status === 'admitted' || status === 'rejected') {
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
+            body: {
+              to: selectedInquiry.email,
+              template: status === 'admitted' ? 'welcome-admission' : 'inquiry-rejection',
+              data: {
+                firstName: selectedInquiry.name.split(' ')[0],
+                submissionFormUrl: status === 'admitted' ? '/portal/submit' : undefined
+              },
+              notificationData: {
+                title: status === 'admitted' ? 'Welcome to SoundCloud Groups' : 'Inquiry Status Update',
+                message: status === 'admitted' 
+                  ? 'Congratulations! You have been accepted to our SoundCloud groups.' 
+                  : 'Thank you for your interest. We are unable to accept your application at this time.',
+                type: status === 'admitted' ? 'success' : 'info'
+              },
+              relatedObjectType: 'inquiry',
+              relatedObjectId: inquiryId
+            }
+          });
+          
+          if (emailError) {
+            console.error('Email sending failed:', emailError);
+          }
+        } catch (emailError) {
+          console.error('Email function call failed:', emailError);
+        }
+      }
+
       toast({
         title: "Success",
         description: `Inquiry ${status} successfully`,

@@ -122,6 +122,42 @@ export const SubmissionsPage = () => {
 
       if (error) throw error;
 
+      // Send email notification for status changes
+      if (newStatus === 'approved' || newStatus === 'rejected') {
+        const submission = submissions.find(s => s.id === submissionId);
+        if (submission?.members) {
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
+              body: {
+                to: submission.members.primary_email,
+                template: newStatus === 'approved' ? 'support-confirmation' : 'submission-rejected',
+                data: {
+                  firstName: submission.members.name.split(' ')[0],
+                  songName: submission.artist_name || 'Your Track',
+                  confirmDate: newStatus === 'approved' ? 'TBD' : undefined
+                },
+                userId: submission.member_id,
+                notificationData: {
+                  title: newStatus === 'approved' ? 'Submission Approved' : 'Submission Not Approved',
+                  message: newStatus === 'approved' 
+                    ? 'Your track has been approved for support' 
+                    : 'Your track submission was not approved this time.',
+                  type: newStatus === 'approved' ? 'success' : 'warning'
+                },
+                relatedObjectType: 'submission',
+                relatedObjectId: submissionId
+              }
+            });
+            
+            if (emailError) {
+              console.error('Email sending failed:', emailError);
+            }
+          } catch (emailError) {
+            console.error('Email function call failed:', emailError);
+          }
+        }
+      }
+
       toast({
         title: "Status Updated",
         description: `Submission status changed to ${statusConfig[newStatus]?.label || newStatus}`,

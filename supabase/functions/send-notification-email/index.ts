@@ -196,12 +196,12 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = await renderAsync(emailElement);
     console.log('Email HTML rendered successfully');
 
-// Determine FROM field (env or fallback)
-const fromField = resendFrom;
-if (resendFromEnv.trim() === '') {
-  console.warn('Using fallback FROM address:', fromField);
-}
-console.log('Sending email from:', fromField);
+    // Determine FROM field (env or fallback)
+    const fromField = resendFrom;
+    if (resendFromEnv.trim() === '') {
+      console.warn('Using fallback FROM address:', fromField);
+    }
+    console.log('Sending email from:', fromField);
 
     // Send email via Resend
     const { data: emailResponse, error: emailError } = await resend.emails.send({

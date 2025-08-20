@@ -1,22 +1,24 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.55.0';
 import { Resend } from "npm:resend@4.0.0";
-import { renderAsync } from "npm:@react-email/components@0.0.22";
-import React from "npm:react@18.3.1";
+import React from 'npm:react@18.3.1';
+import { renderAsync } from 'npm:@react-email/components@0.0.22';
 
 // Import email templates
 import { SubmissionConfirmationEmail } from './_templates/submission-confirmation.tsx';
-import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx';
+import { SubmissionRejectedEmail } from './_templates/submission-rejected.tsx';
 import { WelcomeAdmissionEmail } from './_templates/welcome-admission.tsx';
 import { InquiryRejectionEmail } from './_templates/inquiry-rejection.tsx';
-import { TrackingLinkEmail } from './_templates/tracking-link.tsx';
-import { RequestLiveLinkEmail } from './_templates/request-live-link.tsx';
 import { ReconnectInfluencePlannerEmail } from './_templates/reconnect-influence-planner.tsx';
-import { SubmissionRejectedEmail } from './_templates/submission-rejected.tsx';
+import { RequestLiveLinkEmail } from './_templates/request-live-link.tsx';
+import { TrackingLinkEmail } from './_templates/tracking-link.tsx';
+import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx';
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY") as string);
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,117 +36,281 @@ interface EmailRequest {
     type: string;
     action_url?: string;
   };
+  relatedObjectType?: string;
+  relatedObjectId?: string;
+  testEmail?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('send-notification-email function called');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let emailLogId = null;
+  let automationSuccess = false;
+  let automationName = 'notification-emails';
+
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { to, template, data, userId, notificationData }: EmailRequest = await req.json();
+    const {
+      to,
+      template,
+      data,
+      userId,
+      notificationData,
+      relatedObjectType,
+      relatedObjectId,
+      testEmail = false
+    }: EmailRequest = await req.json();
 
-    console.log(`Sending ${template} email to ${to}`, { data });
+    console.log('Processing email request:', {
+      to: to.substring(0, 3) + '***',
+      template,
+      userId: userId?.substring(0, 8) + '***',
+      hasNotificationData: !!notificationData,
+      relatedObjectType,
+      relatedObjectId: relatedObjectId?.substring(0, 8) + '***' || null,
+      testEmail
+    });
 
-    // Get email template and render
-    let emailComponent;
+    // Set automation name based on template
+    if (template.includes('submission')) {
+      automationName = 'submission-status-emails';
+    } else if (template.includes('inquiry')) {
+      automationName = 'inquiry-status-emails';
+    } else if (template.includes('queue')) {
+      automationName = 'queue-assignment-emails';
+    }
+
+    // Select subject based on template
     let subject = '';
-
     switch (template) {
       case 'submission-confirmation':
-        emailComponent = React.createElement(SubmissionConfirmationEmail, data);
-        subject = 'Submission Received';
-        break;
-      case 'support-confirmation':
-        emailComponent = React.createElement(SupportConfirmationEmail, data);
-        subject = 'SoundCloud Groups // Support Confirmation';
-        break;
-      case 'welcome-admission':
-        emailComponent = React.createElement(WelcomeAdmissionEmail, data);
-        subject = 'Welcome to Our SoundCloud Groups 👏';
-        break;
-      case 'inquiry-rejection':
-        emailComponent = React.createElement(InquiryRejectionEmail, data);
-        subject = 'Your Inquiry Status // Artist Influence SoundCloud Groups';
-        break;
-      case 'tracking-link':
-        emailComponent = React.createElement(TrackingLinkEmail, data);
-        subject = `Your Support Link // ${data.memberName}`;
-        break;
-      case 'request-live-link':
-        emailComponent = React.createElement(RequestLiveLinkEmail, data);
-        subject = 'Please Send Your Live Link';
-        break;
-      case 'reconnect-influence-planner':
-        emailComponent = React.createElement(ReconnectInfluencePlannerEmail, data);
-        subject = '[Artist Influence] ‼️ Reconnect to stay in our SoundCloud repost network 🔁';
+        subject = 'Submission Received - Under Review';
         break;
       case 'submission-rejected':
-        emailComponent = React.createElement(SubmissionRejectedEmail, data);
-        subject = 'Submission: Not Approved';
+        subject = 'Submission Update';
+        break;
+      case 'support-confirmation':
+        subject = 'Your Track Has Been Approved!';
+        break;
+      case 'welcome-admission':
+        subject = 'Welcome to SoundCloud Groups!';
+        break;
+      case 'inquiry-rejection':
+        subject = 'Application Status Update';
+        break;
+      case 'reconnect-influence-planner':
+        subject = 'Let\'s Reconnect - Artist Influence';
+        break;
+      case 'request-live-link':
+        subject = 'Live Link Required';
+        break;
+      case 'tracking-link':
+        subject = 'Your Tracking Link';
         break;
       default:
-        throw new Error(`Unknown email template: ${template}`);
+        subject = testEmail ? 'Test Email from SoundCloud Groups' : 'Notification';
     }
 
-    // Render the email HTML
-    const html = await renderAsync(emailComponent);
+    // Create email log entry
+    const { data: emailLogData, error: logError } = await supabase
+      .from('email_logs')
+      .insert({
+        template_name: template,
+        recipient_email: to,
+        subject: subject,
+        status: 'pending',
+        related_object_type: relatedObjectType,
+        related_object_id: relatedObjectId,
+        user_id: userId,
+        template_data: data,
+        metadata: { testEmail }
+      })
+      .select('id')
+      .single();
+
+    if (logError) {
+      console.error('Failed to create email log:', logError);
+    } else {
+      emailLogId = emailLogData.id;
+      console.log('Email log created:', emailLogId);
+    }
+
+    // Select and render template
+    let emailElement;
+    
+    if (testEmail) {
+      // Simple test email
+      emailElement = React.createElement('div', {}, 
+        React.createElement('h1', {}, 'Test Email'),
+        React.createElement('p', {}, 'This is a test email from SoundCloud Groups automation system.'),
+        React.createElement('p', {}, `Template: ${template}`),
+        React.createElement('p', {}, `Sent at: ${new Date().toISOString()}`)
+      );
+    } else {
+      switch (template) {
+        case 'submission-confirmation':
+          emailElement = React.createElement(SubmissionConfirmationEmail, data);
+          break;
+        case 'submission-rejected':
+          emailElement = React.createElement(SubmissionRejectedEmail, data);
+          break;
+        case 'support-confirmation':
+          emailElement = React.createElement(SupportConfirmationEmail, data);
+          break;
+        case 'welcome-admission':
+          emailElement = React.createElement(WelcomeAdmissionEmail, data);
+          break;
+        case 'inquiry-rejection':
+          emailElement = React.createElement(InquiryRejectionEmail, data);
+          break;
+        case 'reconnect-influence-planner':
+          emailElement = React.createElement(ReconnectInfluencePlannerEmail, data);
+          break;
+        case 'request-live-link':
+          emailElement = React.createElement(RequestLiveLinkEmail, data);
+          break;
+        case 'tracking-link':
+          emailElement = React.createElement(TrackingLinkEmail, data);
+          break;
+        default:
+          throw new Error(`Unknown template: ${template}`);
+      }
+    }
+
+    // Render email HTML
+    const emailHtml = await renderAsync(emailElement);
+    console.log('Email HTML rendered successfully');
 
     // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: 'Artist Influence <notifications@artistinfluence.com>',
+    const { data: emailResponse, error: emailError } = await resend.emails.send({
+      from: 'SoundCloud Groups <onboarding@resend.dev>', // Using verified domain temporarily
       to: [to],
       subject: subject,
-      html: html,
+      html: emailHtml,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (emailError) {
+      console.error('Resend error:', emailError);
+      
+      // Update email log with error
+      if (emailLogId) {
+        await supabase
+          .from('email_logs')
+          .update({
+            status: 'failed',
+            error_message: emailError.message || 'Unknown error'
+          })
+          .eq('id', emailLogId);
+      }
+      
+      // Update automation health
+      await supabase.rpc('update_automation_health', {
+        _automation_name: automationName,
+        _success: false,
+        _error_message: emailError.message || 'Email sending failed'
+      });
+      
+      throw emailError;
+    }
 
-    // Create in-app notification if userId and notificationData provided
+    console.log('Email sent successfully:', emailResponse?.id);
+
+    // Update email log with success
+    if (emailLogId) {
+      await supabase
+        .from('email_logs')
+        .update({
+          status: 'sent',
+          resend_message_id: emailResponse?.id,
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', emailLogId);
+    }
+
+    automationSuccess = true;
+
+    // Create notification if requested
+    let notificationCreated = false;
     if (userId && notificationData) {
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          title: notificationData.title,
-          message: notificationData.message,
-          type: notificationData.type,
-          action_url: notificationData.action_url,
-          metadata: { email_sent: true, template: template }
-        });
+      try {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: userId,
+            title: notificationData.title,
+            message: notificationData.message,
+            type: notificationData.type,
+            action_url: notificationData.action_url
+          });
 
-      if (notificationError) {
-        console.error('Failed to create notification:', notificationError);
-      } else {
-        console.log('In-app notification created successfully');
+        if (notificationError) {
+          console.error('Notification creation error:', notificationError);
+        } else {
+          console.log('Notification created successfully');
+          notificationCreated = true;
+        }
+      } catch (notifError) {
+        console.error('Notification creation failed:', notifError);
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      emailId: emailResponse.data?.id,
-      notificationCreated: !!(userId && notificationData)
+    // Update automation health with success
+    await supabase.rpc('update_automation_health', {
+      _automation_name: automationName,
+      _success: true
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      emailId: emailResponse?.id,
+      notificationCreated,
+      emailLogId
     }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+
   } catch (error: any) {
-    console.error("Error in send-notification-email function:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        template: req.url 
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+    console.error('Error in send-notification-email function:', error);
+    
+    // Update email log with error if we have one
+    if (emailLogId) {
+      try {
+        await supabase
+          .from('email_logs')
+          .update({
+            status: 'failed',
+            error_message: error.message || 'Unknown error'
+          })
+          .eq('id', emailLogId);
+      } catch (logUpdateError) {
+        console.error('Failed to update email log with error:', logUpdateError);
       }
-    );
+    }
+
+    // Update automation health
+    try {
+      await supabase.rpc('update_automation_health', {
+        _automation_name: automationName,
+        _success: false,
+        _error_message: error.message || 'Unknown error occurred'
+      });
+    } catch (healthUpdateError) {
+      console.error('Failed to update automation health:', healthUpdateError);
+    }
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      emailLogId
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 };
 

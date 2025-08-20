@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_health: {
+        Row: {
+          automation_name: string
+          created_at: string
+          error_count: number | null
+          id: string
+          last_error_at: string | null
+          last_error_message: string | null
+          last_run_at: string | null
+          last_success_at: string | null
+          status: string
+          success_count: number | null
+          total_runs: number | null
+          updated_at: string
+        }
+        Insert: {
+          automation_name: string
+          created_at?: string
+          error_count?: number | null
+          id?: string
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_run_at?: string | null
+          last_success_at?: string | null
+          status?: string
+          success_count?: number | null
+          total_runs?: number | null
+          updated_at?: string
+        }
+        Update: {
+          automation_name?: string
+          created_at?: string
+          error_count?: number | null
+          id?: string
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_run_at?: string | null
+          last_success_at?: string | null
+          status?: string
+          success_count?: number | null
+          total_runs?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       complaints: {
         Row: {
           ack_sent_at: string | null
@@ -50,6 +95,66 @@ export type Database = {
           song_url?: string | null
           status?: Database["public"]["Enums"]["complaint_status"] | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_email: string
+          related_object_id: string | null
+          related_object_type: string | null
+          resend_message_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_data: Json | null
+          template_name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email: string
+          related_object_id?: string | null
+          related_object_type?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          template_name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string
+          related_object_id?: string | null
+          related_object_type?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          template_name?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -691,6 +796,14 @@ export type Database = {
           target_user_id?: string
           template_data?: Json
           template_name: string
+        }
+        Returns: undefined
+      }
+      update_automation_health: {
+        Args: {
+          _automation_name: string
+          _error_message?: string
+          _success: boolean
         }
         Returns: undefined
       }

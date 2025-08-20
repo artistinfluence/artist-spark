@@ -36,6 +36,7 @@ const navigation: NavItem[] = [
 ];
 
 const adminNavigation: NavItem[] = [
+  { name: "Automation History", href: "/dashboard/admin/automation", icon: Settings },
   { name: "Genre Admin", href: "/dashboard/admin/genres", icon: Settings },
   { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];

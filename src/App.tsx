@@ -20,6 +20,7 @@ import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage";
 import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
 import { QueueManagement } from "@/components/dashboard/QueueManagement";
 import { MemberQueue } from "@/components/portal/MemberQueue";
+import { AutomationHistoryPage } from "@/components/dashboard/AutomationHistoryPage";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
 import Index from "./pages/Index";
 import PreviewTool from "./pages/PreviewTool";
@@ -71,8 +72,7 @@ const App = () => (
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             
             {/* Admin Dashboard - Only admins and moderators */}
-            <Route 
-              path="/dashboard" 
+            <Route path="/dashboard" 
               element={
                 <RoleBasedRoute allowedRoles={['admin', 'moderator']}>
                   <DashboardLayout />
@@ -86,6 +86,7 @@ const App = () => (
               <Route path="inquiries" element={<InquiriesPage />} />
               <Route path="complaints" element={<ComplaintsPage />} />
               <Route path="health" element={<HealthDashboard />} />
+              <Route path="admin/automation" element={<AutomationHistoryPage />} />
               <Route path="admin/genres" element={<div className="p-8 text-center text-muted-foreground">Genre admin coming soon...</div>} />
               <Route path="admin/settings" element={<div className="p-8 text-center text-muted-foreground">Settings coming soon...</div>} />
             </Route>

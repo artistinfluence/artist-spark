@@ -15,7 +15,7 @@ import { TrackingLinkEmail } from './_templates/tracking-link.tsx';
 import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx';
 import { TestEmail } from './_templates/test-email.tsx';
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+// Resend will be initialized inside the handler after validating API key
 
 // Determine resend from address with validation
 const resendFromEnv = Deno.env.get('RESEND_FROM') || '';
@@ -72,6 +72,25 @@ const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Health check endpoint
+  if (req.method === 'GET') {
+    const hasResendKey = !!Deno.env.get('RESEND_API_KEY');
+    const hasServiceKey = !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const hasUrl = !!Deno.env.get('SUPABASE_URL');
+    const body = {
+      ok: true,
+      hasResendApiKey: hasResendKey,
+      resendFrom,
+      hasSupabaseUrl: hasUrl,
+      hasServiceRoleKey: hasServiceKey,
+      timestamp: new Date().toISOString(),
+    };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   let emailLogId = null;
@@ -214,7 +233,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log('Sending email from:', fromField);
 
-    // Send email via Resend
+    // Initialize Resend with API key at call time
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey || resendApiKey.trim() === '') {
+      console.error('RESEND_API_KEY is missing. Cannot send email.');
+      throw new Error('RESEND_API_KEY is not configured on the server');
+    }
+    const resend = new Resend(resendApiKey);
+
     const { data: emailResponse, error: emailError } = await resend.emails.send({
       from: fromField,
       to: [to],

@@ -22,7 +22,10 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
-// Validate RESEND_FROM secret
+// Validate environment variables - Force redeployment to pick up secrets
+console.log('Environment check on function startup:');
+console.log('- RESEND_API_KEY present:', !!Deno.env.get('RESEND_API_KEY'));
+console.log('- RESEND_FROM present:', !!resendFrom);
 if (!resendFrom) {
   console.error('RESEND_FROM environment variable is not set');
 } else {

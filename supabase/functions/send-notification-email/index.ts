@@ -16,9 +16,20 @@ import { SupportConfirmationEmail } from './_templates/support-confirmation.tsx'
 import { TestEmail } from './_templates/test-email.tsx';
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+
+// Determine resend from address with validation
 const resendFromEnv = Deno.env.get('RESEND_FROM') || '';
-const fallbackFrom = 'SoundCloud Groups <onboarding@resend.dev>';
-const resendFrom = resendFromEnv.trim() !== '' ? resendFromEnv : fallbackFrom;
+let resendFrom = 'SoundCloud Groups <onboarding@resend.dev>'; // Fallback
+
+// Validate RESEND_FROM format (should be email or "Name <email>")
+if (resendFromEnv && resendFromEnv.trim() !== '') {
+  const emailRegex = /^([^<>]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(>)?$/;
+  if (emailRegex.test(resendFromEnv.trim())) {
+    resendFrom = resendFromEnv.trim();
+  } else {
+    console.warn('Invalid RESEND_FROM format, using fallback:', resendFrom);
+  }
+}
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -29,7 +40,7 @@ console.log('Environment check on function startup:');
 console.log('- RESEND_API_KEY present:', !!Deno.env.get('RESEND_API_KEY'));
 console.log('- RESEND_FROM provided:', resendFromEnv.trim() !== '');
 if (resendFromEnv.trim() === '') {
-  console.warn('RESEND_FROM is not set; using fallback:', fallbackFrom);
+  console.warn('RESEND_FROM is not set; using fallback:', resendFrom);
 } else {
   console.log('RESEND_FROM configured:', resendFromEnv);
 }

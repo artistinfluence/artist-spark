@@ -645,6 +645,7 @@ export type Database = {
       }
       submissions: {
         Row: {
+          alternative_url: string | null
           artist_name: string | null
           created_at: string | null
           expected_reach_max: number | null
@@ -658,17 +659,21 @@ export type Database = {
           owner_id: string | null
           qa_flag: boolean | null
           qa_reason: string | null
+          release_date: string | null
           resend_message_ids: string[] | null
+          secondary_email: string | null
           status: Database["public"]["Enums"]["submission_status"] | null
           subgenres: string[] | null
           submitted_at: string | null
           suggested_supporters: string[] | null
           support_date: string | null
           support_url: string | null
+          track_name: string | null
           track_url: string
           updated_at: string | null
         }
         Insert: {
+          alternative_url?: string | null
           artist_name?: string | null
           created_at?: string | null
           expected_reach_max?: number | null
@@ -682,17 +687,21 @@ export type Database = {
           owner_id?: string | null
           qa_flag?: boolean | null
           qa_reason?: string | null
+          release_date?: string | null
           resend_message_ids?: string[] | null
+          secondary_email?: string | null
           status?: Database["public"]["Enums"]["submission_status"] | null
           subgenres?: string[] | null
           submitted_at?: string | null
           suggested_supporters?: string[] | null
           support_date?: string | null
           support_url?: string | null
+          track_name?: string | null
           track_url: string
           updated_at?: string | null
         }
         Update: {
+          alternative_url?: string | null
           artist_name?: string | null
           created_at?: string | null
           expected_reach_max?: number | null
@@ -706,13 +715,16 @@ export type Database = {
           owner_id?: string | null
           qa_flag?: boolean | null
           qa_reason?: string | null
+          release_date?: string | null
           resend_message_ids?: string[] | null
+          secondary_email?: string | null
           status?: Database["public"]["Enums"]["submission_status"] | null
           subgenres?: string[] | null
           submitted_at?: string | null
           suggested_supporters?: string[] | null
           support_date?: string | null
           support_url?: string | null
+          track_name?: string | null
           track_url?: string
           updated_at?: string | null
         }

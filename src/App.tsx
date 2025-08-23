@@ -22,6 +22,7 @@ import { QueueManagement } from "@/components/dashboard/QueueManagement";
 import { MemberQueue } from "@/components/portal/MemberQueue";
 import { AutomationHistoryPage } from "@/components/dashboard/AutomationHistoryPage";
 import { SettingsPage } from "@/components/dashboard/SettingsPage";
+import { GenreAdministration } from "@/components/dashboard/GenreAdministration";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
 import Index from "./pages/Index";
 import PreviewTool from "./pages/PreviewTool";
@@ -88,7 +89,7 @@ const App = () => (
               <Route path="complaints" element={<ComplaintsPage />} />
               <Route path="health" element={<HealthDashboard />} />
               <Route path="admin/automation" element={<AutomationHistoryPage />} />
-              <Route path="admin/genres" element={<div className="p-8 text-center text-muted-foreground">Genre admin coming soon...</div>} />
+              <Route path="admin/genres" element={<GenreAdministration />} />
               <Route path="admin/settings" element={<SettingsPage />} />
             </Route>
 

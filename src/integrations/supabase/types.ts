@@ -320,7 +320,7 @@ export type Database = {
           last_classified_at: string | null
           last_submission_at: string | null
           monthly_credit_limit: number | null
-          monthly_submission_limit: number | null
+          monthly_repost_limit: number | null
           name: string
           net_credits: number | null
           primary_email: string | null
@@ -348,7 +348,7 @@ export type Database = {
           last_classified_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
-          monthly_submission_limit?: number | null
+          monthly_repost_limit?: number | null
           name: string
           net_credits?: number | null
           primary_email?: string | null
@@ -376,7 +376,7 @@ export type Database = {
           last_classified_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
-          monthly_submission_limit?: number | null
+          monthly_repost_limit?: number | null
           name?: string
           net_credits?: number | null
           primary_email?: string | null

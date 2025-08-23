@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.send-notification-email]
 verify_jwt = false
+
+[functions.analyze-soundcloud-profile]
+verify_jwt = false

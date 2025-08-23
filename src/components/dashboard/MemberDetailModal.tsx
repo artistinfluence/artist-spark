@@ -23,7 +23,7 @@ interface Member {
   spotify_genres: string[];
   families: string[];
   subgenres: string[];
-  monthly_submission_limit: number;
+  monthly_repost_limit: number;
   submissions_this_month: number;
   net_credits: number;
   created_at: string;
@@ -48,7 +48,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     soundcloud_url: '',
     spotify_url: '',
     soundcloud_followers: 0,
-    monthly_submission_limit: 4
+    monthly_repost_limit: 1
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
@@ -60,7 +60,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         soundcloud_url: member.soundcloud_url || '',
         spotify_url: member.spotify_url || '',
         soundcloud_followers: member.soundcloud_followers || 0,
-        monthly_submission_limit: member.monthly_submission_limit || 4
+        monthly_repost_limit: member.monthly_repost_limit || 1
       });
       setDisplayMember(member);
     }
@@ -104,7 +104,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           soundcloud_url: formData.soundcloud_url || null,
           spotify_url: formData.spotify_url || null,
           soundcloud_followers: formData.soundcloud_followers,
-          monthly_submission_limit: formData.monthly_submission_limit
+          monthly_repost_limit: formData.monthly_repost_limit
         })
         .eq('id', member.id);
 
@@ -378,18 +378,18 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="monthly_submission_limit" className="text-sm font-medium">Monthly Submission Limit</Label>
+                <Label htmlFor="monthly_repost_limit" className="text-sm font-medium">Monthly Repost Limit</Label>
                 {isEditing ? (
                   <Input
-                    id="monthly_submission_limit"
+                    id="monthly_repost_limit"
                     type="number"
-                    value={formData.monthly_submission_limit}
-                    onChange={(e) => setFormData({...formData, monthly_submission_limit: parseInt(e.target.value) || 4})}
+                    value={formData.monthly_repost_limit}
+                    onChange={(e) => setFormData({...formData, monthly_repost_limit: parseInt(e.target.value) || 1})}
                     className="mt-1"
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {member.monthly_submission_limit} reposts per month
+                    {member.monthly_repost_limit} reposts per month
                   </p>
                 )}
               </div>

@@ -22,9 +22,11 @@ import {
   ChevronUp,
   ChevronDown,
   Music,
+  UserPlus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
+import { AddMemberModal } from './AddMemberModal';
 
 type MemberStatus = 'active' | 'needs_reconnect';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
@@ -43,7 +45,7 @@ interface Member {
   spotify_genres: string[];
   families: string[];
   subgenres: string[];
-  monthly_submission_limit: number;
+  monthly_repost_limit: number;
   submissions_this_month: number;
   net_credits: number;
   created_at: string;
@@ -80,6 +82,7 @@ export const MembersPage = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ processed: 0, total: 0 });
 
@@ -327,6 +330,10 @@ export const MembersPage = () => {
               Bulk Classification: {bulkProgress.processed}/{bulkProgress.total}
             </div>
           )}
+          <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
+            <UserPlus className="w-4 h-4" />
+            Add Member
+          </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
             {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
@@ -547,14 +554,14 @@ export const MembersPage = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          <div>{member.submissions_this_month}/{member.monthly_submission_limit} this month</div>
-                          {member.last_submission_at && (
-                            <div className="text-xs text-muted-foreground">
-                              Last: {format(new Date(member.last_submission_at), 'MMM d')}
-                            </div>
-                          )}
-                        </div>
+                         <div className="text-sm">
+                           <div>{member.submissions_this_month}/{member.monthly_repost_limit} this month</div>
+                           {member.last_submission_at && (
+                             <div className="text-xs text-muted-foreground">
+                               Last: {format(new Date(member.last_submission_at), 'MMM d')}
+                             </div>
+                           )}
+                         </div>
                       </TableCell>
                        <TableCell>
                          <div className="text-sm">
@@ -604,18 +611,27 @@ export const MembersPage = () => {
          </CardContent>
        </Card>
 
-       {/* Member Detail Modal */}
-       <MemberDetailModal
-         member={selectedMember}
-         isOpen={isModalOpen}
-         onClose={() => {
-           setIsModalOpen(false);
-           setSelectedMember(null);
-         }}
-         onUpdate={() => {
-           fetchMembers();
-         }}
-       />
+        {/* Member Detail Modal */}
+        <MemberDetailModal
+          member={selectedMember}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedMember(null);
+          }}
+          onUpdate={() => {
+            fetchMembers();
+          }}
+        />
+
+        {/* Add Member Modal */}
+        <AddMemberModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            fetchMembers();
+          }}
+        />
      </div>
   );
 };

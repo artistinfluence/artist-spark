@@ -5,8 +5,10 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemberSubmissions } from '@/hooks/useMemberSubmissions';
-import { Music, Upload, TrendingUp, Coins, ArrowRight, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Music, Upload, TrendingUp, Coins, ArrowRight, Clock, CheckCircle, XCircle, AlertTriangle, Users, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SimilarArtists } from './SimilarArtists';
+import { CreditHistory } from './CreditHistory';
 
 export const MemberDashboard = () => {
   const { member } = useAuth();
@@ -134,7 +136,7 @@ export const MemberDashboard = () => {
             </div>
           </Button>
 
-          <Button 
+            <Button 
             variant="outline" 
             className="w-full justify-between h-auto p-4"
             onClick={() => navigate('/portal/history')}
@@ -155,8 +157,31 @@ export const MemberDashboard = () => {
               <ArrowRight className="h-4 w-4" />
             </div>
           </Button>
+
+          <Button 
+            variant="outline" 
+            className="w-full justify-between h-auto p-4"
+            onClick={() => navigate('/portal/queue')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-accent" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-medium">Support Queue</h3>
+                <p className="text-sm text-muted-foreground">View your support assignments</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </CardContent>
       </Card>
+
+      {/* Credit History */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CreditHistory />
+        <SimilarArtists />
+      </div>
 
       {/* Recent Submissions */}
       {stats.recentSubmissions.length > 0 && (

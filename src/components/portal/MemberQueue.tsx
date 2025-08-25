@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ExternalLink, CheckCircle, AlertCircle, Upload } from 'lucide-react';
+import { Calendar, Clock, ExternalLink, CheckCircle, AlertCircle, Upload, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { ReportIssueModal } from './ReportIssueModal';
 
 interface Assignment {
   id: string;
@@ -41,6 +42,7 @@ export const MemberQueue: React.FC = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [proofUrl, setProofUrl] = useState('');
   const [submittingProof, setSubmittingProof] = useState(false);
+  const [reportIssueAssignment, setReportIssueAssignment] = useState<Assignment | null>(null);
   const { member } = useAuth();
   const { toast } = useToast();
 
@@ -206,11 +208,21 @@ export const MemberQueue: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Support Queue</h1>
-        <p className="text-muted-foreground">
-          View and complete your support assignments
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">My Support Queue</h1>
+          <p className="text-muted-foreground">
+            View and complete your support assignments
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => window.open('https://app.influenceplanner.com', '_blank')}
+          className="flex items-center gap-2"
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Reposts on Influence Planner
+        </Button>
       </div>
 
       {/* Today's Assignments */}
@@ -349,6 +361,7 @@ export const MemberQueue: React.FC = () => {
                   <TableHead>Artist</TableHead>
                   <TableHead>Genre</TableHead>
                   <TableHead>Credits</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -361,6 +374,24 @@ export const MemberQueue: React.FC = () => {
                     <TableCell>{assignment.submissions.members.name}</TableCell>
                     <TableCell>{assignment.submissions.family}</TableCell>
                     <TableCell>{assignment.credits_allocated}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(assignment.submissions.track_url, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setReportIssueAssignment(assignment)}
+                        >
+                          <Flag className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -417,6 +448,15 @@ export const MemberQueue: React.FC = () => {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Report Issue Modal */}
+      {reportIssueAssignment && (
+        <ReportIssueModal
+          isOpen={!!reportIssueAssignment}
+          onClose={() => setReportIssueAssignment(null)}
+          assignment={reportIssueAssignment}
+        />
       )}
     </div>
   );

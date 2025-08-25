@@ -3,6 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSubmissions } from "@/hooks/useSubmissions";
+import { motion } from "framer-motion";
+import { ScrollReveal } from "@/components/ui/scroll-reveal";
+import { InteractiveCard } from "@/components/ui/interactive-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { LoadingSkeleton, StatCardSkeleton } from "@/components/ui/loading-skeleton";
 import {
   FileText,
   Clock,
@@ -109,133 +114,236 @@ export const DashboardOverview = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >
       {/* Welcome Section */}
-      <div className="bg-gradient-hero rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Welcome to your Dashboard</h1>
-        <p className="text-white/80">
-          Manage your SoundCloud Groups efficiently with real-time insights and controls.
-        </p>
-      </div>
+      <ScrollReveal>
+        <motion.div 
+          className="bg-gradient-hero rounded-lg p-6 text-white"
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        >
+          <motion.h1 
+            className="text-2xl font-bold mb-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Welcome to your Dashboard
+          </motion.h1>
+          <motion.p 
+            className="text-white/80"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            Manage your SoundCloud Groups efficiently with real-time insights and controls.
+          </motion.p>
+        </motion.div>
+      </ScrollReveal>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card 
-            key={stat.title}
-            className="hover:shadow-glow transition-all cursor-pointer"
-            onClick={() => navigate(stat.href)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
+      <ScrollReveal direction="up" delay={0.2}>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {statsLoading ? (
+            // Loading skeletons
+            Array.from({ length: 4 }).map((_, index) => (
+              <StatCardSkeleton key={index} />
+            ))
+          ) : (
+            stats.map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <InteractiveCard 
+                  className="hover:shadow-glow transition-all cursor-pointer"
+                  onClick={() => navigate(stat.href)}
+                  glowOnHover
+                  hoverScale={1.03}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      {stat.title}
+                    </CardTitle>
+                    <motion.div
+                      whileHover={{ rotate: 15, scale: 1.2 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <stat.icon className="h-4 w-4 text-muted-foreground" />
+                    </motion.div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {stat.title === "New Submissions" ? (
+                        <AnimatedCounter value={parseInt(stat.value)} />
+                      ) : (
+                        stat.value
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {stat.description}
+                      </p>
+                      <Badge 
+                        variant={stat.changeType === "positive" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {stat.change}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </InteractiveCard>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal direction="up" delay={0.4}>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Recent Activity */}
+          <InteractiveCard glowOnHover>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Activity className="h-5 w-5" />
+                </motion.div>
+                Recent Activity
               </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+              <CardDescription>
+                Latest updates across your dashboard
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {stat.description}
-                </p>
-                <Badge 
-                  variant={stat.changeType === "positive" ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {stat.change}
-                </Badge>
+              <div className="space-y-4">
+                {recentActivity.map((activity, index) => (
+                  <motion.div
+                    key={activity.id}
+                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ x: 5 }}
+                  >
+                    <motion.div 
+                      className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {activity.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {activity.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.time}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="outline" className="w-full mt-4">
+                  View All Activity
+                </Button>
+              </motion.div>
             </CardContent>
-          </Card>
-        ))}
-      </div>
+          </InteractiveCard>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Recent Activity
-            </CardTitle>
-            <CardDescription>
-              Latest updates across your dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`} />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {activity.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
+          {/* Quick Actions */}
+          <InteractiveCard glowOnHover>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <motion.div
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <TrendingUp className="h-5 w-5" />
+                </motion.div>
+                Quick Actions
+              </CardTitle>
+              <CardDescription>
+                Common tasks and shortcuts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                {
+                  icon: FileText,
+                  text: "Review New Submissions",
+                  badge: submissionStats.new,
+                  onClick: () => navigate("/dashboard/submissions"),
+                  className: "bg-gradient-primary hover:shadow-glow"
+                },
+                {
+                  icon: Clock,
+                  text: "Check Today's Queue",
+                  badge: 8,
+                  onClick: () => navigate("/dashboard/queue"),
+                  variant: "secondary" as const
+                },
+                {
+                  icon: MessageSquare,
+                  text: "Handle Inquiries",
+                  onClick: () => navigate("/dashboard/inquiries"),
+                  variant: "outline" as const
+                },
+                {
+                  icon: AlertTriangle,
+                  text: "Fix Health Issues",
+                  badge: 3,
+                  onClick: () => navigate("/dashboard/health"),
+                  variant: "outline" as const,
+                  className: "border-destructive/50 text-destructive hover:bg-destructive/10"
+                }
+              ].map((action, index) => (
+                <motion.div
+                  key={action.text}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button 
+                    variant={action.variant || "default"}
+                    className={`w-full justify-start gap-3 ${action.className || ""}`}
+                    onClick={action.onClick}
+                  >
+                    <motion.div
+                      whileHover={{ rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <action.icon className="h-4 w-4" />
+                    </motion.div>
+                    {action.text}
+                    {action.badge && (
+                      <Badge 
+                        variant={action.text.includes("Health") ? "destructive" : "secondary"} 
+                        className="ml-auto"
+                      >
+                        <AnimatedCounter value={action.badge} />
+                      </Badge>
+                    )}
+                  </Button>
+                </motion.div>
               ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              View All Activity
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Common tasks and shortcuts
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              className="w-full justify-start gap-3 bg-gradient-primary hover:shadow-glow"
-              onClick={() => navigate("/dashboard/submissions")}
-            >
-              <FileText className="h-4 w-4" />
-              Review New Submissions
-              <Badge variant="secondary" className="ml-auto">{submissionStats.new}</Badge>
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="w-full justify-start gap-3"
-              onClick={() => navigate("/dashboard/queue")}
-            >
-              <Clock className="h-4 w-4" />
-              Check Today's Queue
-              <Badge variant="outline" className="ml-auto">8</Badge>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start gap-3"
-              onClick={() => navigate("/dashboard/inquiries")}
-            >
-              <MessageSquare className="h-4 w-4" />
-              Handle Inquiries
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start gap-3 border-destructive/50 text-destructive hover:bg-destructive/10"
-              onClick={() => navigate("/dashboard/health")}
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Fix Health Issues
-              <Badge variant="destructive" className="ml-auto">3</Badge>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            </CardContent>
+          </InteractiveCard>
+        </div>
+      </ScrollReveal>
+    </motion.div>
   );
 };

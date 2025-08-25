@@ -15,6 +15,7 @@ import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
+import { MemberProfile } from "@/components/portal/MemberProfile";
 import { InquiriesPage } from "@/components/dashboard/InquiriesPage";
 import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage"; 
 import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
@@ -106,7 +107,7 @@ const App = () => (
               <Route path="queue" element={<MemberQueue />} />
               <Route path="submit" element={<SubmitTrack />} />
               <Route path="history" element={<MemberHistory />} />
-              <Route path="profile" element={<div className="p-8 text-center text-muted-foreground">Profile page coming soon...</div>} />
+              <Route path="profile" element={<MemberProfile />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

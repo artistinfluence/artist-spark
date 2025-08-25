@@ -21,8 +21,8 @@ export const MemberDashboard = () => {
     );
   }
 
-  const submissionProgress = (stats.thisMonthSubmissions / member.monthly_submission_limit) * 100;
-  const remainingSubmissions = member.monthly_submission_limit - stats.thisMonthSubmissions;
+  const submissionProgress = (stats.thisMonthSubmissions / member.monthly_repost_limit) * 100;
+  const remainingSubmissions = member.monthly_repost_limit - stats.thisMonthSubmissions;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -65,7 +65,7 @@ export const MemberDashboard = () => {
             <Upload className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.thisMonthSubmissions}/{member.monthly_submission_limit}</div>
+            <div className="text-2xl font-bold">{stats.thisMonthSubmissions}/{member.monthly_repost_limit}</div>
             <p className="text-xs text-muted-foreground">submissions used</p>
             <Progress value={submissionProgress} className="mt-2" />
           </CardContent>

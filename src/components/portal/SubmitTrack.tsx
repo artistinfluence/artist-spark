@@ -38,10 +38,10 @@ export const SubmitTrack = () => {
   // Enhanced access control
   const canSubmit = member && 
     member.status === 'active' && 
-    member.submissions_this_month < member.monthly_submission_limit &&
+    member.submissions_this_month < member.monthly_repost_limit &&
     user?.email && member.emails.includes(user.email);
   
-  const remainingSubmissions = member ? member.monthly_submission_limit - member.submissions_this_month : 0;
+  const remainingSubmissions = member ? member.monthly_repost_limit - member.submissions_this_month : 0;
 
   // Fetch genre families
   useEffect(() => {
@@ -240,7 +240,7 @@ export const SubmitTrack = () => {
           {canSubmit ? (
             <>You have <strong>{remainingSubmissions}</strong> submission{remainingSubmissions !== 1 ? 's' : ''} remaining this month (Tier {member.size_tier})</>
           ) : (
-            <>You have reached your monthly submission limit of <strong>{member.monthly_submission_limit}</strong> tracks</>
+            <>You have reached your monthly submission limit of <strong>{member.monthly_repost_limit}</strong> tracks</>
           )}
         </AlertDescription>
       </Alert>
@@ -470,7 +470,7 @@ export const SubmitTrack = () => {
           <ul className="list-disc list-inside space-y-2">
             <li>Provide either a <strong>SoundCloud URL</strong> for released tracks or an <strong>alternative URL</strong> for unreleased content</li>
             <li>Track must be accessible by our promotion team</li>
-            <li>As a <strong>Tier {member.size_tier}</strong> member, you can submit up to <strong>{member.monthly_submission_limit}</strong> tracks per month</li>
+            <li>As a <strong>Tier {member.size_tier}</strong> member, you can submit up to <strong>{member.monthly_repost_limit}</strong> tracks per month</li>
             <li>All submissions are reviewed within <strong>24-48 hours</strong> by our team</li>
             <li>You'll receive email notifications for status updates and support confirmations</li>
             <li>Genre classification may be automatically determined or manually reviewed</li>

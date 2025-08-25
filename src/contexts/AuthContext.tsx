@@ -10,9 +10,13 @@ interface Member {
   emails: string[];
   status: string;
   size_tier: string;
-  monthly_submission_limit: number;
+  monthly_repost_limit: number;
   submissions_this_month: number;
   net_credits: number;
+  soundcloud_url?: string;
+  spotify_url?: string;
+  families?: string[];
+  soundcloud_followers?: number;
 }
 
 interface AuthContextType {
@@ -64,13 +68,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const roles = rolesData?.map(r => r.role) || [];
       setUserRoles(roles);
 
-      // Fetch member data if user email is in members table
+      // Fetch complete member data including all profile fields
       const { data: memberData } = await supabase
-        .rpc('get_member_for_user', { _user_email: userEmail });
+        .from('members')
+        .select(`
+          id, name, primary_email, emails, status, size_tier, 
+          monthly_repost_limit, submissions_this_month, net_credits,
+          soundcloud_url, spotify_url, families, soundcloud_followers
+        `)
+        .contains('emails', [userEmail])
+        .single();
       
-      setMember(memberData?.[0] || null);
+      setMember(memberData || null);
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setMember(null);
     }
   };
 

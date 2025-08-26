@@ -87,6 +87,77 @@ export const GenreAdministration = () => {
     fetchAllData();
   };
 
+  // Handler functions for DraggableGenreManager
+  const handleGenreFamilyEdit = (family: GenreFamily) => {
+    // TODO: Open edit modal
+    console.log('Edit family:', family);
+    toast({
+      title: "Edit Family",
+      description: `Editing ${family.name} - Modal coming soon!`,
+    });
+  };
+
+  const handleSubgenreEdit = (subgenre: Subgenre) => {
+    // TODO: Open edit modal
+    console.log('Edit subgenre:', subgenre);
+    toast({
+      title: "Edit Subgenre", 
+      description: `Editing ${subgenre.name} - Modal coming soon!`,
+    });
+  };
+
+  const handleGenreFamilyDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this genre family?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('genre_families')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Genre family deleted successfully",
+      });
+      
+      fetchAllData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete genre family",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubgenreDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this subgenre?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('subgenres')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Subgenre deleted successfully",
+      });
+      
+      fetchAllData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete subgenre",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8 space-y-6">
@@ -197,7 +268,12 @@ export const GenreAdministration = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <DraggableGenreManager />
+              <DraggableGenreManager 
+                onGenreFamilyEdit={handleGenreFamilyEdit}
+                onSubgenreEdit={handleSubgenreEdit}
+                onGenreFamilyDelete={handleGenreFamilyDelete}
+                onSubgenreDelete={handleSubgenreDelete}
+              />
             </motion.div>
           </TabsContent>
 

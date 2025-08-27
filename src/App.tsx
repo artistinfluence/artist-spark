@@ -22,6 +22,8 @@ import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage";
 import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
 import { QueueManagement } from "@/components/dashboard/QueueManagement";
 import { MemberQueue } from "@/components/portal/MemberQueue";
+import { EnhancedQueueManagement } from "@/components/dashboard/EnhancedQueueManagement";
+import { EnhancedMemberManagement } from "@/components/dashboard/EnhancedMemberManagement";
 import { AutomationHistoryPage } from "@/components/dashboard/AutomationHistoryPage";
 import { GenreAdministration } from "@/components/dashboard/GenreAdministration";
 import { SettingsPage } from "@/components/dashboard/SettingsPage";
@@ -85,6 +87,8 @@ const App = () => (
             >
               <Route index element={<DashboardOverview />} />
               <Route path="submissions" element={<SubmissionsPage />} />
+              <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
+              <Route path="enhanced-members" element={<EnhancedMemberManagement />} />
               <Route path="queue" element={<QueueManagement />} />
               <Route path="members" element={<MembersPage />} />
               <Route path="inquiries" element={<InquiriesPage />} />

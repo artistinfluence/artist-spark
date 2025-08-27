@@ -12,10 +12,11 @@ import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
 import { SubmissionsPage } from "@/components/dashboard/SubmissionsPage";
 import { MembersPage } from "@/components/dashboard/MembersPage";
 import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
-import { MemberDashboard } from "@/components/portal/MemberDashboard";
-import { SubmitTrack } from "@/components/portal/SubmitTrack";
+import { EnhancedMemberDashboard } from "@/components/portal/EnhancedMemberDashboard";
+import { AdvancedSubmitTrack } from "@/components/portal/AdvancedSubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
 import { MemberProfile } from "@/components/portal/MemberProfile";
+import { EnhancedCreditSystem } from "@/components/portal/EnhancedCreditSystem";
 import { InquiriesPage } from "@/components/dashboard/InquiriesPage";
 import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage"; 
 import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
@@ -103,10 +104,12 @@ const App = () => (
                 </RoleBasedRoute>
               } 
             >
-              <Route index element={<MemberDashboard />} />
+              <Route index element={<EnhancedMemberDashboard />} />
               <Route path="queue" element={<MemberQueue />} />
-              <Route path="submit" element={<SubmitTrack />} />
+              <Route path="submit" element={<AdvancedSubmitTrack />} />
               <Route path="history" element={<MemberHistory />} />
+              <Route path="credits" element={<EnhancedCreditSystem />} />
+              <Route path="analytics" element={<EnhancedMemberDashboard />} />
               <Route path="profile" element={<MemberProfile />} />
             </Route>
 

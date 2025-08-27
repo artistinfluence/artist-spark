@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, Upload, History, User, LogOut, Music, Calendar } from 'lucide-react';
+import { Home, Upload, History, User, LogOut, Music, Calendar, Coins, BarChart3 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const navigation = [
@@ -24,6 +24,8 @@ const navigation = [
   { name: 'My Queue', href: '/portal/queue', icon: Calendar },
   { name: 'Submit Track', href: '/portal/submit', icon: Upload },
   { name: 'My History', href: '/portal/history', icon: History },
+  { name: 'Credits', href: '/portal/credits', icon: Coins },
+  { name: 'Analytics', href: '/portal/analytics', icon: BarChart3 },
   { name: 'Profile', href: '/portal/profile', icon: User },
 ];
 

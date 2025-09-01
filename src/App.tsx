@@ -86,6 +86,20 @@ const App = () => (
               <Route path="admin/genres" element={<GenreAdministration />} />
               <Route path="admin/settings" element={<SettingsPage />} />
             </Route>
+            <Route path="/dashboard" element={<DashboardLayout />} >
+              <Route index element={<DashboardOverview />} />
+              <Route path="submissions" element={<SubmissionsPage />} />
+              <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
+              <Route path="enhanced-members" element={<EnhancedMemberManagement />} />
+              <Route path="queue" element={<QueueManagement />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="inquiries" element={<InquiriesPage />} />
+              <Route path="complaints" element={<ComplaintsPage />} />
+              <Route path="health" element={<HealthDashboard />} />
+              <Route path="admin/automation" element={<AutomationHistoryPage />} />
+              <Route path="admin/genres" element={<GenreAdministration />} />
+              <Route path="admin/settings" element={<SettingsPage />} />
+            </Route>
             <Route path="/preview" element={<PreviewTool />} />
             <Route path="/auth" element={<AuthenticatedRedirect />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />

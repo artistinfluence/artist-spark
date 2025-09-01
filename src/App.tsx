@@ -72,19 +72,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<PreviewTool />} />
-            <Route path="/preview" element={<PreviewTool />} />
-            <Route path="/auth" element={<AuthenticatedRedirect />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            
-            {/* Admin Dashboard - Only admins and moderators */}
-            <Route path="/dashboard" 
-              element={
-                <RoleBasedRoute allowedRoles={['admin', 'moderator']}>
-                  <DashboardLayout />
-                </RoleBasedRoute>
-              } 
-            >
+            <Route path="/" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="submissions" element={<SubmissionsPage />} />
               <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
@@ -98,26 +86,9 @@ const App = () => (
               <Route path="admin/genres" element={<GenreAdministration />} />
               <Route path="admin/settings" element={<SettingsPage />} />
             </Route>
-
-            {/* Member Portal - Only members */}
-            <Route 
-              path="/portal" 
-              element={
-                <RoleBasedRoute requireMember={true}>
-                  <MemberPortalLayout />
-                </RoleBasedRoute>
-              } 
-            >
-              <Route index element={<EnhancedMemberDashboard />} />
-              <Route path="queue" element={<MemberQueue />} />
-              <Route path="submit" element={<AdvancedSubmitTrack />} />
-              <Route path="history" element={<MemberHistory />} />
-              <Route path="credits" element={<EnhancedCreditSystem />} />
-              <Route path="analytics" element={<EnhancedMemberDashboard />} />
-              <Route path="profile" element={<MemberProfile />} />
-            </Route>
-
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/preview" element={<PreviewTool />} />
+            <Route path="/auth" element={<AuthenticatedRedirect />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

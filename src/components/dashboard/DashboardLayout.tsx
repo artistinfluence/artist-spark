@@ -27,6 +27,8 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Campaigns", href: "/dashboard/campaigns", icon: FileText },
+  { name: "Clients", href: "/dashboard/clients", icon: Users },
   { name: "Submissions", href: "/dashboard/submissions", icon: FileText },
   { name: "Enhanced Queue", href: "/dashboard/enhanced-queue", icon: Calendar },
   { name: "Enhanced Members", href: "/dashboard/enhanced-members", icon: Users },

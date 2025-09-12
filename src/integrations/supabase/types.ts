@@ -59,6 +59,56 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_automations: {
+        Row: {
+          automation_name: string
+          campaign_id: string | null
+          created_at: string
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          result: Json | null
+          scheduled_at: string | null
+          status: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          automation_name: string
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          result?: Json | null
+          scheduled_at?: string | null
+          status?: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          automation_name?: string
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          result?: Json | null
+          scheduled_at?: string | null
+          status?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_automations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "soundcloud_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaints: {
         Row: {
           ack_sent_at: string | null
@@ -599,6 +649,116 @@ export type Database = {
             | Database["public"]["Enums"]["target_band_mode"]
             | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      soundcloud_campaigns: {
+        Row: {
+          artist_name: string
+          campaign_type: string
+          client_id: string
+          created_at: string
+          goals: number | null
+          id: string
+          invoice_status: string | null
+          metadata: Json | null
+          notes: string | null
+          playlist_url: string | null
+          receipt_url: string | null
+          remaining_metrics: number | null
+          sales_price: number | null
+          salesperson_id: string | null
+          start_date: string | null
+          status: string
+          submission_date: string | null
+          track_name: string
+          track_url: string
+          updated_at: string
+        }
+        Insert: {
+          artist_name: string
+          campaign_type?: string
+          client_id: string
+          created_at?: string
+          goals?: number | null
+          id?: string
+          invoice_status?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          playlist_url?: string | null
+          receipt_url?: string | null
+          remaining_metrics?: number | null
+          sales_price?: number | null
+          salesperson_id?: string | null
+          start_date?: string | null
+          status?: string
+          submission_date?: string | null
+          track_name: string
+          track_url: string
+          updated_at?: string
+        }
+        Update: {
+          artist_name?: string
+          campaign_type?: string
+          client_id?: string
+          created_at?: string
+          goals?: number | null
+          id?: string
+          invoice_status?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          playlist_url?: string | null
+          receipt_url?: string | null
+          remaining_metrics?: number | null
+          sales_price?: number | null
+          salesperson_id?: string | null
+          start_date?: string | null
+          status?: string
+          submission_date?: string | null
+          track_name?: string
+          track_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soundcloud_campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "soundcloud_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      soundcloud_clients: {
+        Row: {
+          contact_info: Json | null
+          created_at: string
+          email: string
+          id: string
+          member_id: string | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_info?: Json | null
+          created_at?: string
+          email: string
+          id?: string
+          member_id?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_info?: Json | null
+          created_at?: string
+          email?: string
+          id?: string
+          member_id?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

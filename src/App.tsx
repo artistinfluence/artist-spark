@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { RoleBasedRoute } from "@/components/auth/RoleBasedRoute";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import CampaignOverview from "@/components/dashboard/CampaignOverview";
+import CampaignsPage from "@/components/dashboard/CampaignsPage";
+import ClientsPage from "@/components/dashboard/ClientsPage";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
 import { SubmissionsPage } from "@/components/dashboard/SubmissionsPage";
 import { MembersPage } from "@/components/dashboard/MembersPage";
@@ -73,7 +76,9 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<DashboardLayout />}>
-              <Route index element={<DashboardOverview />} />
+              <Route index element={<CampaignOverview />} />
+              <Route path="campaigns" element={<CampaignsPage />} />
+              <Route path="clients" element={<ClientsPage />} />
               <Route path="submissions" element={<SubmissionsPage />} />
               <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
               <Route path="enhanced-members" element={<EnhancedMemberManagement />} />
@@ -87,7 +92,9 @@ const App = () => (
               <Route path="admin/settings" element={<SettingsPage />} />
             </Route>
             <Route path="/dashboard" element={<DashboardLayout />} >
-              <Route index element={<DashboardOverview />} />
+              <Route index element={<CampaignOverview />} />
+              <Route path="campaigns" element={<CampaignsPage />} />
+              <Route path="clients" element={<ClientsPage />} />
               <Route path="submissions" element={<SubmissionsPage />} />
               <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
               <Route path="enhanced-members" element={<EnhancedMemberManagement />} />

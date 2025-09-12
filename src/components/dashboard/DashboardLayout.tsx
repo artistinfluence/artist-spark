@@ -79,13 +79,11 @@ export const DashboardLayout = () => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 p-6 border-b border-border">
-            <div className="bg-gradient-primary p-2 rounded-lg shadow-glow">
-              <Waves className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">SoundCloud Groups</h1>
-              <p className="text-sm text-muted-foreground">Artist Influence</p>
-            </div>
+            <img 
+              src="/src/assets/artist-influence-logo.png" 
+              alt="Artist Influence" 
+              className="h-8 w-auto"
+            />
           </div>
 
           {/* Navigation */}

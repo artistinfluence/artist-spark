@@ -28,7 +28,13 @@ import {
   Settings,
   LogOut,
   Home,
-  Music
+  Music,
+  BarChart3,
+  TrendingUp,
+  PieChart,
+  FileBarChart,
+  Download,
+  Brain
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -42,7 +48,7 @@ interface NavItem {
   description: string;
 }
 
-// New 9-Section Architecture
+// New 9-Section Architecture + Analytics
 const navigation: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard, description: "Revenue, campaigns, credits snapshot" },
   { name: "Planner", href: "/dashboard/planner", icon: CalendarDays, description: "Calendar/list unified view" },
@@ -53,6 +59,17 @@ const navigation: NavItem[] = [
   { name: "Automation", href: "/dashboard/automation", icon: Zap, description: "Email templates & logs" },
   { name: "Genres", href: "/dashboard/genres", icon: Tags, description: "Family/subgenre management" },
   { name: "Settings", href: "/dashboard/settings", icon: Settings, description: "Credit rules & configs" },
+];
+
+// Analytics Navigation
+const analyticsNavigation: NavItem[] = [
+  { name: "Analytics Hub", href: "/dashboard/analytics", icon: BarChart3, description: "Executive analytics dashboard" },
+  { name: "Revenue Analytics", href: "/dashboard/analytics/revenue", icon: TrendingUp, description: "Financial performance & forecasting" },
+  { name: "Member Insights", href: "/dashboard/analytics/members", icon: Users, description: "Member behavior & performance analysis" },
+  { name: "Campaign Analytics", href: "/dashboard/analytics/campaigns", icon: PieChart, description: "Campaign ROI & effectiveness" },
+  { name: "Report Builder", href: "/dashboard/analytics/reports", icon: FileBarChart, description: "Custom analytics reports" },
+  { name: "Data Exports", href: "/dashboard/analytics/exports", icon: Download, description: "Export & schedule reports" },
+  { name: "Business Intelligence", href: "/dashboard/analytics/intelligence", icon: Brain, description: "Advanced BI & insights" },
 ];
 
 export const DashboardLayout = () => {
@@ -95,7 +112,7 @@ export const DashboardLayout = () => {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>Core Platform</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigation.map((item) => (
@@ -103,6 +120,31 @@ export const DashboardLayout = () => {
                       <SidebarMenuButton 
                         asChild
                         className={isActive(item.href, item.href === '/dashboard') 
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+                          : ""
+                        }
+                        tooltip={item.description}
+                      >
+                        <NavLink to={item.href}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Analytics & Reports</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {analyticsNavigation.map((item) => (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton 
+                        asChild
+                        className={isActive(item.href) 
                           ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
                           : ""
                         }

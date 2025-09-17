@@ -24,6 +24,15 @@ const AutomationPage = React.lazy(() => import("@/components/dashboard/Automatio
 const GenresPage = React.lazy(() => import("@/components/dashboard/GenresPage").then(m => ({ default: m.GenresPage })));
 const SettingsPage = React.lazy(() => import("@/components/dashboard/SettingsPage").then(m => ({ default: m.SettingsPage })));
 
+// Lazy load analytics pages
+const AnalyticsDashboard = React.lazy(() => import("@/components/dashboard/AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const RevenueAnalytics = React.lazy(() => import("@/components/dashboard/RevenueAnalytics").then(m => ({ default: m.RevenueAnalytics })));
+const MemberInsights = React.lazy(() => import("@/components/dashboard/MemberInsights").then(m => ({ default: m.MemberInsights })));
+const CampaignAnalytics = React.lazy(() => import("@/components/dashboard/CampaignAnalytics").then(m => ({ default: m.CampaignAnalytics })));
+const ReportBuilder = React.lazy(() => import("@/components/dashboard/ReportBuilder").then(m => ({ default: m.ReportBuilder })));
+const DataExportManager = React.lazy(() => import("@/components/dashboard/DataExportManager").then(m => ({ default: m.DataExportManager })));
+const BusinessIntelligence = React.lazy(() => import("@/components/dashboard/BusinessIntelligence").then(m => ({ default: m.BusinessIntelligence })));
+
 // Lazy load portal pages for better performance
 const MemberDashboard = React.lazy(() => import("@/components/portal/MemberDashboard").then(m => ({ default: m.MemberDashboard })));
 const MemberQueue = React.lazy(() => import("@/components/portal/MemberQueue").then(m => ({ default: m.MemberQueue })));
@@ -113,6 +122,15 @@ const App = () => (
                 <Route path="automation" element={<Suspense fallback={<PageLoadingSpinner />}><AutomationPage /></Suspense>} />
                 <Route path="genres" element={<Suspense fallback={<PageLoadingSpinner />}><GenresPage /></Suspense>} />
                 <Route path="settings" element={<Suspense fallback={<PageLoadingSpinner />}><SettingsPage /></Suspense>} />
+                
+                {/* Analytics Routes */}
+                <Route path="analytics" element={<Suspense fallback={<PageLoadingSpinner />}><AnalyticsDashboard /></Suspense>} />
+                <Route path="analytics/revenue" element={<Suspense fallback={<PageLoadingSpinner />}><RevenueAnalytics /></Suspense>} />
+                <Route path="analytics/members" element={<Suspense fallback={<PageLoadingSpinner />}><MemberInsights /></Suspense>} />
+                <Route path="analytics/campaigns" element={<Suspense fallback={<PageLoadingSpinner />}><CampaignAnalytics /></Suspense>} />
+                <Route path="analytics/reports" element={<Suspense fallback={<PageLoadingSpinner />}><ReportBuilder /></Suspense>} />
+                <Route path="analytics/exports" element={<Suspense fallback={<PageLoadingSpinner />}><DataExportManager /></Suspense>} />
+                <Route path="analytics/intelligence" element={<Suspense fallback={<PageLoadingSpinner />}><BusinessIntelligence /></Suspense>} />
               </Route>
 
               {/* Member Portal - Enhanced Experience */}

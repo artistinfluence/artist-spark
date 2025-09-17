@@ -8,29 +8,29 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { RoleBasedRoute } from "@/components/auth/RoleBasedRoute";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import CampaignOverview from "@/components/dashboard/CampaignOverview";
-import CampaignsPage from "@/components/dashboard/CampaignsPage";
-import ClientsPage from "@/components/dashboard/ClientsPage";
-import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
-import { SubmissionsPage } from "@/components/dashboard/SubmissionsPage";
-import { MembersPage } from "@/components/dashboard/MembersPage";
 import { MemberPortalLayout } from "@/components/portal/MemberPortalLayout";
-import { EnhancedMemberDashboard } from "@/components/portal/EnhancedMemberDashboard";
-import { AdvancedSubmitTrack } from "@/components/portal/AdvancedSubmitTrack";
-import { MemberHistory } from "@/components/portal/MemberHistory";
-import { MemberProfile } from "@/components/portal/MemberProfile";
-import { EnhancedCreditSystem } from "@/components/portal/EnhancedCreditSystem";
-import { InquiriesPage } from "@/components/dashboard/InquiriesPage";
-import { ComplaintsPage } from "@/components/dashboard/ComplaintsPage"; 
-import { HealthDashboard } from "@/components/dashboard/HealthDashboard";
-import { QueueManagement } from "@/components/dashboard/QueueManagement";
-import { MemberQueue } from "@/components/portal/MemberQueue";
-import { EnhancedQueueManagement } from "@/components/dashboard/EnhancedQueueManagement";
-import { EnhancedMemberManagement } from "@/components/dashboard/EnhancedMemberManagement";
-import { AutomationHistoryPage } from "@/components/dashboard/AutomationHistoryPage";
-import { GenreAdministration } from "@/components/dashboard/GenreAdministration";
-import { SettingsPage } from "@/components/dashboard/SettingsPage";
 import { UnauthorizedPage } from "@/components/auth/UnauthorizedPage";
+
+// Dashboard Pages - New 9-Section Architecture
+import { UnifiedOverview } from "@/components/dashboard/UnifiedOverview";
+import { PlannerPage } from "@/components/dashboard/PlannerPage";
+import CampaignsPage from "@/components/dashboard/CampaignsPage";
+import { QueuePage } from "@/components/dashboard/QueuePage";
+import { MembersPage } from "@/components/dashboard/MembersPage";
+import { HealthPage } from "@/components/dashboard/HealthPage";
+import { AutomationPage } from "@/components/dashboard/AutomationPage";
+import { GenresPage } from "@/components/dashboard/GenresPage";
+import { SettingsPage } from "@/components/dashboard/SettingsPage";
+
+// Portal Pages - Enhanced Member Experience
+import { MemberDashboard } from "@/components/portal/MemberDashboard";
+import { MemberQueue } from "@/components/portal/MemberQueue";
+import { SubmitTrack } from "@/components/portal/SubmitTrack";
+import { MemberHistory } from "@/components/portal/MemberHistory";
+import { CreditSystem } from "@/components/portal/CreditSystem";
+import { MemberAnalytics } from "@/components/portal/MemberAnalytics";
+import { MemberProfile } from "@/components/portal/MemberProfile";
+
 import Index from "./pages/Index";
 import PreviewTool from "./pages/PreviewTool";
 import NotFound from "./pages/NotFound";
@@ -75,41 +75,45 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<DashboardLayout />}>
-              <Route index element={<CampaignOverview />} />
-              <Route path="campaigns" element={<CampaignsPage />} />
-              <Route path="clients" element={<ClientsPage />} />
-              <Route path="submissions" element={<SubmissionsPage />} />
-              <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
-              <Route path="enhanced-members" element={<EnhancedMemberManagement />} />
-              <Route path="queue" element={<QueueManagement />} />
-              <Route path="members" element={<MembersPage />} />
-              <Route path="inquiries" element={<InquiriesPage />} />
-              <Route path="complaints" element={<ComplaintsPage />} />
-              <Route path="health" element={<HealthDashboard />} />
-              <Route path="admin/automation" element={<AutomationHistoryPage />} />
-              <Route path="admin/genres" element={<GenreAdministration />} />
-              <Route path="admin/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/dashboard" element={<DashboardLayout />} >
-              <Route index element={<CampaignOverview />} />
-              <Route path="campaigns" element={<CampaignsPage />} />
-              <Route path="clients" element={<ClientsPage />} />
-              <Route path="submissions" element={<SubmissionsPage />} />
-              <Route path="enhanced-queue" element={<EnhancedQueueManagement />} />
-              <Route path="enhanced-members" element={<EnhancedMemberManagement />} />
-              <Route path="queue" element={<QueueManagement />} />
-              <Route path="members" element={<MembersPage />} />
-              <Route path="inquiries" element={<InquiriesPage />} />
-              <Route path="complaints" element={<ComplaintsPage />} />
-              <Route path="health" element={<HealthDashboard />} />
-              <Route path="admin/automation" element={<AutomationHistoryPage />} />
-              <Route path="admin/genres" element={<GenreAdministration />} />
-              <Route path="admin/settings" element={<SettingsPage />} />
-            </Route>
+            {/* Public Routes */}
+            <Route path="/" element={<AuthenticatedRedirect />} />
             <Route path="/preview" element={<PreviewTool />} />
             <Route path="/auth" element={<AuthenticatedRedirect />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            
+            {/* Admin Dashboard - New 9-Section Architecture */}
+            <Route path="/dashboard" element={
+              <RoleBasedRoute allowedRoles={['admin', 'moderator']}>
+                <DashboardLayout />
+              </RoleBasedRoute>
+            }>
+              <Route index element={<UnifiedOverview />} />
+              <Route path="planner" element={<PlannerPage />} />
+              <Route path="campaigns" element={<CampaignsPage />} />
+              <Route path="queue" element={<QueuePage />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="health" element={<HealthPage />} />
+              <Route path="automation" element={<AutomationPage />} />
+              <Route path="genres" element={<GenresPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+
+            {/* Member Portal - Enhanced Experience */}
+            <Route path="/portal" element={
+              <RoleBasedRoute requireMember={true}>
+                <MemberPortalLayout />
+              </RoleBasedRoute>
+            }>
+              <Route index element={<MemberDashboard />} />
+              <Route path="queue" element={<MemberQueue />} />
+              <Route path="submit" element={<SubmitTrack />} />
+              <Route path="history" element={<MemberHistory />} />
+              <Route path="credits" element={<CreditSystem />} />
+              <Route path="analytics" element={<MemberAnalytics />} />
+              <Route path="profile" element={<MemberProfile />} />
+            </Route>
+
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

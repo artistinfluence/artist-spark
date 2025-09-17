@@ -1,216 +1,176 @@
-import { useState } from "react";
-import { useNavigate, Outlet } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  FileText,
-  Calendar,
-  Users,
-  MessageSquare,
-  AlertTriangle,
+import React from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  SidebarProvider, 
+  Sidebar, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarGroupContent, 
+  SidebarGroupLabel, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarHeader,
+  SidebarFooter
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  LayoutDashboard, 
+  CalendarDays, 
+  DollarSign, 
+  Inbox,
+  Users, 
+  Activity, 
+  Zap,
+  Tags,
   Settings,
   LogOut,
-  Menu,
-  Waves,
   Home,
-} from "lucide-react";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+  Music
+} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
+  description: string;
 }
 
+// New 9-Section Architecture
 const navigation: NavItem[] = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Campaigns", href: "/dashboard/campaigns", icon: FileText },
-  { name: "Clients", href: "/dashboard/clients", icon: Users },
-  { name: "Submissions", href: "/dashboard/submissions", icon: FileText },
-  { name: "Enhanced Queue", href: "/dashboard/enhanced-queue", icon: Calendar },
-  { name: "Enhanced Members", href: "/dashboard/enhanced-members", icon: Users },
-  { name: "Today's Queue", href: "/dashboard/queue", icon: Calendar },
-  { name: "Members", href: "/dashboard/members", icon: Users },
-  { name: "Inquiries", href: "/dashboard/inquiries", icon: MessageSquare },
-  { name: "Complaints", href: "/dashboard/complaints", icon: AlertTriangle },
-  { name: "Health", href: "/dashboard/health", icon: AlertTriangle, badge: "3" },
-];
-
-const adminNavigation: NavItem[] = [
-  { name: "Automation History", href: "/dashboard/admin/automation", icon: Settings },
-  { name: "Genre Admin", href: "/dashboard/admin/genres", icon: Settings },
-  { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard, description: "Revenue, campaigns, credits snapshot" },
+  { name: "Planner", href: "/dashboard/planner", icon: CalendarDays, description: "Calendar/list unified view" },
+  { name: "Campaigns (Paid)", href: "/dashboard/campaigns", icon: DollarSign, description: "Pipeline management" },
+  { name: "Queue (Free)", href: "/dashboard/queue", icon: Inbox, description: "Submissions inbox" },
+  { name: "Members", href: "/dashboard/members", icon: Users, description: "Directory with credits & connections" },
+  { name: "Health", href: "/dashboard/health", icon: Activity, description: "Connection status & warnings" },
+  { name: "Automation", href: "/dashboard/automation", icon: Zap, description: "Email templates & logs" },
+  { name: "Genres", href: "/dashboard/genres", icon: Tags, description: "Family/subgenre management" },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings, description: "Credit rules & configs" },
 ];
 
 export const DashboardLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/auth");
+    navigate('/');
   };
 
-  const currentPath = window.location.pathname;
+  const isActive = (href: string, exact = false) => {
+    if (exact) {
+      return location.pathname === href;
+    }
+    return location.pathname.startsWith(href);
+  };
+
+  const currentSection = navigation.find(nav => isActive(nav.href, nav.href === '/dashboard'));
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
-        </div>
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3 p-6 border-b border-border">
-            <img 
-              src="/src/assets/artist-influence-logo.png" 
-              alt="Artist Influence" 
-              className="h-8 w-auto"
-            />
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {/* Main Navigation */}
-            <div className="space-y-1">
-              {navigation.map((item) => {
-                const isActive = currentPath === item.href || 
-                  (item.href !== "/dashboard" && currentPath.startsWith(item.href));
-                return (
-                  <Button
-                    key={item.name}
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "w-full justify-start gap-3",
-                      isActive && "bg-primary/10 text-primary border-primary/20"
-                    )}
-                    onClick={() => {
-                      navigate(item.href);
-                      setSidebarOpen(false);
-                    }}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.name}
-                    {item.badge && (
-                      <span className="ml-auto bg-destructive text-destructive-foreground text-xs rounded-full px-2 py-0.5">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Admin Navigation */}
-            <div className="pt-4 border-t border-border">
-              <div className="text-xs font-semibold text-muted-foreground mb-2 px-3">
-                ADMIN
-              </div>
-              <div className="space-y-1">
-                {adminNavigation.map((item) => {
-                  const isActive = currentPath === item.href || 
-                    currentPath.startsWith(item.href);
-                  return (
-                    <Button
-                      key={item.name}
-                      variant={isActive ? "secondary" : "ghost"}
-                      className={cn(
-                        "w-full justify-start gap-3",
-                        isActive && "bg-primary/10 text-primary border-primary/20"
-                      )}
-                      onClick={() => {
-                        navigate(item.href);
-                        setSidebarOpen(false);
-                      }}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </Button>
-                  );
-                })}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <Sidebar>
+          <SidebarHeader className="border-b border-sidebar-border p-4">
+            <div className="flex items-center gap-2">
+              <img 
+                src="/src/assets/artist-influence-logo.png" 
+                alt="Artist Influence" 
+                className="h-8 w-auto"
+              />
+              <div>
+                <h2 className="font-semibold text-sidebar-foreground">Admin Dashboard</h2>
+                <p className="text-xs text-sidebar-foreground/60">9-Section Architecture</p>
               </div>
             </div>
-          </nav>
+          </SidebarHeader>
 
-          {/* User menu */}
-          <div className="border-t border-border p-4 space-y-2">
-            <div className="flex items-center gap-3 px-2 py-2">
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {navigation.map((item) => (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton 
+                        asChild
+                        className={isActive(item.href, item.href === '/dashboard') 
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+                          : ""
+                        }
+                        tooltip={item.description}
+                      >
+                        <NavLink to={item.href}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter className="p-4 border-t border-sidebar-border">
+            <div className="flex items-center gap-3 mb-2 px-2 py-2">
               <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user?.email?.charAt(0).toUpperCase() || "U"}
+                <span className="text-primary-foreground text-sm font-medium">
+                  {user?.email?.charAt(0).toUpperCase() || "A"}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.email}</p>
-                <p className="text-xs text-muted-foreground">Admin</p>
+                <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.email}</p>
+                <p className="text-xs text-sidebar-foreground/60">Administrator</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
+            <Button 
+              variant="ghost" 
               size="sm"
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-              onClick={() => navigate("/")}
+              className="w-full justify-start text-sidebar-foreground hover:text-foreground mb-1"
+              onClick={() => navigate('/portal')}
             >
-              <Home className="h-4 w-4" />
-              Public Site
+              <Music className="h-4 w-4 mr-2" />
+              Member Portal
             </Button>
-            <Button
-              variant="ghost"
+            <Button 
+              variant="ghost" 
               size="sm"
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-accent hover:bg-accent/10"
-              onClick={handleSignOut}
+              onClick={handleSignOut} 
+              className="w-full justify-start text-sidebar-foreground hover:text-accent hover:bg-accent/10"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
-          </div>
-        </div>
-      </div>
+          </SidebarFooter>
+        </Sidebar>
 
-      {/* Main content */}
-      <div className="lg:ml-64">
-        {/* Top bar */}
-        <header className="bg-card border-b border-border px-4 lg:px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold">Dashboard</h1>
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header className="h-14 border-b border-border bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 flex items-center">
+            <SidebarTrigger />
+            <div className="ml-4 flex-1">
+              <h1 className="text-lg font-semibold text-foreground">
+                {currentSection?.name || 'Dashboard'}
+              </h1>
+              {currentSection?.description && (
+                <p className="text-sm text-muted-foreground">{currentSection.description}</p>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <NotificationBell />
             </div>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="p-4 lg:p-6">
-          <Outlet />
-        </main>
+          </header>
+          
+          <main className="flex-1 overflow-auto p-4 lg:p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };

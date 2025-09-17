@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_aggregations: {
+        Row: {
+          calculated_at: string | null
+          created_at: string | null
+          dimensions: Json | null
+          granularity: string
+          id: string
+          metric_name: string
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          created_at?: string | null
+          dimensions?: Json | null
+          granularity?: string
+          id?: string
+          metric_name: string
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          calculated_at?: string | null
+          created_at?: string | null
+          dimensions?: Json | null
+          granularity?: string
+          id?: string
+          metric_name?: string
+          metric_value?: number
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          context: Json | null
+          event_name: string
+          event_type: string
+          id: string
+          properties: Json | null
+          session_id: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          event_name: string
+          event_type: string
+          id?: string
+          properties?: Json | null
+          session_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          event_name?: string
+          event_type?: string
+          id?: string
+          properties?: Json | null
+          session_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       attribution_snapshots: {
         Row: {
           collected_at: string | null
@@ -176,6 +245,13 @@ export type Database = {
             foreignKeyName: "automation_logs_recipient_member_id_fkey"
             columns: ["recipient_member_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "automation_logs_recipient_member_id_fkey"
+            columns: ["recipient_member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -255,6 +331,13 @@ export type Database = {
           reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "avoid_list_items_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
           {
             foreignKeyName: "avoid_list_items_member_id_fkey"
             columns: ["member_id"]
@@ -646,6 +729,13 @@ export type Database = {
             foreignKeyName: "inquiries_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "inquiries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -779,10 +869,56 @@ export type Database = {
             foreignKeyName: "member_accounts_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "member_accounts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
+      }
+      member_cohorts: {
+        Row: {
+          cohort_month: string
+          created_at: string | null
+          id: string
+          last_activity_at: string | null
+          member_id: string
+          months_active: number[] | null
+          total_credits_earned: number | null
+          total_submissions: number | null
+          total_supports: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cohort_month: string
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          member_id: string
+          months_active?: number[] | null
+          total_credits_earned?: number | null
+          total_submissions?: number | null
+          total_supports?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cohort_month?: string
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          member_id?: string
+          months_active?: number[] | null
+          total_credits_earned?: number | null
+          total_submissions?: number | null
+          total_supports?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       member_genres: {
         Row: {
@@ -816,6 +952,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "genre_families"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_genres_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "member_genres_member_id_fkey"
@@ -1045,6 +1188,13 @@ export type Database = {
             foreignKeyName: "queue_assignments_supporter_id_fkey"
             columns: ["supporter_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "queue_assignments_supporter_id_fkey"
+            columns: ["supporter_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -1095,6 +1245,51 @@ export type Database = {
         }
         Relationships: []
       }
+      reporting_configurations: {
+        Row: {
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          format: string | null
+          id: string
+          last_run_at: string | null
+          name: string
+          report_type: string
+          schedule_config: Json | null
+          schedule_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          format?: string | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          report_type: string
+          schedule_config?: Json | null
+          schedule_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          format?: string | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          report_type?: string
+          schedule_config?: Json | null
+          schedule_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       repost_credit_ledger: {
         Row: {
           balance_after: number
@@ -1137,6 +1332,13 @@ export type Database = {
             foreignKeyName: "repost_credit_ledger_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "repost_credit_ledger_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -1174,6 +1376,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "repost_credit_wallet_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
           {
             foreignKeyName: "repost_credit_wallet_member_id_fkey"
             columns: ["member_id"]
@@ -1606,6 +1815,13 @@ export type Database = {
             foreignKeyName: "submissions_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_performance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "submissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -1760,7 +1976,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_performance_summary: {
+        Row: {
+          approved_submissions: number | null
+          avg_reach: number | null
+          completed_assignments: number | null
+          days_since_joined: number | null
+          member_id: string | null
+          name: string | null
+          net_credits: number | null
+          pending_submissions: number | null
+          rejected_submissions: number | null
+          size_tier: Database["public"]["Enums"]["size_tier"] | null
+          status: Database["public"]["Enums"]["member_status"] | null
+          total_queue_assignments: number | null
+          total_submissions: number | null
+        }
+        Relationships: []
+      }
+      revenue_summary: {
+        Row: {
+          avg_campaign_value: number | null
+          completed_campaigns: number | null
+          live_campaigns: number | null
+          month: string | null
+          scheduled_campaigns: number | null
+          total_campaigns: number | null
+          total_goal_reposts: number | null
+          total_revenue: number | null
+          unique_clients: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       call_send_notification_email: {
@@ -1811,6 +2058,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      refresh_analytics_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       send_notification_email: {
         Args: {

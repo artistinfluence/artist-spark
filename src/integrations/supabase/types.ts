@@ -391,6 +391,48 @@ export type Database = {
           },
         ]
       }
+      communication_integrations: {
+        Row: {
+          bot_token: string | null
+          channel: string | null
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          name: string
+          notification_types: Json | null
+          platform: string
+          updated_at: string | null
+          webhook_url: string
+        }
+        Insert: {
+          bot_token?: string | null
+          channel?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          name: string
+          notification_types?: Json | null
+          platform: string
+          updated_at?: string | null
+          webhook_url: string
+        }
+        Update: {
+          bot_token?: string | null
+          channel?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          name?: string
+          notification_types?: Json | null
+          platform?: string
+          updated_at?: string | null
+          webhook_url?: string
+        }
+        Relationships: []
+      }
       complaints: {
         Row: {
           ack_sent_at: string | null
@@ -1203,6 +1245,51 @@ export type Database = {
           },
         ]
       }
+      scraping_history: {
+        Row: {
+          created_at: string | null
+          data_scraped: Json | null
+          error_message: string | null
+          id: string
+          platform: string
+          response_time_ms: number | null
+          retry_count: number | null
+          scraped_at: string | null
+          status: string
+          target_handle: string | null
+          target_type: string
+          target_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_scraped?: Json | null
+          error_message?: string | null
+          id?: string
+          platform?: string
+          response_time_ms?: number | null
+          retry_count?: number | null
+          scraped_at?: string | null
+          status?: string
+          target_handle?: string | null
+          target_type: string
+          target_url: string
+        }
+        Update: {
+          created_at?: string | null
+          data_scraped?: Json | null
+          error_message?: string | null
+          id?: string
+          platform?: string
+          response_time_ms?: number | null
+          retry_count?: number | null
+          scraped_at?: string | null
+          status?: string
+          target_handle?: string | null
+          target_type?: string
+          target_url?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           adjacency_matrix: Json | null
@@ -1566,6 +1653,45 @@ export type Database = {
         }
         Relationships: []
       }
+      track_metrics: {
+        Row: {
+          artist_handle: string | null
+          collected_at: string | null
+          comment_count: number | null
+          id: string
+          like_count: number | null
+          play_count: number | null
+          repost_count: number | null
+          source: string | null
+          track_title: string | null
+          track_url: string
+        }
+        Insert: {
+          artist_handle?: string | null
+          collected_at?: string | null
+          comment_count?: number | null
+          id?: string
+          like_count?: number | null
+          play_count?: number | null
+          repost_count?: number | null
+          source?: string | null
+          track_title?: string | null
+          track_url: string
+        }
+        Update: {
+          artist_handle?: string | null
+          collected_at?: string | null
+          comment_count?: number | null
+          id?: string
+          like_count?: number | null
+          play_count?: number | null
+          repost_count?: number | null
+          source?: string | null
+          track_title?: string | null
+          track_url?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1584,6 +1710,51 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_configs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          events: Json | null
+          headers: Json | null
+          id: string
+          name: string
+          retry_attempts: number | null
+          secret_token: string | null
+          timeout_seconds: number | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          events?: Json | null
+          headers?: Json | null
+          id?: string
+          name: string
+          retry_attempts?: number | null
+          secret_token?: string | null
+          timeout_seconds?: number | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          events?: Json | null
+          headers?: Json | null
+          id?: string
+          name?: string
+          retry_attempts?: number | null
+          secret_token?: string | null
+          timeout_seconds?: number | null
+          updated_at?: string | null
+          url?: string
         }
         Relationships: []
       }

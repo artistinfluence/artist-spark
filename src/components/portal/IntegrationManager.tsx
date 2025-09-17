@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton'
 import { useIntegrations } from '@/hooks/useIntegrations'
-import { Music, Users, RefreshCw, Unlink, ExternalLink, AlertTriangle } from 'lucide-react'
+import { Music, Users, RefreshCw, Unlink, ExternalLink, AlertTriangle, BarChart3, Activity } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface IntegrationManagerProps {
@@ -128,13 +128,23 @@ export const IntegrationManager = ({ memberId }: IntegrationManagerProps) => {
                             variant="outline"
                             size="sm"
                             onClick={() => syncAccount(account.id)}
+                            title="Refresh account data"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => window.open(`/dashboard/track-analyzer`, '_self')}
+                            title="Analyze tracks"
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => window.open(`https://soundcloud.com/${account.handle}`, '_blank')}
+                            title="View on SoundCloud"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
@@ -142,6 +152,7 @@ export const IntegrationManager = ({ memberId }: IntegrationManagerProps) => {
                             variant="outline"
                             size="sm"
                             onClick={() => disconnectAccount(account.id)}
+                            title="Disconnect account"
                           >
                             <Unlink className="h-4 w-4" />
                           </Button>

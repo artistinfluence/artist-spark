@@ -26,9 +26,13 @@ import { SettingsPage } from "@/components/dashboard/SettingsPage";
 import { MemberDashboard } from "@/components/portal/MemberDashboard";
 import { MemberQueue } from "@/components/portal/MemberQueue";
 import { SubmitTrack } from "@/components/portal/SubmitTrack";
+import { AdvancedSubmitTrack } from "@/components/portal/AdvancedSubmitTrack";
 import { MemberHistory } from "@/components/portal/MemberHistory";
 import { CreditSystem } from "@/components/portal/CreditSystem";
 import { MemberAnalytics } from "@/components/portal/MemberAnalytics";
+import { PerformanceAnalytics } from "@/components/portal/PerformanceAnalytics";
+import { AttributionDashboard } from "@/components/portal/AttributionDashboard";
+import { AvoidListManager } from "@/components/portal/AvoidListManager";
 import { MemberProfile } from "@/components/portal/MemberProfile";
 
 import Index from "./pages/Index";
@@ -107,9 +111,13 @@ const App = () => (
               <Route index element={<MemberDashboard />} />
               <Route path="queue" element={<MemberQueue />} />
               <Route path="submit" element={<SubmitTrack />} />
+              <Route path="submit-advanced" element={<AdvancedSubmitTrack />} />
               <Route path="history" element={<MemberHistory />} />
               <Route path="credits" element={<CreditSystem />} />
               <Route path="analytics" element={<MemberAnalytics />} />
+              <Route path="performance" element={<PerformanceAnalytics />} />
+              <Route path="attribution" element={<AttributionDashboard />} />
+              <Route path="avoid-list" element={<AvoidListManager />} />
               <Route path="profile" element={<MemberProfile />} />
             </Route>
 

@@ -1,0 +1,46 @@
+{
+  "name": "Artist Influence Platform",
+  "short_name": "Artist Influence",
+  "description": "Music industry networking and submission platform",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#B91C1C",
+  "background_color": "#050505",
+  "orientation": "portrait-primary",
+  "categories": ["music", "entertainment", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Submit Track",
+      "short_name": "Submit",
+      "description": "Submit a new track for review",
+      "url": "/portal/submit",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Queue",
+      "short_name": "Queue",
+      "description": "View your submission queue",
+      "url": "/portal/queue",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    }
+  ]
+}

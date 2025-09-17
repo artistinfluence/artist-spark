@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { MobileNavigation } from '@/components/ui/mobile-navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NavItem {
   name: string;
@@ -57,6 +59,7 @@ export const DashboardLayout = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     await signOut();
@@ -152,12 +155,13 @@ export const DashboardLayout = () => {
 
         <div className="flex-1 flex flex-col min-h-screen">
           <header className="h-14 border-b border-border bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 flex items-center">
-            <SidebarTrigger />
+            {!isMobile && <SidebarTrigger />}
+            <MobileNavigation className="md:hidden" />
             <div className="ml-4 flex-1">
               <h1 className="text-lg font-semibold text-foreground">
                 {currentSection?.name || 'Dashboard'}
               </h1>
-              {currentSection?.description && (
+              {currentSection?.description && !isMobile && (
                 <p className="text-sm text-muted-foreground">{currentSection.description}</p>
               )}
             </div>

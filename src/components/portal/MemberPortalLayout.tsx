@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home, Upload, History, User, LogOut, Music, Calendar, Coins, BarChart3, Target, Shield } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { MobileNavigation } from '@/components/ui/mobile-navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const navigation = [
   { name: 'Dashboard', href: '/portal', icon: Home, exact: true },
@@ -35,6 +37,7 @@ export const MemberPortalLayout = () => {
   const { member, signOut, isAdmin, isModerator } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     await signOut();
@@ -123,7 +126,8 @@ export const MemberPortalLayout = () => {
 
         <div className="flex-1 flex flex-col min-h-screen">
           <header className="h-14 border-b border-border bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 flex items-center">
-            <SidebarTrigger />
+            {!isMobile && <SidebarTrigger />}
+            <MobileNavigation className="md:hidden" />
             <div className="ml-4">
               <h1 className="text-lg font-semibold text-foreground">
                 {navigation.find(nav => isActive(nav.href, nav.exact))?.name || 'Portal'}

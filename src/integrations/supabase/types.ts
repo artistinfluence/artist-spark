@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      attribution_snapshots: {
+        Row: {
+          collected_at: string | null
+          collection_source: string | null
+          comments: number | null
+          day_index: number
+          followers: number | null
+          id: string
+          likes: number | null
+          metadata: Json | null
+          parent_id: string
+          parent_type: string
+          plays: number | null
+          reposts: number | null
+          snapshot_date: string
+        }
+        Insert: {
+          collected_at?: string | null
+          collection_source?: string | null
+          comments?: number | null
+          day_index: number
+          followers?: number | null
+          id?: string
+          likes?: number | null
+          metadata?: Json | null
+          parent_id: string
+          parent_type: string
+          plays?: number | null
+          reposts?: number | null
+          snapshot_date: string
+        }
+        Update: {
+          collected_at?: string | null
+          collection_source?: string | null
+          comments?: number | null
+          day_index?: number
+          followers?: number | null
+          id?: string
+          likes?: number | null
+          metadata?: Json | null
+          parent_id?: string
+          parent_type?: string
+          plays?: number | null
+          reposts?: number | null
+          snapshot_date?: string
+        }
+        Relationships: []
+      }
       automation_health: {
         Row: {
           automation_name: string
@@ -58,6 +106,163 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      automation_logs: {
+        Row: {
+          bounced_at: string | null
+          clicked_at: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          parent_id: string | null
+          parent_type: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_member_id: string | null
+          retry_count: number | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["automation_status"] | null
+          subject: string | null
+          template_key: string
+          variables_used: Json | null
+        }
+        Insert: {
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          parent_id?: string | null
+          parent_type?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_member_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["automation_status"] | null
+          subject?: string | null
+          template_key: string
+          variables_used?: Json | null
+        }
+        Update: {
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          parent_id?: string | null
+          parent_type?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_member_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["automation_status"] | null
+          subject?: string | null
+          template_key?: string
+          variables_used?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_recipient_member_id_fkey"
+            columns: ["recipient_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          name: string
+          subject: string
+          template_key: string
+          trigger_events: string[] | null
+          updated_at: string | null
+          updated_by: string | null
+          variables: Json | null
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          name: string
+          subject: string
+          template_key: string
+          trigger_events?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          name?: string
+          subject?: string
+          template_key?: string
+          trigger_events?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      avoid_list_items: {
+        Row: {
+          avoided_handle: string
+          created_at: string | null
+          id: string
+          member_id: string
+          platform: string | null
+          reason: string | null
+        }
+        Insert: {
+          avoided_handle: string
+          created_at?: string | null
+          id?: string
+          member_id: string
+          platform?: string | null
+          reason?: string | null
+        }
+        Update: {
+          avoided_handle?: string
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          platform?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avoid_list_items_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_automations: {
         Row: {
@@ -105,6 +310,83 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "soundcloud_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          artist_name: string
+          attribution_end_date: string | null
+          baseline_captured_at: string | null
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          goal_reposts: number | null
+          id: string
+          ip_tracking_url: string | null
+          metadata: Json | null
+          notes: string | null
+          price_usd: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          track_name: string
+          track_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artist_name: string
+          attribution_end_date?: string | null
+          baseline_captured_at?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          goal_reposts?: number | null
+          id?: string
+          ip_tracking_url?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          price_usd?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          track_name: string
+          track_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artist_name?: string
+          attribution_end_date?: string | null
+          baseline_captured_at?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          goal_reposts?: number | null
+          id?: string
+          ip_tracking_url?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          price_usd?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          track_name?: string
+          track_url?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "soundcloud_clients"
             referencedColumns: ["id"]
           },
         ]
@@ -327,6 +609,62 @@ export type Database = {
           },
         ]
       }
+      integration_status: {
+        Row: {
+          account_handle: string
+          created_at: string | null
+          error_count: number | null
+          id: string
+          last_check_at: string | null
+          last_error_message: string | null
+          last_success_at: string | null
+          member_account_id: string | null
+          metadata: Json | null
+          platform: string
+          reconnect_sent_at: string | null
+          status: Database["public"]["Enums"]["connection_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_handle: string
+          created_at?: string | null
+          error_count?: number | null
+          id?: string
+          last_check_at?: string | null
+          last_error_message?: string | null
+          last_success_at?: string | null
+          member_account_id?: string | null
+          metadata?: Json | null
+          platform?: string
+          reconnect_sent_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_handle?: string
+          created_at?: string | null
+          error_count?: number | null
+          id?: string
+          last_check_at?: string | null
+          last_error_message?: string | null
+          last_success_at?: string | null
+          member_account_id?: string | null
+          metadata?: Json | null
+          platform?: string
+          reconnect_sent_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_status_member_account_id_fkey"
+            columns: ["member_account_id"]
+            isOneToOne: false
+            referencedRelation: "member_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mail_events: {
         Row: {
           event_type: string
@@ -357,17 +695,118 @@ export type Database = {
         }
         Relationships: []
       }
+      member_accounts: {
+        Row: {
+          connection_data: Json | null
+          created_at: string | null
+          follower_count: number | null
+          handle: string
+          id: string
+          last_synced_at: string | null
+          member_id: string
+          platform: string
+          status: Database["public"]["Enums"]["connection_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          connection_data?: Json | null
+          created_at?: string | null
+          follower_count?: number | null
+          handle: string
+          id?: string
+          last_synced_at?: string | null
+          member_id: string
+          platform: string
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          connection_data?: Json | null
+          created_at?: string | null
+          follower_count?: number | null
+          handle?: string
+          id?: string
+          last_synced_at?: string | null
+          member_id?: string
+          platform?: string
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_accounts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_genres: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          genre_family_id: string | null
+          id: string
+          member_id: string
+          subgenre_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          genre_family_id?: string | null
+          id?: string
+          member_id: string
+          subgenre_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          genre_family_id?: string | null
+          id?: string
+          member_id?: string
+          subgenre_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_genres_genre_family_id_fkey"
+            columns: ["genre_family_id"]
+            isOneToOne: false
+            referencedRelation: "genre_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_genres_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_genres_subgenre_id_fkey"
+            columns: ["subgenre_id"]
+            isOneToOne: false
+            referencedRelation: "subgenres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           classification_source: string | null
           created_at: string | null
+          credits_balance: number | null
+          credits_cap: number | null
           credits_given: number | null
+          credits_monthly_grant: number | null
           credits_used: number | null
           emails: string[] | null
           families: string[] | null
           followers: number | null
           id: string
+          last_activity_at: string | null
           last_classified_at: string | null
+          last_grant_at: string | null
           last_submission_at: string | null
           monthly_credit_limit: number | null
           monthly_repost_limit: number | null
@@ -377,25 +816,33 @@ export type Database = {
           reach_factor: number | null
           size_tier: Database["public"]["Enums"]["size_tier"] | null
           soundcloud_followers: number | null
+          soundcloud_handle: string | null
           soundcloud_url: string | null
           spotify_genres: string[] | null
           spotify_genres_updated_at: string | null
+          spotify_handle: string | null
           spotify_url: string | null
           status: Database["public"]["Enums"]["member_status"] | null
           subgenres: string[] | null
           submissions_this_month: number | null
+          tier_updated_at: string | null
           updated_at: string | null
         }
         Insert: {
           classification_source?: string | null
           created_at?: string | null
+          credits_balance?: number | null
+          credits_cap?: number | null
           credits_given?: number | null
+          credits_monthly_grant?: number | null
           credits_used?: number | null
           emails?: string[] | null
           families?: string[] | null
           followers?: number | null
           id?: string
+          last_activity_at?: string | null
           last_classified_at?: string | null
+          last_grant_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
@@ -405,25 +852,33 @@ export type Database = {
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
           soundcloud_followers?: number | null
+          soundcloud_handle?: string | null
           soundcloud_url?: string | null
           spotify_genres?: string[] | null
           spotify_genres_updated_at?: string | null
+          spotify_handle?: string | null
           spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
+          tier_updated_at?: string | null
           updated_at?: string | null
         }
         Update: {
           classification_source?: string | null
           created_at?: string | null
+          credits_balance?: number | null
+          credits_cap?: number | null
           credits_given?: number | null
+          credits_monthly_grant?: number | null
           credits_used?: number | null
           emails?: string[] | null
           families?: string[] | null
           followers?: number | null
           id?: string
+          last_activity_at?: string | null
           last_classified_at?: string | null
+          last_grant_at?: string | null
           last_submission_at?: string | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
@@ -433,13 +888,16 @@ export type Database = {
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
           soundcloud_followers?: number | null
+          soundcloud_handle?: string | null
           soundcloud_url?: string | null
           spotify_genres?: string[] | null
           spotify_genres_updated_at?: string | null
+          spotify_handle?: string | null
           spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
+          tier_updated_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -594,6 +1052,156 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      repost_credit_ledger: {
+        Row: {
+          balance_after: number
+          change_amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          member_id: string
+          metadata: Json | null
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          balance_after: number
+          change_amount: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          member_id: string
+          metadata?: Json | null
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          balance_after?: number
+          change_amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          member_id?: string
+          metadata?: Json | null
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repost_credit_ledger_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repost_credit_wallet: {
+        Row: {
+          balance: number
+          cap: number
+          created_at: string | null
+          id: string
+          last_granted_at: string | null
+          member_id: string
+          monthly_grant: number
+          updated_at: string | null
+        }
+        Insert: {
+          balance?: number
+          cap?: number
+          created_at?: string | null
+          id?: string
+          last_granted_at?: string | null
+          member_id: string
+          monthly_grant?: number
+          updated_at?: string | null
+        }
+        Update: {
+          balance?: number
+          cap?: number
+          created_at?: string | null
+          id?: string
+          last_granted_at?: string | null
+          member_id?: string
+          monthly_grant?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repost_credit_wallet_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          credits_allocated: number | null
+          error_message: string | null
+          id: string
+          ip_schedule_id: string | null
+          member_account_id: string | null
+          parent_id: string
+          parent_type: string
+          proof_url: string | null
+          retry_count: number | null
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["schedule_status"] | null
+          target_handle: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_allocated?: number | null
+          error_message?: string | null
+          id?: string
+          ip_schedule_id?: string | null
+          member_account_id?: string | null
+          parent_id: string
+          parent_type: string
+          proof_url?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["schedule_status"] | null
+          target_handle: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_allocated?: number | null
+          error_message?: string | null
+          id?: string
+          ip_schedule_id?: string | null
+          member_account_id?: string | null
+          parent_id?: string
+          parent_type?: string
+          proof_url?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["schedule_status"] | null
+          target_handle?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_member_account_id_fkey"
+            columns: ["member_account_id"]
+            isOneToOne: false
+            referencedRelation: "member_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
@@ -807,12 +1415,16 @@ export type Database = {
         Row: {
           alternative_url: string | null
           artist_name: string | null
+          auto_shifted: boolean | null
           created_at: string | null
+          credits_consumed: number | null
           expected_reach_max: number | null
           expected_reach_min: number | null
           expected_reach_planned: number | null
           family: string | null
           id: string
+          ip_schedule_ids: string[] | null
+          ip_tracking_url: string | null
           member_id: string
           need_live_link: boolean | null
           notes: string | null
@@ -821,7 +1433,9 @@ export type Database = {
           qa_reason: string | null
           release_date: string | null
           resend_message_ids: string[] | null
+          scheduled_date: string | null
           secondary_email: string | null
+          shift_reason: string | null
           status: Database["public"]["Enums"]["submission_status"] | null
           subgenres: string[] | null
           submitted_at: string | null
@@ -835,12 +1449,16 @@ export type Database = {
         Insert: {
           alternative_url?: string | null
           artist_name?: string | null
+          auto_shifted?: boolean | null
           created_at?: string | null
+          credits_consumed?: number | null
           expected_reach_max?: number | null
           expected_reach_min?: number | null
           expected_reach_planned?: number | null
           family?: string | null
           id?: string
+          ip_schedule_ids?: string[] | null
+          ip_tracking_url?: string | null
           member_id: string
           need_live_link?: boolean | null
           notes?: string | null
@@ -849,7 +1467,9 @@ export type Database = {
           qa_reason?: string | null
           release_date?: string | null
           resend_message_ids?: string[] | null
+          scheduled_date?: string | null
           secondary_email?: string | null
+          shift_reason?: string | null
           status?: Database["public"]["Enums"]["submission_status"] | null
           subgenres?: string[] | null
           submitted_at?: string | null
@@ -863,12 +1483,16 @@ export type Database = {
         Update: {
           alternative_url?: string | null
           artist_name?: string | null
+          auto_shifted?: boolean | null
           created_at?: string | null
+          credits_consumed?: number | null
           expected_reach_max?: number | null
           expected_reach_min?: number | null
           expected_reach_planned?: number | null
           family?: string | null
           id?: string
+          ip_schedule_ids?: string[] | null
+          ip_tracking_url?: string | null
           member_id?: string
           need_live_link?: boolean | null
           notes?: string | null
@@ -877,7 +1501,9 @@ export type Database = {
           qa_reason?: string | null
           release_date?: string | null
           resend_message_ids?: string[] | null
+          scheduled_date?: string | null
           secondary_email?: string | null
+          shift_reason?: string | null
           status?: Database["public"]["Enums"]["submission_status"] | null
           subgenres?: string[] | null
           submitted_at?: string | null
@@ -897,6 +1523,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      target_proposals: {
+        Row: {
+          conflicts: Json | null
+          created_at: string | null
+          created_by: string | null
+          criteria: Json
+          estimated_credits: number | null
+          expires_at: string | null
+          id: string
+          parent_id: string
+          parent_type: string
+          proposed_targets: Json
+          total_capacity: number | null
+        }
+        Insert: {
+          conflicts?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          criteria?: Json
+          estimated_credits?: number | null
+          expires_at?: string | null
+          id?: string
+          parent_id: string
+          parent_type: string
+          proposed_targets?: Json
+          total_capacity?: number | null
+        }
+        Update: {
+          conflicts?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          criteria?: Json
+          estimated_credits?: number | null
+          expires_at?: string | null
+          id?: string
+          parent_id?: string
+          parent_type?: string
+          proposed_targets?: Json
+          total_capacity?: number | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -996,7 +1664,22 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "member"
+      automation_status:
+        | "sent"
+        | "delivered"
+        | "opened"
+        | "clicked"
+        | "bounced"
+        | "failed"
+      campaign_status:
+        | "intake"
+        | "draft"
+        | "scheduled"
+        | "live"
+        | "completed"
+        | "paused"
       complaint_status: "todo" | "in_progress" | "done"
+      connection_status: "linked" | "reconnect" | "disconnected" | "error"
       inquiry_status: "undecided" | "admitted" | "rejected"
       member_status: "active" | "needs_reconnect"
       notification_type:
@@ -1008,6 +1691,12 @@ export type Database = {
         | "inquiry"
         | "queue"
         | "support"
+      schedule_status:
+        | "pending"
+        | "scheduled"
+        | "completed"
+        | "failed"
+        | "cancelled"
       size_tier: "T1" | "T2" | "T3" | "T4"
       submission_status: "new" | "approved" | "rejected" | "pending" | "qa_flag"
       target_band_mode: "balance" | "size"
@@ -1139,7 +1828,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "member"],
+      automation_status: [
+        "sent",
+        "delivered",
+        "opened",
+        "clicked",
+        "bounced",
+        "failed",
+      ],
+      campaign_status: [
+        "intake",
+        "draft",
+        "scheduled",
+        "live",
+        "completed",
+        "paused",
+      ],
       complaint_status: ["todo", "in_progress", "done"],
+      connection_status: ["linked", "reconnect", "disconnected", "error"],
       inquiry_status: ["undecided", "admitted", "rejected"],
       member_status: ["active", "needs_reconnect"],
       notification_type: [
@@ -1151,6 +1857,13 @@ export const Constants = {
         "inquiry",
         "queue",
         "support",
+      ],
+      schedule_status: [
+        "pending",
+        "scheduled",
+        "completed",
+        "failed",
+        "cancelled",
       ],
       size_tier: ["T1", "T2", "T3", "T4"],
       submission_status: ["new", "approved", "rejected", "pending", "qa_flag"],

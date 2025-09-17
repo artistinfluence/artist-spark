@@ -70,6 +70,7 @@ const analyticsNavigation: NavItem[] = [
   { name: "Report Builder", href: "/dashboard/analytics/reports", icon: FileBarChart, description: "Custom analytics reports" },
   { name: "Data Exports", href: "/dashboard/analytics/exports", icon: Download, description: "Export & schedule reports" },
   { name: "Business Intelligence", href: "/dashboard/analytics/intelligence", icon: Brain, description: "Advanced BI & insights" },
+  { name: "Integrated View", href: "/dashboard/analytics/integrated", icon: BarChart3, description: "Unified analytics dashboard" },
 ];
 
 export const DashboardLayout = () => {

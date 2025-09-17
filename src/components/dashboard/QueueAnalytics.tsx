@@ -77,6 +77,7 @@ export const QueueAnalytics: React.FC = () => {
   const [insights, setInsights] = useState<OptimizationInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  // Enhanced with performance optimization hooks would go here
 
   useEffect(() => {
     loadAnalyticsData();

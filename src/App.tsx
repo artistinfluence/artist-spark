@@ -32,6 +32,7 @@ const CampaignAnalytics = React.lazy(() => import("@/components/dashboard/Campai
 const ReportBuilder = React.lazy(() => import("@/components/dashboard/ReportBuilder").then(m => ({ default: m.ReportBuilder })));
 const DataExportManager = React.lazy(() => import("@/components/dashboard/DataExportManager").then(m => ({ default: m.DataExportManager })));
 const BusinessIntelligence = React.lazy(() => import("@/components/dashboard/BusinessIntelligence").then(m => ({ default: m.BusinessIntelligence })));
+const IntegratedAnalytics = React.lazy(() => import("@/components/dashboard/IntegratedAnalytics").then(m => ({ default: m.IntegratedAnalytics })));
 
 // Lazy load portal pages for better performance
 const MemberDashboard = React.lazy(() => import("@/components/portal/MemberDashboard").then(m => ({ default: m.MemberDashboard })));
@@ -131,6 +132,7 @@ const App = () => (
                 <Route path="analytics/reports" element={<Suspense fallback={<PageLoadingSpinner />}><ReportBuilder /></Suspense>} />
                 <Route path="analytics/exports" element={<Suspense fallback={<PageLoadingSpinner />}><DataExportManager /></Suspense>} />
                 <Route path="analytics/intelligence" element={<Suspense fallback={<PageLoadingSpinner />}><BusinessIntelligence /></Suspense>} />
+                <Route path="analytics/integrated" element={<Suspense fallback={<PageLoadingSpinner />}><IntegratedAnalytics /></Suspense>} />
               </Route>
 
               {/* Member Portal - Enhanced Experience */}

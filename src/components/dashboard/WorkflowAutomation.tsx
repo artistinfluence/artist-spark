@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Zap, Play, Pause, Settings, Clock, CheckCircle, XCircle, 
   AlertTriangle, Calendar, Users, Bell, Mail, Slack, 
-  RefreshCw, Plus, Edit, Trash2, Activity, Robot
+  RefreshCw, Plus, Edit, Trash2, Activity, Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

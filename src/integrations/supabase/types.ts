@@ -1060,6 +1060,7 @@ export type Database = {
       members: {
         Row: {
           classification_source: string | null
+          computed_monthly_repost_limit: number | null
           created_at: string | null
           credits_balance: number | null
           credits_cap: number | null
@@ -1097,6 +1098,7 @@ export type Database = {
         }
         Insert: {
           classification_source?: string | null
+          computed_monthly_repost_limit?: number | null
           created_at?: string | null
           credits_balance?: number | null
           credits_cap?: number | null
@@ -1134,6 +1136,7 @@ export type Database = {
         }
         Update: {
           classification_source?: string | null
+          computed_monthly_repost_limit?: number | null
           created_at?: string | null
           credits_balance?: number | null
           credits_cap?: number | null
@@ -2269,6 +2272,10 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_repost_limit: {
+        Args: { follower_count: number }
+        Returns: number
+      }
       call_send_notification_email: {
         Args: {
           email_to: string

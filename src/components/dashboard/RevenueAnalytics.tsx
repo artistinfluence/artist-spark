@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
+import { AnalyticsHeader, ActionButtonGroup } from '@/components/ui/analytics-header';
 import { 
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -155,33 +156,33 @@ export const RevenueAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Revenue Analytics
-          </h1>
-          <p className="text-muted-foreground">
-            Comprehensive financial performance and forecasting
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3months">3 Months</SelectItem>
-              <SelectItem value="6months">6 Months</SelectItem>
-              <SelectItem value="1year">1 Year</SelectItem>
-              <SelectItem value="2years">2 Years</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={exportReport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
-      </div>
+      <AnalyticsHeader
+        title="Revenue Analytics"
+        description="Comprehensive financial performance and forecasting"
+        actions={
+          <ActionButtonGroup>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3months">3 Months</SelectItem>
+                <SelectItem value="6months">6 Months</SelectItem>
+                <SelectItem value="1year">1 Year</SelectItem>
+                <SelectItem value="2years">2 Years</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportReport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </ActionButtonGroup>
+        }
+      />
 
       {/* Key Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

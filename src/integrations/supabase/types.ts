@@ -2203,6 +2203,38 @@ export type Database = {
       }
     }
     Views: {
+      campaign_attribution_analytics: {
+        Row: {
+          artist_name: string | null
+          baseline_comments: number | null
+          baseline_date: string | null
+          baseline_likes: number | null
+          baseline_plays: number | null
+          baseline_reposts: number | null
+          campaign_id: string | null
+          comments_gained: number | null
+          cost_per_play: number | null
+          cost_per_repost: number | null
+          current_comments: number | null
+          current_likes: number | null
+          current_plays: number | null
+          current_reposts: number | null
+          days_tracked: number | null
+          end_date: string | null
+          goal_reposts: number | null
+          latest_date: string | null
+          likes_gained: number | null
+          plays_gained: number | null
+          price_usd: number | null
+          repost_goal_progress_pct: number | null
+          reposts_gained: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          track_name: string | null
+          track_url: string | null
+        }
+        Relationships: []
+      }
       member_performance_summary: {
         Row: {
           approved_submissions: number | null

@@ -262,50 +262,50 @@ export const CampaignAnalytics: React.FC = () => {
 
       {/* Key Campaign Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="border-l-4 border-primary shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-            <Target className="h-4 w-4 text-blue-600" />
+            <Target className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary">
               <AnimatedCounter value={metrics.totalCampaigns} />
             </div>
             <p className="text-xs text-muted-foreground">{metrics.activeCampaigns} currently active</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
+            <DollarSign className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-accent">
               <AnimatedCounter value={metrics.totalRevenue} prefix="$" />
             </div>
             <p className="text-xs text-muted-foreground">+18.2% from last quarter</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+        <Card className="border-l-4 border-primary-glow shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average ROI</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
+            <TrendingUp className="h-4 w-4 text-primary-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.avgROI}%</div>
+            <div className="text-2xl font-bold text-primary-glow">{metrics.avgROI}%</div>
             <Progress value={Math.min(metrics.avgROI / 5, 100)} className="mt-2" />
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <Award className="h-4 w-4 text-orange-600" />
+            <Award className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.successRate}%</div>
+            <div className="text-2xl font-bold text-accent">{metrics.successRate}%</div>
             <Progress value={metrics.successRate} className="mt-2" />
           </CardContent>
         </Card>

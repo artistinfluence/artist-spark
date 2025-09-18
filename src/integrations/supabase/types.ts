@@ -131,6 +131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string
+          risk_score: number | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type: string
+          risk_score?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string
+          risk_score?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       automation_health: {
         Row: {
           automation_name: string
@@ -1087,6 +1126,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ml_predictions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          model_name: string
+          prediction_data: Json
+          prediction_type: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_name: string
+          prediction_data?: Json
+          prediction_type: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_name?: string
+          prediction_data?: Json
+          prediction_type?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -1123,6 +1201,42 @@ export type Database = {
           type?: Database["public"]["Enums"]["notification_type"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      performance_metrics: {
+        Row: {
+          alert_threshold: number | null
+          dimensions: Json | null
+          id: string
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number
+          service_name: string
+          status: string | null
+          timestamp: string
+        }
+        Insert: {
+          alert_threshold?: number | null
+          dimensions?: Json | null
+          id?: string
+          metric_name: string
+          metric_unit?: string | null
+          metric_value: number
+          service_name: string
+          status?: string | null
+          timestamp?: string
+        }
+        Update: {
+          alert_threshold?: number | null
+          dimensions?: Json | null
+          id?: string
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number
+          service_name?: string
+          status?: string | null
+          timestamp?: string
         }
         Relationships: []
       }
@@ -1827,6 +1941,36 @@ export type Database = {
           },
         ]
       }
+      system_health_scores: {
+        Row: {
+          component_name: string
+          created_at: string
+          health_score: number
+          id: string
+          last_check_at: string
+          metrics: Json | null
+          status: string
+        }
+        Insert: {
+          component_name: string
+          created_at?: string
+          health_score: number
+          id?: string
+          last_check_at?: string
+          metrics?: Json | null
+          status?: string
+        }
+        Update: {
+          component_name?: string
+          created_at?: string
+          health_score?: number
+          id?: string
+          last_check_at?: string
+          metrics?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       target_proposals: {
         Row: {
           conflicts: Json | null
@@ -1905,6 +2049,36 @@ export type Database = {
           source?: string | null
           track_title?: string | null
           track_url?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          preference_category: string
+          preference_key: string
+          preference_value: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preference_category: string
+          preference_key: string
+          preference_value: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preference_category?: string
+          preference_key?: string
+          preference_value?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2058,6 +2232,17 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _details?: Json
+          _resource_id?: string
+          _resource_type: string
+          _risk_score?: number
+          _user_id: string
+        }
+        Returns: undefined
       }
       refresh_analytics_views: {
         Args: Record<PropertyKey, never>

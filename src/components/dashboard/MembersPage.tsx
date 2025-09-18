@@ -438,12 +438,10 @@ export const MembersPage = () => {
                                   <span title="SoundCloud">
                                     <ExternalLink className="w-3 h-3 text-orange-500" />
                                   </span>
-                                )}
-                                {member.spotify_url && (
-                                  <span title="Spotify">
-                                    <ExternalLink className="w-3 h-3 text-green-500" />
-                                  </span>
-                                )}
+                                 )}
+                                 <span title="SoundCloud">
+                                   <ExternalLink className="w-3 w-3 text-blue-500" />
+                                 </span>
                               </div>
                            </div>
                            <div className="flex items-center gap-1 text-xs text-muted-foreground">

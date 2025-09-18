@@ -28,7 +28,6 @@ interface ProfileData {
   name: string;
   primary_email: string;
   soundcloud_url: string;
-  spotify_url: string;
   notification_preferences: {
     submissions: boolean;
     queue_updates: boolean;
@@ -50,7 +49,6 @@ export const MemberProfile = () => {
     name: '',
     primary_email: '',
     soundcloud_url: '',
-    spotify_url: '',
     notification_preferences: {
       submissions: true,
       queue_updates: true,
@@ -70,7 +68,6 @@ export const MemberProfile = () => {
         name: member.name || '',
         primary_email: member.primary_email || '',
         soundcloud_url: member.soundcloud_url || '',
-        spotify_url: member.spotify_url || '',
         notification_preferences: {
           submissions: true,
           queue_updates: true,
@@ -133,15 +130,6 @@ export const MemberProfile = () => {
       return;
     }
 
-    if (profileData.spotify_url && !validateUrl(profileData.spotify_url, 'spotify')) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid Spotify profile URL.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSaving(true);
     try {
       const { error } = await supabase
@@ -150,7 +138,6 @@ export const MemberProfile = () => {
           name: profileData.name,
           primary_email: profileData.primary_email,
           soundcloud_url: profileData.soundcloud_url || null,
-          spotify_url: profileData.spotify_url || null,
           families: selectedGenres,
           updated_at: new Date().toISOString(),
         })
@@ -285,28 +272,7 @@ export const MemberProfile = () => {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="spotify">Spotify Profile</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="spotify"
-                  value={profileData.spotify_url}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, spotify_url: e.target.value }))}
-                  placeholder="https://open.spotify.com/artist/your-id"
-                />
-                {profileData.spotify_url && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    asChild
-                  >
-                    <a href={profileData.spotify_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </div>
+            {/* Remove Spotify Profile section */}
 
             {member.soundcloud_followers > 0 && (
               <div className="pt-2 text-sm text-muted-foreground">

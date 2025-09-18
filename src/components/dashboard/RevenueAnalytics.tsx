@@ -186,55 +186,55 @@ export const RevenueAnalytics: React.FC = () => {
 
       {/* Key Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+        <Card className="border-l-4 border-primary shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
+            <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary">
               <AnimatedCounter value={metrics.totalRevenue} prefix="$" />
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+              <TrendingUp className="h-3 w-3 mr-1 text-primary" />
               +{metrics.revenueGrowth}% growth
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Recurring</CardTitle>
-            <CreditCard className="h-4 w-4 text-blue-600" />
+            <CreditCard className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-accent">
               <AnimatedCounter value={metrics.monthlyRecurring} prefix="$" />
             </div>
             <p className="text-xs text-muted-foreground">+8.2% from last month</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+        <Card className="border-l-4 border-primary-glow shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
-            <Banknote className="h-4 w-4 text-purple-600" />
+            <Banknote className="h-4 w-4 text-primary-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary-glow">
               <AnimatedCounter value={metrics.averageOrderValue} prefix="$" />
             </div>
             <p className="text-xs text-muted-foreground">+12.1% increase</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Customer LTV</CardTitle>
-            <Users className="h-4 w-4 text-orange-600" />
+            <Users className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-accent">
               <AnimatedCounter value={metrics.customerLifetimeValue} prefix="$" />
             </div>
             <p className="text-xs text-muted-foreground">24-month average</p>

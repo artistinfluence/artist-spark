@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Mail, Calendar, Crown, Music, Edit, Save, X, Loader2 } from 'lucide-react';
+import { ExternalLink, Mail, Calendar, Crown, Music, Edit, Save, X, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -52,6 +52,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     monthly_repost_limit: 1
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const [displayMember, setDisplayMember] = useState<Member | null>(null);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         monthly_repost_limit: member.monthly_repost_limit || 1
       });
       setDisplayMember(member);
+      setAnalysisSuccess(false);
     }
   }, [member]);
 
@@ -72,6 +75,59 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     };
     return patterns[platform as keyof typeof patterns]?.test(url) || false;
   };
+
+  const analyzeProfile = useCallback(async (url: string) => {
+    if (!member || !url || !validateUrl(url, 'soundcloud')) return;
+
+    setIsAnalyzing(true);
+    setAnalysisSuccess(false);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-soundcloud-profile', {
+        body: { url, member_id: member.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.followers) {
+        setFormData(prev => ({
+          ...prev,
+          soundcloud_followers: data.followers
+        }));
+        setAnalysisSuccess(true);
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Found ${data.followers.toLocaleString()} followers`
+        });
+
+        // Auto-hide success indicator after 3 seconds
+        setTimeout(() => setAnalysisSuccess(false), 3000);
+      }
+    } catch (error: any) {
+      console.error('Profile analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Could not analyze SoundCloud profile",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [member, toast]);
+
+  // Debounced effect for URL changes
+  useEffect(() => {
+    if (!isEditing || !formData.soundcloud_url) return;
+
+    const timeoutId = setTimeout(() => {
+      if (validateUrl(formData.soundcloud_url, 'soundcloud')) {
+        analyzeProfile(formData.soundcloud_url);
+      }
+    }, 1500); // Wait 1.5 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.soundcloud_url, isEditing, analyzeProfile]);
 
   const handleSave = async () => {
     if (!member) return;
@@ -124,6 +180,8 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         monthly_repost_limit: member.monthly_repost_limit || 1
       });
     }
+    setIsAnalyzing(false);
+    setAnalysisSuccess(false);
     setIsEditing(false);
   };
 
@@ -243,13 +301,28 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               <div>
                 <Label htmlFor="soundcloud_url" className="text-sm font-medium">SoundCloud URL</Label>
                 {isEditing ? (
-                  <Input
-                    id="soundcloud_url"
-                    value={formData.soundcloud_url}
-                    onChange={(e) => setFormData({...formData, soundcloud_url: e.target.value})}
-                    placeholder="https://soundcloud.com/artist-name"
-                    className="mt-1"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="soundcloud_url"
+                      value={formData.soundcloud_url}
+                      onChange={(e) => {
+                        setFormData({...formData, soundcloud_url: e.target.value});
+                        setAnalysisSuccess(false);
+                      }}
+                      placeholder="https://soundcloud.com/artist-name"
+                      className="mt-1 pr-10"
+                    />
+                    {isAnalyzing && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    {analysisSuccess && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-1">
                     {currentMember.soundcloud_url ? (
@@ -270,20 +343,52 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="soundcloud_followers" className="text-sm font-medium">SoundCloud Followers</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="soundcloud_followers" className="text-sm font-medium">SoundCloud Followers</Label>
+                  {isEditing && formData.soundcloud_url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => analyzeProfile(formData.soundcloud_url)}
+                      disabled={isAnalyzing || !validateUrl(formData.soundcloud_url, 'soundcloud')}
+                      className="h-6 px-2 text-xs"
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      Refresh
+                    </Button>
+                  )}
+                </div>
                 {isEditing ? (
-                  <Input
-                    id="soundcloud_followers"
-                    type="number"
-                    min="0"
-                    value={formData.soundcloud_followers}
-                    onChange={(e) => setFormData({...formData, soundcloud_followers: parseInt(e.target.value) || 0})}
-                    className="mt-1"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="soundcloud_followers"
+                      type="number"
+                      min="0"
+                      value={formData.soundcloud_followers}
+                      onChange={(e) => {
+                        setFormData({...formData, soundcloud_followers: parseInt(e.target.value) || 0});
+                        setAnalysisSuccess(false);
+                      }}
+                      className="mt-1"
+                    />
+                    {isAnalyzing && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">
                     {currentMember.soundcloud_followers?.toLocaleString() || 0} followers
                   </p>
+                )}
+                {isEditing && isAnalyzing && (
+                  <p className="text-xs text-muted-foreground mt-1">Analyzing profile...</p>
                 )}
               </div>
             </div>

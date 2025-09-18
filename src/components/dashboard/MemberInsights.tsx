@@ -249,71 +249,71 @@ export const MemberInsights: React.FC = () => {
 
       {/* Key Member Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="border-l-4 border-primary shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
+            <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary">
               <AnimatedCounter value={metrics.totalMembers} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
+            <UserCheck className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-accent">
               <AnimatedCounter value={metrics.activeMembers} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+        <Card className="border-l-4 border-primary-glow shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New This Month</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
+            <TrendingUp className="h-4 w-4 text-primary-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary-glow">
               <AnimatedCounter value={metrics.newThisMonth} />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-accent shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Retention Rate</CardTitle>
-            <Activity className="h-4 w-4 text-orange-600" />
+            <Activity className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.retentionRate}%</div>
+            <div className="text-2xl font-bold text-accent">{metrics.retentionRate}%</div>
             <Progress value={metrics.retentionRate} className="mt-2" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-primary shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
-            <Star className="h-4 w-4 text-yellow-600" />
+            <Star className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.avgEngagement}%</div>
+            <div className="text-2xl font-bold text-primary">{metrics.avgEngagement}%</div>
             <Progress value={metrics.avgEngagement} className="mt-2" />
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+        <Card className="border-l-4 border-primary-glow shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top Performers</CardTitle>
-            <Award className="h-4 w-4 text-orange-600" />
+            <Award className="h-4 w-4 text-primary-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-primary-glow">
               <AnimatedCounter value={metrics.topPerformers} />
             </div>
           </CardContent>

@@ -223,22 +223,110 @@ async function analyzeProfile(handle: string): Promise<SoundCloudProfile> {
 }
 
 async function performRealScraping(handle: string): Promise<SoundCloudProfile> {
-  // In a real implementation, this would:
-  // 1. Use a headless browser (Puppeteer/Playwright)
-  // 2. Navigate to the SoundCloud profile
-  // 3. Extract follower count from the page
-  // 4. Parse profile information and track genres
-  // 5. Calculate engagement rates from recent tracks
-
-  // For now, simulate network delay and realistic scraping
-  await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 4000))
-
-  // Simulate scraping that could fail
-  if (Math.random() < 0.1) { // 10% failure rate
-    throw new Error('Profile not accessible or private')
+  const profileUrl = `https://soundcloud.com/${handle}`
+  console.log('Scraping SoundCloud profile:', profileUrl)
+  
+  try {
+    // Add delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
+    
+    const response = await fetch(profileUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const html = await response.text()
+    
+    // Extract follower count from various possible locations in the HTML
+    let followers = 0
+    
+    // Method 1: Look for follower count in meta tags
+    const metaFollowersMatch = html.match(/<meta[^>]*property="soundcloud:follower_count"[^>]*content="(\d+)"/i)
+    if (metaFollowersMatch) {
+      followers = parseInt(metaFollowersMatch[1], 10)
+    }
+    
+    // Method 2: Look for follower count in JSON-LD structured data
+    if (!followers) {
+      const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis)
+      if (jsonLdMatch) {
+        for (const jsonLdText of jsonLdMatch) {
+          try {
+            const jsonData = JSON.parse(jsonLdText.replace(/<script[^>]*>|<\/script>/gi, ''))
+            if (jsonData.interactionStatistic) {
+              const followerStat = jsonData.interactionStatistic.find((stat: any) => 
+                stat.interactionType === 'https://schema.org/FollowAction'
+              )
+              if (followerStat && followerStat.userInteractionCount) {
+                followers = parseInt(followerStat.userInteractionCount, 10)
+                break
+              }
+            }
+          } catch (e) {
+            // Continue to next JSON-LD block
+          }
+        }
+      }
+    }
+    
+    // Method 3: Look for follower count in page text patterns
+    if (!followers) {
+      const followerPatterns = [
+        /(\d+(?:,\d+)*)\s+followers?/i,
+        /followers[:\s]*(\d+(?:,\d+)*)/i,
+        /"follower_count["\s]*:["\s]*(\d+)/i,
+      ]
+      
+      for (const pattern of followerPatterns) {
+        const match = html.match(pattern)
+        if (match) {
+          followers = parseInt(match[1].replace(/,/g, ''), 10)
+          break
+        }
+      }
+    }
+    
+    // If we couldn't extract follower count, throw error to use fallback
+    if (!followers || isNaN(followers)) {
+      throw new Error('Could not extract follower count from profile')
+    }
+    
+    console.log(`Successfully scraped ${handle}: ${followers} followers`)
+    
+    // Generate other profile data based on scraped follower count
+    const mockGenres = ['Electronic', 'Hip-Hop', 'Pop', 'Rock'].slice(0, Math.floor(Math.random() * 3) + 1)
+    
+    let tier: 'T1' | 'T2' | 'T3' | 'T4' = 'T1'
+    if (followers >= 100000) tier = 'T4'
+    else if (followers >= 10000) tier = 'T3'
+    else if (followers >= 1000) tier = 'T2'
+    
+    const engagementRate = Math.random() * 0.1 + 0.02 // 2-12%
+    const reachFactor = engagementRate * (Math.random() * 0.5 + 0.5)
+    
+    return {
+      handle,
+      followers,
+      genres: mockGenres,
+      engagement_rate: engagementRate,
+      tier,
+      reach_factor: reachFactor
+    }
+    
+  } catch (error: any) {
+    console.error('Real scraping failed:', error.message)
+    throw error
   }
-
-  return generateFallbackProfile(handle)
 }
 
 function generateFallbackProfile(handle: string): SoundCloudProfile {

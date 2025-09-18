@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.analyze-soundcloud-profile]
 verify_jwt = false
+
+[functions.daily-follower-sync]
+verify_jwt = false

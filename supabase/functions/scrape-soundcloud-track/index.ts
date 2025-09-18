@@ -127,38 +127,231 @@ const handler = async (req: Request): Promise<Response> => {
 }
 
 async function scrapeTrackMetrics(trackUrl: string): Promise<TrackMetrics> {
-  try {
-    // Add delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
+  console.log('Scraping SoundCloud track with Browserless.io:', trackUrl)
+  
+  const browserlessApiKey = Deno.env.get('BROWSERLESS_API_KEY')
+  if (!browserlessApiKey) {
+    throw new Error('BROWSERLESS_API_KEY not configured')
+  }
 
-    // In a real implementation, this would use a headless browser or parse HTML
-    // For now, we'll simulate scraping with realistic data based on URL analysis
-    const urlParts = trackUrl.split('/')
-    const artistHandle = urlParts[urlParts.length - 2] || 'unknown-artist'
-    const trackSlug = urlParts[urlParts.length - 1] || 'unknown-track'
-    
-    // Generate realistic metrics based on track age and artist popularity
-    const basePlayCount = Math.floor(Math.random() * 100000) + 1000
-    const engagementRate = 0.02 + Math.random() * 0.08 // 2-10% engagement
-    
-    const metrics: TrackMetrics = {
-      track_url: trackUrl,
-      track_title: trackSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      artist_handle: artistHandle,
-      play_count: basePlayCount,
-      like_count: Math.floor(basePlayCount * engagementRate * 0.8),
-      repost_count: Math.floor(basePlayCount * engagementRate * 0.3),
-      comment_count: Math.floor(basePlayCount * engagementRate * 0.1)
+  try {
+    // Puppeteer script to scrape SoundCloud track metrics
+    const puppeteerScript = `
+      const page = args.page;
+      
+      console.log('Navigating to SoundCloud track...');
+      await page.goto('${trackUrl}', { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+      
+      // Wait for content to load
+      await page.waitForTimeout(5000);
+      
+      let trackMetrics = {
+        track_url: '${trackUrl}',
+        track_title: '',
+        artist_handle: '',
+        play_count: 0,
+        like_count: 0,
+        repost_count: 0,
+        comment_count: 0
+      };
+      
+      // Extract track title
+      try {
+        const titleElement = await page.$('h1[itemprop="name"], .soundTitle__title, .trackItem__trackTitle');
+        if (titleElement) {
+          trackMetrics.track_title = await titleElement.evaluate(el => el.textContent?.trim() || '');
+        }
+      } catch (e) {
+        console.log('Could not extract track title:', e.message);
+      }
+      
+      // Extract artist handle
+      try {
+        const artistElement = await page.$('a[itemprop="url"], .soundTitle__username a, .trackItem__username a');
+        if (artistElement) {
+          const href = await artistElement.evaluate(el => el.href || '');
+          const match = href.match(/soundcloud\\.com\\/([^\/]+)/);
+          if (match) {
+            trackMetrics.artist_handle = match[1];
+          }
+        }
+      } catch (e) {
+        console.log('Could not extract artist handle:', e.message);
+      }
+      
+      // Extract play count
+      const playSelectors = [
+        '.sc-ministats-plays .sc-visuallyhidden',
+        '.playCount',
+        '[title*="play"]',
+        '.sc-font-light[title*="play"]'
+      ];
+      
+      for (const selector of playSelectors) {
+        try {
+          const element = await page.$(selector);
+          if (element) {
+            const text = await element.evaluate(el => el.textContent || el.title || '');
+            const match = text.match(/([\\d,]+)\\s*play/i);
+            if (match) {
+              trackMetrics.play_count = parseInt(match[1].replace(/,/g, ''), 10);
+              console.log('Found plays:', trackMetrics.play_count);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('Play selector failed:', selector);
+        }
+      }
+      
+      // Extract like count
+      const likeSelectors = [
+        '.sc-ministats-likes .sc-visuallyhidden',
+        '.sc-button-like .sc-visuallyhidden',
+        '[title*="like"]'
+      ];
+      
+      for (const selector of likeSelectors) {
+        try {
+          const element = await page.$(selector);
+          if (element) {
+            const text = await element.evaluate(el => el.textContent || el.title || '');
+            const match = text.match(/([\\d,]+)\\s*like/i);
+            if (match) {
+              trackMetrics.like_count = parseInt(match[1].replace(/,/g, ''), 10);
+              console.log('Found likes:', trackMetrics.like_count);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('Like selector failed:', selector);
+        }
+      }
+      
+      // Extract repost count
+      const repostSelectors = [
+        '.sc-ministats-reposts .sc-visuallyhidden',
+        '.sc-button-repost .sc-visuallyhidden',
+        '[title*="repost"]'
+      ];
+      
+      for (const selector of repostSelectors) {
+        try {
+          const element = await page.$(selector);
+          if (element) {
+            const text = await element.evaluate(el => el.textContent || el.title || '');
+            const match = text.match(/([\\d,]+)\\s*repost/i);
+            if (match) {
+              trackMetrics.repost_count = parseInt(match[1].replace(/,/g, ''), 10);
+              console.log('Found reposts:', trackMetrics.repost_count);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('Repost selector failed:', selector);
+        }
+      }
+      
+      // Extract comment count
+      const commentSelectors = [
+        '.sc-ministats-comments .sc-visuallyhidden',
+        '.commentsList__title',
+        '[title*="comment"]'
+      ];
+      
+      for (const selector of commentSelectors) {
+        try {
+          const element = await page.$(selector);
+          if (element) {
+            const text = await element.evaluate(el => el.textContent || el.title || '');
+            const match = text.match(/([\\d,]+)\\s*comment/i);
+            if (match) {
+              trackMetrics.comment_count = parseInt(match[1].replace(/,/g, ''), 10);
+              console.log('Found comments:', trackMetrics.comment_count);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('Comment selector failed:', selector);
+        }
+      }
+      
+      // If no metrics found, try parsing page source
+      if (trackMetrics.play_count === 0) {
+        const content = await page.content();
+        const playMatch = content.match(/"playback_count"[\\s]*:[\\s]*(\\d+)/);
+        if (playMatch) {
+          trackMetrics.play_count = parseInt(playMatch[1], 10);
+        }
+        
+        const likeMatch = content.match(/"likes_count"[\\s]*:[\\s]*(\\d+)/);
+        if (likeMatch) {
+          trackMetrics.like_count = parseInt(likeMatch[1], 10);
+        }
+        
+        const repostMatch = content.match(/"reposts_count"[\\s]*:[\\s]*(\\d+)/);
+        if (repostMatch) {
+          trackMetrics.repost_count = parseInt(repostMatch[1], 10);
+        }
+        
+        const commentMatch = content.match(/"comment_count"[\\s]*:[\\s]*(\\d+)/);
+        if (commentMatch) {
+          trackMetrics.comment_count = parseInt(commentMatch[1], 10);
+        }
+      }
+      
+      console.log('Final track metrics:', trackMetrics);
+      return trackMetrics;
+    `;
+
+    const response = await fetch('https://chrome.browserless.io/function', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${browserlessApiKey}`,
+      },
+      body: JSON.stringify({
+        code: puppeteerScript,
+        context: {}
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Browserless.io API error: ${response.status} ${response.statusText}`)
     }
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
+    const result = await response.json()
+    console.log('Browserless.io track result:', result)
 
+    if (!result || typeof result.play_count !== 'number') {
+      throw new Error('Invalid response from Browserless.io or could not extract track metrics')
+    }
+
+    // Parse URL for fallback data if needed
+    const urlParts = trackUrl.split('/')
+    const artistHandle = result.artist_handle || urlParts[urlParts.length - 2] || 'unknown-artist'
+    const trackTitle = result.track_title || urlParts[urlParts.length - 1]?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown Track'
+
+    const metrics: TrackMetrics = {
+      track_url: trackUrl,
+      track_title: trackTitle,
+      artist_handle: artistHandle,
+      play_count: result.play_count || 0,
+      like_count: result.like_count || 0,
+      repost_count: result.repost_count || 0,
+      comment_count: result.comment_count || 0
+    }
+
+    console.log(`Successfully scraped track: ${metrics.play_count} plays, ${metrics.like_count} likes, ${metrics.repost_count} reposts, ${metrics.comment_count} comments`)
+    
     return metrics
 
   } catch (error: any) {
-    console.error('Error in scrapeTrackMetrics:', error)
-    throw new Error(`Failed to scrape track metrics: ${error.message}`)
+    console.error('Browserless.io track scraping failed:', error.message)
+    throw new Error(`Failed to scrape track metrics with Browserless.io: ${error.message}`)
   }
 }
 

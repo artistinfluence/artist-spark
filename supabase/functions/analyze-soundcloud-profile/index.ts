@@ -224,83 +224,139 @@ async function analyzeProfile(handle: string): Promise<SoundCloudProfile> {
 
 async function performRealScraping(handle: string): Promise<SoundCloudProfile> {
   const profileUrl = `https://soundcloud.com/${handle}`
-  console.log('Scraping SoundCloud profile:', profileUrl)
+  console.log('Scraping SoundCloud profile with Browserless.io:', profileUrl)
+  
+  const browserlessApiKey = Deno.env.get('BROWSERLESS_API_KEY')
+  if (!browserlessApiKey) {
+    throw new Error('BROWSERLESS_API_KEY not configured')
+  }
   
   try {
-    // Add delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
-    
-    const response = await fetch(profileUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      },
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-    
-    const html = await response.text()
-    
-    // Extract follower count from various possible locations in the HTML
-    let followers = 0
-    
-    // Method 1: Look for follower count in meta tags
-    const metaFollowersMatch = html.match(/<meta[^>]*property="soundcloud:follower_count"[^>]*content="(\d+)"/i)
-    if (metaFollowersMatch) {
-      followers = parseInt(metaFollowersMatch[1], 10)
-    }
-    
-    // Method 2: Look for follower count in JSON-LD structured data
-    if (!followers) {
-      const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis)
-      if (jsonLdMatch) {
-        for (const jsonLdText of jsonLdMatch) {
-          try {
-            const jsonData = JSON.parse(jsonLdText.replace(/<script[^>]*>|<\/script>/gi, ''))
-            if (jsonData.interactionStatistic) {
-              const followerStat = jsonData.interactionStatistic.find((stat: any) => 
-                stat.interactionType === 'https://schema.org/FollowAction'
-              )
-              if (followerStat && followerStat.userInteractionCount) {
-                followers = parseInt(followerStat.userInteractionCount, 10)
-                break
-              }
+    // Puppeteer script to scrape SoundCloud profile
+    const puppeteerScript = `
+      const page = args.page;
+      
+      console.log('Navigating to SoundCloud profile...');
+      await page.goto('${profileUrl}', { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+      
+      // Wait for content to load
+      await page.waitForTimeout(3000);
+      
+      // Try multiple selectors for follower count
+      let followers = 0;
+      
+      // Method 1: Try common follower count selectors
+      const followerSelectors = [
+        '[title*="follower"]',
+        '.followersCount',
+        '.sc-font-light[title*="follower"]',
+        '[data-testid="followers-count"]',
+        '.sidebar-module-followers .followersCount'
+      ];
+      
+      for (const selector of followerSelectors) {
+        try {
+          const element = await page.$(selector);
+          if (element) {
+            const text = await element.evaluate(el => el.textContent || el.title || '');
+            const match = text.match(/([\\d,]+)\\s*follower/i);
+            if (match) {
+              followers = parseInt(match[1].replace(/,/g, ''), 10);
+              console.log('Found followers via selector:', selector, followers);
+              break;
             }
-          } catch (e) {
-            // Continue to next JSON-LD block
+          }
+        } catch (e) {
+          console.log('Selector failed:', selector, e.message);
+        }
+      }
+      
+      // Method 2: Search page content for follower patterns
+      if (!followers) {
+        const content = await page.content();
+        const patterns = [
+          /([\\d,]+)\\s+followers?/i,
+          /followers[:\\s]*([\\d,]+)/i,
+          /"follower_count"[\\s]*:[\\s]*([\\d]+)/i
+        ];
+        
+        for (const pattern of patterns) {
+          const match = content.match(pattern);
+          if (match) {
+            followers = parseInt(match[1].replace(/,/g, ''), 10);
+            console.log('Found followers via pattern:', pattern, followers);
+            break;
           }
         }
       }
-    }
-    
-    // Method 3: Look for follower count in page text patterns
-    if (!followers) {
-      const followerPatterns = [
-        /(\d+(?:,\d+)*)\s+followers?/i,
-        /followers[:\s]*(\d+(?:,\d+)*)/i,
-        /"follower_count["\s]*:["\s]*(\d+)/i,
-      ]
       
-      for (const pattern of followerPatterns) {
-        const match = html.match(pattern)
-        if (match) {
-          followers = parseInt(match[1].replace(/,/g, ''), 10)
-          break
+      // Method 3: Check for JSON data in script tags
+      if (!followers) {
+        const jsonScripts = await page.$$eval('script[type="application/ld+json"]', scripts => 
+          scripts.map(script => {
+            try {
+              return JSON.parse(script.textContent || '{}');
+            } catch {
+              return null;
+            }
+          }).filter(Boolean)
+        );
+        
+        for (const json of jsonScripts) {
+          if (json.interactionStatistic) {
+            const followerStat = json.interactionStatistic.find(stat => 
+              stat.interactionType === 'https://schema.org/FollowAction'
+            );
+            if (followerStat && followerStat.userInteractionCount) {
+              followers = parseInt(followerStat.userInteractionCount, 10);
+              console.log('Found followers via JSON-LD:', followers);
+              break;
+            }
+          }
         }
       }
+      
+      console.log('Final follower count:', followers);
+      
+      return {
+        followers: followers || 0,
+        url: '${profileUrl}',
+        handle: '${handle}'
+      };
+    `;
+
+    const response = await fetch('https://chrome.browserless.io/function', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${browserlessApiKey}`,
+      },
+      body: JSON.stringify({
+        code: puppeteerScript,
+        context: {}
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Browserless.io API error: ${response.status} ${response.statusText}`)
     }
-    
-    // If we couldn't extract follower count, throw error to use fallback
-    if (!followers || isNaN(followers)) {
-      throw new Error('Could not extract follower count from profile')
+
+    const result = await response.json()
+    console.log('Browserless.io result:', result)
+
+    if (!result || typeof result.followers !== 'number') {
+      throw new Error('Invalid response from Browserless.io or could not extract follower count')
     }
-    
+
+    const followers = result.followers
+
+    if (!followers || followers === 0) {
+      throw new Error('Could not extract follower count from SoundCloud profile')
+    }
+
     console.log(`Successfully scraped ${handle}: ${followers} followers`)
     
     // Generate other profile data based on scraped follower count
@@ -324,7 +380,7 @@ async function performRealScraping(handle: string): Promise<SoundCloudProfile> {
     }
     
   } catch (error: any) {
-    console.error('Real scraping failed:', error.message)
+    console.error('Browserless.io scraping failed:', error.message)
     throw error
   }
 }

@@ -22,6 +22,7 @@ import { InteractiveCard } from '@/components/ui/interactive-card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { AutomationRuleEditModal } from './AutomationRuleEditModal';
 
 interface AutomationRule {
   id: string;
@@ -660,6 +661,14 @@ export const WorkflowAutomation: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => setShowEditDialog(true)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => deleteRule(selectedRule.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -894,6 +903,22 @@ export const WorkflowAutomation: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AutomationRuleEditModal
+        rule={selectedRule}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={(updatedRule) => {
+          setRules(prev => prev.map(rule => rule.id === updatedRule.id ? updatedRule : rule));
+          if (selectedRule?.id === updatedRule.id) {
+            setSelectedRule(updatedRule);
+          }
+          toast({
+            title: "Rule Updated",
+            description: `${updatedRule.name} has been updated successfully`
+          });
+        }}
+      />
     </div>
   );
 };

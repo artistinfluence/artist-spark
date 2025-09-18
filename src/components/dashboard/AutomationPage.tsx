@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { EmailTemplateEditModal } from './EmailTemplateEditModal';
 import { 
   Zap, 
   Mail, 
@@ -16,7 +18,83 @@ import {
   Edit
 } from 'lucide-react';
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  description: string;
+  subject: string;
+  content: string;
+  category: string;
+  enabled: boolean;
+  lastSent?: string;
+}
+
 export const AutomationPage = () => {
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const { toast } = useToast();
+
+  const mockTemplates: EmailTemplate[] = [
+    {
+      id: 'template_1',
+      name: 'Submission Confirmation',
+      description: 'Sent when member submits a track for review',
+      subject: 'Track Submission Received - {{track_name}}',
+      content: 'Your track submission has been received...',
+      category: 'submission',
+      enabled: true,
+      lastSent: '2 hours ago'
+    },
+    {
+      id: 'template_2',
+      name: 'Support Confirmation',
+      description: 'Sent when submission is approved for support',
+      subject: 'Congratulations! {{track_name}} Approved',
+      content: 'Great news! Your track has been approved...',
+      category: 'approval',
+      enabled: true,
+      lastSent: '4 hours ago'
+    },
+    {
+      id: 'template_3',
+      name: 'Weekly Digest',
+      description: 'Weekly summary for members (currently disabled)',
+      subject: 'Your Weekly Music Summary',
+      content: 'Here\'s what happened this week...',
+      category: 'weekly',
+      enabled: false,
+      lastSent: '1 week ago'
+    },
+    {
+      id: 'template_4',
+      name: 'Welcome Email',
+      description: 'Sent when new member is admitted to the community',
+      subject: 'Welcome to Our Music Community!',
+      content: 'Welcome to our community! Here\'s how to get started...',
+      category: 'welcome',
+      enabled: true,
+      lastSent: '1 day ago'
+    }
+  ];
+
+  const handleEditTemplate = (template: EmailTemplate) => {
+    setEditingTemplate(template);
+  };
+
+  const handleSaveTemplate = (updatedTemplate: EmailTemplate) => {
+    toast({
+      title: "Template Updated",
+      description: `${updatedTemplate.name} has been updated successfully`
+    });
+    // In a real app, you would update the template in your backend/state
+  };
+
+  const handleNewTemplate = () => {
+    toast({
+      title: "Create Template",
+      description: "Template creation feature coming soon!"
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -27,7 +105,7 @@ export const AutomationPage = () => {
             Email templates with on/off toggles and execution logs
           </p>
         </div>
-        <Button>
+        <Button onClick={handleNewTemplate}>
           <Plus className="h-4 w-4 mr-2" />
           New Template
         </Button>
@@ -115,94 +193,39 @@ export const AutomationPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Template Item */}
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Switch defaultChecked />
-                    <div>
-                      <h3 className="font-medium">Submission Confirmation</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Sent when member submits a track for review
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary">submission</Badge>
-                        <span className="text-xs text-muted-foreground">Last sent: 2 hours ago</span>
+                {mockTemplates.map((template) => (
+                  <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <Switch defaultChecked={template.enabled} />
+                      <div>
+                        <h3 className="font-medium">{template.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {template.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant={template.enabled ? "secondary" : "outline"}>
+                            {template.category}
+                          </Badge>
+                          {template.lastSent && (
+                            <span className="text-xs text-muted-foreground">
+                              Last sent: {template.lastSent}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Switch defaultChecked />
-                    <div>
-                      <h3 className="font-medium">Support Confirmation</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Sent when submission is approved for support
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary">approval</Badge>
-                        <span className="text-xs text-muted-foreground">Last sent: 4 hours ago</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditTemplate(template)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Switch />
-                    <div>
-                      <h3 className="font-medium">Weekly Digest</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Weekly summary for members (currently disabled)
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline">weekly</Badge>
-                        <span className="text-xs text-muted-foreground">Last sent: 1 week ago</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Switch defaultChecked />
-                    <div>
-                      <h3 className="font-medium">Welcome Email</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Sent when new member is admitted to the community
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary">welcome</Badge>
-                        <span className="text-xs text-muted-foreground">Last sent: 1 day ago</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -338,6 +361,13 @@ export const AutomationPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <EmailTemplateEditModal
+        template={editingTemplate}
+        open={!!editingTemplate}
+        onOpenChange={(open) => !open && setEditingTemplate(null)}
+        onSave={handleSaveTemplate}
+      />
     </div>
   );
 };

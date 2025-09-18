@@ -374,7 +374,7 @@ export const IntegrationHub = () => {
                         <Badge variant={comm.enabled ? 'default' : 'secondary'}>
                           {comm.enabled ? 'Active' : 'Disabled'}
                         </Badge>
-                        <Button variant="outline" size="sm">Settings</Button>
+                        <Button variant="secondary" size="sm">Settings</Button>
                       </div>
                     </div>
                   ))

@@ -103,7 +103,7 @@ export const HealthPage = () => {
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>3 SoundCloud connections have failed - affecting member reach capacity</span>
-              <Button size="sm" variant="outline">Fix Now</Button>
+              <Button size="sm" variant="secondary">Fix Now</Button>
             </AlertDescription>
           </Alert>
           
@@ -111,7 +111,7 @@ export const HealthPage = () => {
             <Tag className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>47 members need genre classification - impacting targeting accuracy</span>
-              <Button size="sm" variant="outline">Classify</Button>
+              <Button size="sm" variant="secondary">Classify</Button>
             </AlertDescription>
           </Alert>
           
@@ -119,7 +119,7 @@ export const HealthPage = () => {
             <Users className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>Queue capacity at 85% - may cause scheduling delays</span>
-              <Button size="sm" variant="outline">Expand</Button>
+              <Button size="sm" variant="secondary">Expand</Button>
             </AlertDescription>
           </Alert>
         </CardContent>

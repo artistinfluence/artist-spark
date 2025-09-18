@@ -29,6 +29,11 @@ interface Member {
   manual_genres: string[];
   genre_family_id?: string;
   genre_notes?: string;
+  manual_monthly_repost_override?: number;
+  override_reason?: string;
+  override_set_by?: string;
+  override_set_at?: string;
+  computed_monthly_repost_limit?: number;
 }
 
 interface MemberDetailModalProps {
@@ -49,7 +54,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const [formData, setFormData] = useState({
     soundcloud_url: '',
     soundcloud_followers: 0,
-    monthly_repost_limit: 1
+    monthly_repost_limit: 1,
+    manual_monthly_repost_override: null as number | null,
+    override_reason: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -61,7 +68,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       setFormData({
         soundcloud_url: member.soundcloud_url || '',
         soundcloud_followers: member.soundcloud_followers || 0,
-        monthly_repost_limit: member.monthly_repost_limit || 1
+        monthly_repost_limit: member.monthly_repost_limit || 1,
+        manual_monthly_repost_override: member.manual_monthly_repost_override || null,
+        override_reason: member.override_reason || ''
       });
       setDisplayMember(member);
       setAnalysisSuccess(false);
@@ -148,7 +157,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         .update({
           soundcloud_url: formData.soundcloud_url || null,
           soundcloud_followers: formData.soundcloud_followers,
-          monthly_repost_limit: formData.monthly_repost_limit
+          monthly_repost_limit: formData.monthly_repost_limit,
+          manual_monthly_repost_override: formData.manual_monthly_repost_override,
+          override_reason: formData.override_reason || null,
+          override_set_by: formData.manual_monthly_repost_override ? null : null, // Will be set by auth context in real implementation
+          override_set_at: formData.manual_monthly_repost_override ? new Date().toISOString() : null
         })
         .eq('id', member.id);
 
@@ -177,7 +190,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       setFormData({
         soundcloud_url: member.soundcloud_url || '',
         soundcloud_followers: member.soundcloud_followers || 0,
-        monthly_repost_limit: member.monthly_repost_limit || 1
+        monthly_repost_limit: member.monthly_repost_limit || 1,
+        manual_monthly_repost_override: member.manual_monthly_repost_override || null,
+        override_reason: member.override_reason || ''
       });
     }
     setIsAnalyzing(false);
@@ -422,6 +437,86 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 <p className="text-sm text-muted-foreground mt-1">
                   {currentMember.submissions_this_month || 0}
                 </p>
+              </div>
+            </div>
+            
+            {/* Credit Override Section */}
+            <div className="mt-6 p-4 bg-card border border-border rounded-lg">
+              <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Credit Override (Admin Only)
+              </h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Calculated Limit (Auto)
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {currentMember.computed_monthly_repost_limit || 
+                       currentMember.soundcloud_followers ? 
+                       (currentMember.soundcloud_followers < 100000 ? 1 : 
+                        currentMember.soundcloud_followers < 500000 ? 2 : 3) : 1} 
+                      credits/month
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Based on {currentMember.soundcloud_followers?.toLocaleString() || 0} followers
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="manual_override" className="text-sm font-medium">
+                      Manual Override
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="manual_override"
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={formData.manual_monthly_repost_override || ''}
+                        placeholder="Leave empty for auto calculation"
+                        onChange={(e) => setFormData({
+                          ...formData, 
+                          manual_monthly_repost_override: e.target.value ? parseInt(e.target.value) : null
+                        })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {currentMember.manual_monthly_repost_override ? 
+                         `${currentMember.manual_monthly_repost_override} credits/month (Override)` : 
+                         'Auto calculation'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                {formData.manual_monthly_repost_override && isEditing && (
+                  <div>
+                    <Label htmlFor="override_reason" className="text-sm font-medium">
+                      Override Reason
+                    </Label>
+                    <Input
+                      id="override_reason"
+                      placeholder="Reason for manual override (required)"
+                      value={formData.override_reason}
+                      onChange={(e) => setFormData({...formData, override_reason: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+                
+                {currentMember.override_set_at && (
+                  <div className="text-xs text-muted-foreground">
+                    Override set on {format(new Date(currentMember.override_set_at), 'MMM dd, yyyy')}
+                    {currentMember.override_reason && (
+                      <>
+                        <br />
+                        Reason: {currentMember.override_reason}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

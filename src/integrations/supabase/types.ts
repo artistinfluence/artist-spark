@@ -1079,10 +1079,14 @@ export type Database = {
           last_grant_at: string | null
           last_submission_at: string | null
           manual_genres: string[] | null
+          manual_monthly_repost_override: number | null
           monthly_credit_limit: number | null
           monthly_repost_limit: number | null
           name: string
           net_credits: number | null
+          override_reason: string | null
+          override_set_at: string | null
+          override_set_by: string | null
           primary_email: string | null
           reach_factor: number | null
           size_tier: Database["public"]["Enums"]["size_tier"] | null
@@ -1117,10 +1121,14 @@ export type Database = {
           last_grant_at?: string | null
           last_submission_at?: string | null
           manual_genres?: string[] | null
+          manual_monthly_repost_override?: number | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
           name: string
           net_credits?: number | null
+          override_reason?: string | null
+          override_set_at?: string | null
+          override_set_by?: string | null
           primary_email?: string | null
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
@@ -1155,10 +1163,14 @@ export type Database = {
           last_grant_at?: string | null
           last_submission_at?: string | null
           manual_genres?: string[] | null
+          manual_monthly_repost_override?: number | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
           name?: string
           net_credits?: number | null
+          override_reason?: string | null
+          override_set_at?: string | null
+          override_set_by?: string | null
           primary_email?: string | null
           reach_factor?: number | null
           size_tier?: Database["public"]["Enums"]["size_tier"] | null
@@ -2273,7 +2285,7 @@ export type Database = {
     }
     Functions: {
       calculate_repost_limit: {
-        Args: { follower_count: number }
+        Args: { follower_count: number; manual_override?: number }
         Returns: number
       }
       call_send_notification_email: {

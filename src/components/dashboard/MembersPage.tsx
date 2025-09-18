@@ -24,6 +24,7 @@ import {
   Music,
   UserPlus,
   Upload,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
@@ -87,6 +88,7 @@ export const MembersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [syncingFollowers, setSyncingFollowers] = useState(false);
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
@@ -169,6 +171,39 @@ export const MembersPage = () => {
         description: error.message || "Failed to update status",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSyncFollowers = async () => {
+    setSyncingFollowers(true);
+    try {
+      console.log('Starting follower sync...');
+      
+      const { data, error } = await supabase.functions.invoke('daily-follower-sync');
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Sync result:', data);
+      
+      toast({
+        title: "Success",
+        description: `Follower sync completed: ${data.result.successful_syncs}/${data.result.total_processed} members updated`,
+      });
+      
+      // Refresh members data to show updated follower counts
+      fetchMembers();
+      
+    } catch (error: any) {
+      console.error('Error syncing followers:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sync followers",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncingFollowers(false);
     }
   };
 
@@ -260,6 +295,15 @@ export const MembersPage = () => {
           >
             <Upload className="w-4 h-4" />
             Import Members
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSyncFollowers} 
+            disabled={syncingFollowers}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncingFollowers ? 'animate-spin' : ''}`} />
+            {syncingFollowers ? 'Syncing...' : 'Sync Followers'}
           </Button>
           <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
             <UserPlus className="w-4 h-4" />

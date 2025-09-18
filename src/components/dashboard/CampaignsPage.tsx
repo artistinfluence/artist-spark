@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, 
   TableBody, 
@@ -28,7 +29,8 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  BarChart3
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -44,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CampaignForm } from "./CampaignForm";
+import { CampaignAttributionAnalytics } from "./CampaignAttributionAnalytics";
 
 interface Campaign {
   id: string;
@@ -179,190 +182,213 @@ export default function CampaignsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Campaigns</h1>
-          <p className="text-muted-foreground">Manage your SoundCloud promotional campaigns</p>
+          <p className="text-muted-foreground">Manage and track SoundCloud promotional campaigns</p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Campaign
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Campaign</DialogTitle>
-              <DialogDescription>
-                Set up a new SoundCloud promotional campaign
-              </DialogDescription>
-            </DialogHeader>
-            <CampaignForm 
-              onSuccess={() => {
-                setShowCreateDialog(false);
-                fetchCampaigns();
-              }} 
-            />
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search campaigns, artists, or clients..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
+      <Tabs defaultValue="attribution" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="attribution" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Attribution Analytics
+          </TabsTrigger>
+          <TabsTrigger value="soundcloud-campaigns">SoundCloud Campaigns</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="attribution">
+          <CampaignAttributionAnalytics />
+        </TabsContent>
+
+        <TabsContent value="soundcloud-campaigns" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">SoundCloud Campaigns</h2>
+              <p className="text-muted-foreground">Legacy campaign management system</p>
+            </div>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Campaign
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Campaign</DialogTitle>
+                  <DialogDescription>
+                    Set up a new SoundCloud promotional campaign
+                  </DialogDescription>
+                </DialogHeader>
+                <CampaignForm 
+                  onSuccess={() => {
+                    setShowCreateDialog(false);
+                    fetchCampaigns();
+                  }} 
                 />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Complete">Complete</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Reposts">Reposts</SelectItem>
-                <SelectItem value="Hyppedit">Hyppedit</SelectItem>
-                <SelectItem value="Followers">Followers</SelectItem>
-              </SelectContent>
-            </Select>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Campaigns Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Campaigns ({filteredCampaigns.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Track</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCampaigns.map((campaign) => (
-                <TableRow key={campaign.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{campaign.track_name}</p>
-                      <p className="text-sm text-muted-foreground">by {campaign.artist_name}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{campaign.client.name}</p>
-                      <p className="text-sm text-muted-foreground">{campaign.client.email}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{campaign.campaign_type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`${getStatusColor(campaign.status)} text-white`}>
-                      {campaign.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {campaign.goals > 0 ? (
-                      <div className="w-20">
-                        <div className="text-xs mb-1">
-                          {Math.round(calculateProgress(campaign.goals, campaign.remaining_metrics))}%
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Filters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-64">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search campaigns, artists, or clients..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Complete">Complete</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="Reposts">Reposts</SelectItem>
+                    <SelectItem value="Hyppedit">Hyppedit</SelectItem>
+                    <SelectItem value="Followers">Followers</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Campaigns Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Campaigns ({filteredCampaigns.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Track</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCampaigns.map((campaign) => (
+                    <TableRow key={campaign.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{campaign.track_name}</p>
+                          <p className="text-sm text-muted-foreground">by {campaign.artist_name}</p>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div 
-                            className="bg-primary h-1.5 rounded-full" 
-                            style={{ 
-                              width: `${calculateProgress(campaign.goals, campaign.remaining_metrics)}%` 
-                            }}
-                          ></div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{campaign.client.name}</p>
+                          <p className="text-sm text-muted-foreground">{campaign.client.email}</p>
                         </div>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    ${campaign.sales_price || 0}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={campaign.invoice_status === 'Paid' ? 'default' : 'secondary'}
-                    >
-                      {campaign.invoice_status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => window.open(campaign.track_url, '_blank')}>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View Track
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditingCampaign(campaign)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => deleteCampaign(campaign.id)}
-                          className="text-red-600"
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{campaign.campaign_type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${getStatusColor(campaign.status)} text-white`}>
+                          {campaign.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {campaign.goals > 0 ? (
+                          <div className="w-20">
+                            <div className="text-xs mb-1">
+                              {Math.round(calculateProgress(campaign.goals, campaign.remaining_metrics))}%
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-primary h-1.5 rounded-full" 
+                                style={{ 
+                                  width: `${calculateProgress(campaign.goals, campaign.remaining_metrics)}%` 
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ${campaign.sales_price || 0}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={campaign.invoice_status === 'Paid' ? 'default' : 'secondary'}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          {campaign.invoice_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => window.open(campaign.track_url, '_blank')}>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              View Track
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingCampaign(campaign)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => deleteCampaign(campaign.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-          {filteredCampaigns.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No campaigns found matching your criteria.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {filteredCampaigns.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No campaigns found matching your criteria.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Campaign Dialog */}
       {editingCampaign && (

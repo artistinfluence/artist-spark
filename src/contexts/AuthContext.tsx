@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select(`
           id, name, primary_email, emails, status, size_tier, 
           monthly_repost_limit, submissions_this_month, net_credits,
-          soundcloud_url, spotify_url, families, soundcloud_followers
+          soundcloud_url, families, soundcloud_followers
         `)
         .contains('emails', [userEmail])
         .single();

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { UserPlus, Music, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ManualGenreSelector } from './ManualGenreSelector';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -21,9 +22,11 @@ interface FormData {
   primary_email: string;
   additional_emails: string;
   soundcloud_url: string;
-  spotify_url: string;
   monthly_repost_limit: number;
   size_tier: 'T1' | 'T2' | 'T3' | 'T4';
+  genre_family_id?: string;
+  manual_genres: string[];
+  genre_notes: string;
 }
 
 interface SoundCloudAnalysis {
@@ -44,21 +47,19 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     primary_email: '',
     additional_emails: '',
     soundcloud_url: '',
-    spotify_url: '',
     monthly_repost_limit: 1,
-    size_tier: 'T1'
+    size_tier: 'T1',
+    genre_family_id: undefined,
+    manual_genres: [],
+    genre_notes: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [soundcloudAnalysis, setSoundcloudAnalysis] = useState<SoundCloudAnalysis | null>(null);
 
-  const validateUrl = (url: string, platform: string) => {
+  const validateUrl = (url: string) => {
     if (!url) return true;
-    const patterns = {
-      soundcloud: /^https?:\/\/(www\.)?soundcloud\.com\/.+/,
-      spotify: /^https?:\/\/(open\.)?spotify\.com\/artist\/.+/
-    };
-    return patterns[platform as keyof typeof patterns]?.test(url) || false;
+    return /^https?:\/\/(www\.)?soundcloud\.com\/.+/.test(url);
   };
 
   const analyzeSoundCloudProfile = async () => {
@@ -71,7 +72,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       return;
     }
 
-    if (!validateUrl(formData.soundcloud_url, 'soundcloud')) {
+    if (!validateUrl(formData.soundcloud_url)) {
       toast({
         title: "Invalid URL",
         description: "Please enter a valid SoundCloud URL",
@@ -131,19 +132,10 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       return;
     }
 
-    if (!validateUrl(formData.soundcloud_url, 'soundcloud')) {
+    if (!validateUrl(formData.soundcloud_url)) {
       toast({
         title: "Invalid SoundCloud URL",
         description: "Please enter a valid SoundCloud URL",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (formData.spotify_url && !validateUrl(formData.spotify_url, 'spotify')) {
-      toast({
-        title: "Invalid Spotify URL",
-        description: "Please enter a valid Spotify artist URL",
         variant: "destructive"
       });
       return;
@@ -171,11 +163,13 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           primary_email: formData.primary_email,
           emails: emails,
           soundcloud_url: formData.soundcloud_url,
-          spotify_url: formData.spotify_url || null,
           soundcloud_followers: soundcloudFollowers,
           monthly_repost_limit: formData.monthly_repost_limit,
           size_tier: formData.size_tier,
-          status: 'active'
+          status: 'active',
+          genre_family_id: formData.genre_family_id || null,
+          manual_genres: formData.manual_genres,
+          genre_notes: formData.genre_notes || null
         })
         .select()
         .single();
@@ -193,9 +187,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         primary_email: '',
         additional_emails: '',
         soundcloud_url: '',
-        spotify_url: '',
         monthly_repost_limit: 1,
-        size_tier: 'T1'
+        size_tier: 'T1',
+        genre_family_id: undefined,
+        manual_genres: [],
+        genre_notes: ''
       });
       setSoundcloudAnalysis(null);
       
@@ -219,9 +215,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       primary_email: '',
       additional_emails: '',
       soundcloud_url: '',
-      spotify_url: '',
       monthly_repost_limit: 1,
-      size_tier: 'T1'
+      size_tier: 'T1',
+      genre_family_id: undefined,
+      manual_genres: [],
+      genre_notes: ''
     });
     setSoundcloudAnalysis(null);
   };
@@ -287,24 +285,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             <h3 className="text-lg font-semibold mb-3">Platform Information</h3>
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="soundcloud_url" className="text-sm font-medium">SoundCloud URL *</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={analyzeSoundCloudProfile}
-                    disabled={isAnalyzing || !formData.soundcloud_url}
-                    className="flex items-center gap-2"
-                  >
-                    {isAnalyzing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Music className="w-4 h-4" />
-                    )}
-                    Analyze Profile
-                  </Button>
-                </div>
+                <Label htmlFor="soundcloud_url" className="text-sm font-medium">SoundCloud URL *</Label>
                 <Input
                   id="soundcloud_url"
                   value={formData.soundcloud_url}
@@ -335,21 +316,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   </div>
                 )}
               </div>
-              
-              <div>
-                <Label htmlFor="spotify_url" className="text-sm font-medium">Spotify Artist URL (Optional)</Label>
-                <Input
-                  id="spotify_url"
-                  value={formData.spotify_url}
-                  onChange={(e) => setFormData({...formData, spotify_url: e.target.value})}
-                  placeholder="https://open.spotify.com/artist/..."
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Used for automatic genre classification
-                </p>
-              </div>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Manual Genre Classification */}
+          <div>
+            <ManualGenreSelector
+              selectedFamilyId={formData.genre_family_id}
+              selectedGenres={formData.manual_genres}
+              genreNotes={formData.genre_notes}
+              onFamilyChange={(familyId) => setFormData({...formData, genre_family_id: familyId})}
+              onGenresChange={(genres) => setFormData({...formData, manual_genres: genres})}
+              onNotesChange={(notes) => setFormData({...formData, genre_notes: notes})}
+            />
           </div>
 
           <Separator />

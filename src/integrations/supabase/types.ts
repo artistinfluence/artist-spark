@@ -1015,6 +1015,48 @@ export type Database = {
           },
         ]
       }
+      member_import_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          errors: Json | null
+          failed_imports: number | null
+          filename: string | null
+          id: string
+          import_data: Json | null
+          imported_by: string | null
+          status: string | null
+          successful_imports: number | null
+          total_records: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          failed_imports?: number | null
+          filename?: string | null
+          id?: string
+          import_data?: Json | null
+          imported_by?: string | null
+          status?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          failed_imports?: number | null
+          filename?: string | null
+          id?: string
+          import_data?: Json | null
+          imported_by?: string | null
+          status?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           classification_source: string | null
@@ -1027,11 +1069,14 @@ export type Database = {
           emails: string[] | null
           families: string[] | null
           followers: number | null
+          genre_family_id: string | null
+          genre_notes: string | null
           id: string
           last_activity_at: string | null
           last_classified_at: string | null
           last_grant_at: string | null
           last_submission_at: string | null
+          manual_genres: string[] | null
           monthly_credit_limit: number | null
           monthly_repost_limit: number | null
           name: string
@@ -1042,10 +1087,7 @@ export type Database = {
           soundcloud_followers: number | null
           soundcloud_handle: string | null
           soundcloud_url: string | null
-          spotify_genres: string[] | null
-          spotify_genres_updated_at: string | null
           spotify_handle: string | null
-          spotify_url: string | null
           status: Database["public"]["Enums"]["member_status"] | null
           subgenres: string[] | null
           submissions_this_month: number | null
@@ -1063,11 +1105,14 @@ export type Database = {
           emails?: string[] | null
           families?: string[] | null
           followers?: number | null
+          genre_family_id?: string | null
+          genre_notes?: string | null
           id?: string
           last_activity_at?: string | null
           last_classified_at?: string | null
           last_grant_at?: string | null
           last_submission_at?: string | null
+          manual_genres?: string[] | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
           name: string
@@ -1078,10 +1123,7 @@ export type Database = {
           soundcloud_followers?: number | null
           soundcloud_handle?: string | null
           soundcloud_url?: string | null
-          spotify_genres?: string[] | null
-          spotify_genres_updated_at?: string | null
           spotify_handle?: string | null
-          spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
@@ -1099,11 +1141,14 @@ export type Database = {
           emails?: string[] | null
           families?: string[] | null
           followers?: number | null
+          genre_family_id?: string | null
+          genre_notes?: string | null
           id?: string
           last_activity_at?: string | null
           last_classified_at?: string | null
           last_grant_at?: string | null
           last_submission_at?: string | null
+          manual_genres?: string[] | null
           monthly_credit_limit?: number | null
           monthly_repost_limit?: number | null
           name?: string
@@ -1114,17 +1159,22 @@ export type Database = {
           soundcloud_followers?: number | null
           soundcloud_handle?: string | null
           soundcloud_url?: string | null
-          spotify_genres?: string[] | null
-          spotify_genres_updated_at?: string | null
           spotify_handle?: string | null
-          spotify_url?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
           tier_updated_at?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "members_genre_family_id_fkey"
+            columns: ["genre_family_id"]
+            isOneToOne: false
+            referencedRelation: "genre_families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ml_predictions: {
         Row: {

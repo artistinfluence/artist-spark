@@ -37,8 +37,6 @@ interface Member {
   followers: number;
   soundcloud_followers: number;
   soundcloud_url: string;
-  spotify_url: string;
-  spotify_genres: string[];
   families: string[];
   subgenres: string[];
   monthly_repost_limit: number;
@@ -46,7 +44,9 @@ interface Member {
   net_credits: number;
   created_at: string;
   last_submission_at: string;
-  last_classified_at: string;
+  manual_genres: string[];
+  genre_family_id?: string;
+  genre_notes?: string;
 }
 
 interface MemberAnalytics {

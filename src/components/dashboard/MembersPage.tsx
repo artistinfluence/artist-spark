@@ -23,10 +23,12 @@ import {
   ChevronDown,
   Music,
   UserPlus,
+  Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
 import { AddMemberModal } from './AddMemberModal';
+import { BulkMemberImport } from './BulkMemberImport';
 
 type MemberStatus = 'active' | 'needs_reconnect';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
@@ -41,8 +43,6 @@ interface Member {
   followers: number;
   soundcloud_followers: number;
   soundcloud_url: string;
-  spotify_url: string;
-  spotify_genres: string[];
   families: string[];
   subgenres: string[];
   monthly_repost_limit: number;
@@ -50,6 +50,9 @@ interface Member {
   net_credits: number;
   created_at: string;
   last_submission_at: string;
+  manual_genres: string[];
+  genre_family_id?: string;
+  genre_notes?: string;
 }
 
 interface MemberStats {
@@ -83,8 +86,7 @@ export const MembersPage = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isBulkClassifying, setIsBulkClassifying] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState({ processed: 0, total: 0 });
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
@@ -170,83 +172,10 @@ export const MembersPage = () => {
     }
   };
 
-  const handleBulkClassify = async (scope: 'all' | 'spotify-only' = 'spotify-only') => {
-    const membersToClassify = scope === 'all' 
-      ? members 
-      : members.filter(member => member.spotify_url);
-
-    if (membersToClassify.length === 0) {
-      toast({
-        title: "No members to classify",
-        description: scope === 'all' 
-          ? "No members found in the current filter"
-          : "No members with Spotify URLs found",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsBulkClassifying(true);
-    setBulkProgress({ processed: 0, total: membersToClassify.length });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('bulk-classify-members', {
-        body: {
-          memberIds: membersToClassify.map(m => m.id),
-          scope
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Bulk Classification Started",
-        description: `Processing ${membersToClassify.length} members in the background. This may take a few minutes.`,
-      });
-
-      // Poll for progress updates
-      const pollInterval = setInterval(async () => {
-        try {
-          const { data: progressData } = await supabase.functions.invoke('bulk-classify-status', {
-            body: { jobId: data.jobId }
-          });
-
-          if (progressData) {
-            setBulkProgress({ 
-              processed: progressData.processed, 
-              total: progressData.total 
-            });
-
-            if (progressData.completed) {
-              clearInterval(pollInterval);
-              setIsBulkClassifying(false);
-              toast({
-                title: "Bulk Classification Complete",
-                description: `Successfully processed ${progressData.processed} members`,
-              });
-              fetchMembers(); // Refresh the members list
-            }
-          }
-        } catch (error) {
-          console.error('Error polling progress:', error);
-        }
-      }, 2000);
-
-      // Cleanup interval after 10 minutes max
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        setIsBulkClassifying(false);
-      }, 600000);
-
-    } catch (error: any) {
-      console.error('Error starting bulk classification:', error);
-      toast({
-        title: "Bulk Classification Failed",
-        description: error.message || "Failed to start bulk classification",
-        variant: "destructive"
-      });
-      setIsBulkClassifying(false);
-    }
+  // Remove Spotify bulk classification logic and replace with import functionality
+  const handleBulkAction = () => {
+    // This could be extended for bulk member management operations
+    console.log('Bulk actions coming soon');
   };
 
   const filteredMembers = members.filter(member =>
@@ -317,19 +246,21 @@ export const MembersPage = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      {/* Import Members Button and Existing Actions */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Members</h1>
           <p className="text-muted-foreground">Manage member accounts and permissions</p>
         </div>
         <div className="flex items-center gap-4">
-          {isBulkClassifying && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-              Bulk Classification: {bulkProgress.processed}/{bulkProgress.total}
-            </div>
-          )}
+          <Button 
+            variant="outline" 
+            onClick={() => setIsBulkImportOpen(true)} 
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Import Members
+          </Button>
           <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
             <UserPlus className="w-4 h-4" />
             Add Member
@@ -381,42 +312,22 @@ export const MembersPage = () => {
         </Card>
       </div>
 
-      {/* Bulk Actions */}
+      {/* Manual Genre Management Info */}
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Music className="w-5 h-5" />
-            Genre Classification
+            Manual Genre Management
           </CardTitle>
           <CardDescription>
-            Automatically classify members' genres using their Spotify profiles
+            Genres are now assigned manually when adding members or through member details
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <Button 
-              onClick={() => handleBulkClassify('spotify-only')}
-              disabled={isBulkClassifying}
-              className="flex items-center gap-2"
-            >
-              {isBulkClassifying ? (
-                <div className="animate-spin h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full"></div>
-              ) : (
-                <Music className="w-4 h-4" />
-              )}
-              Re-Classify Members with Spotify URLs
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => handleBulkClassify('all')}
-              disabled={isBulkClassifying}
-              className="flex items-center gap-2"
-            >
-              Force Re-Classify All Members
-            </Button>
-            <div className="text-sm text-muted-foreground flex items-center">
-              {members.filter(m => m.spotify_url).length} members have Spotify URLs
-            </div>
+          <div className="text-sm text-muted-foreground">
+            <p>• Use the "Add Member" form to assign genres during member creation</p>
+            <p>• Edit existing member genres through member detail pages</p>
+            <p>• Import multiple members with CSV and assign genres individually</p>
           </div>
         </CardContent>
       </Card>
@@ -628,6 +539,14 @@ export const MembersPage = () => {
         <AddMemberModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            fetchMembers();
+          }}
+        />
+        
+        <BulkMemberImport
+          isOpen={isBulkImportOpen}
+          onClose={() => setIsBulkImportOpen(false)}
           onSuccess={() => {
             fetchMembers();
           }}

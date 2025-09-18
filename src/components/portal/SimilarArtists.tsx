@@ -56,7 +56,7 @@ export const SimilarArtists: React.FC = () => {
       // Fetch other members with similar genres
       const { data: members, error } = await supabase
         .from('members')
-        .select('id, name, primary_email, soundcloud_url, spotify_url, families, size_tier')
+        .select('id, name, primary_email, soundcloud_url, families, size_tier')
         .eq('status', 'active')
         .neq('id', member.id);
 
@@ -206,17 +206,6 @@ export const SimilarArtists: React.FC = () => {
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
                           SoundCloud
-                        </Button>
-                      )}
-                      {artist.spotify_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-xs"
-                          onClick={() => window.open(artist.spotify_url, '_blank')}
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          Spotify
                         </Button>
                       )}
                     </div>

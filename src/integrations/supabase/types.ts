@@ -1074,6 +1074,7 @@ export type Database = {
           id: string
           last_activity_at: string | null
           last_classified_at: string | null
+          last_follower_sync_at: string | null
           last_grant_at: string | null
           last_submission_at: string | null
           manual_genres: string[] | null
@@ -1110,6 +1111,7 @@ export type Database = {
           id?: string
           last_activity_at?: string | null
           last_classified_at?: string | null
+          last_follower_sync_at?: string | null
           last_grant_at?: string | null
           last_submission_at?: string | null
           manual_genres?: string[] | null
@@ -1146,6 +1148,7 @@ export type Database = {
           id?: string
           last_activity_at?: string | null
           last_classified_at?: string | null
+          last_follower_sync_at?: string | null
           last_grant_at?: string | null
           last_submission_at?: string | null
           manual_genres?: string[] | null

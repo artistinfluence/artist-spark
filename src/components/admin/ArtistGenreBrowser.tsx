@@ -243,7 +243,7 @@ export const ArtistGenreBrowser: React.FC = () => {
       <Card className={`transition-all duration-200 hover:shadow-lg cursor-pointer ${
         selectedMembers.has(member.id) ? 'ring-2 ring-primary' : ''
       }`}>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1 pt-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -252,14 +252,15 @@ export const ArtistGenreBrowser: React.FC = () => {
                 onClick={(e) => e.stopPropagation()}
               />
               <div>
-                <CardTitle className="text-sm">{member.name}</CardTitle>
-                <p className="text-xs text-muted-foreground">{member.primary_email}</p>
+                <CardTitle className="text-xs font-medium">{member.name}</CardTitle>
+                <p className="text-xs text-muted-foreground truncate max-w-[150px]">{member.primary_email}</p>
               </div>
             </div>
             {member.soundcloud_url && (
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-6 w-6 p-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(member.soundcloud_url, '_blank');
@@ -270,32 +271,29 @@ export const ArtistGenreBrowser: React.FC = () => {
             )}
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
+        <CardContent className="pt-0 pb-3">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
               {(() => {
                 const ipStatus = getIPStatusBadge(member.influence_planner_status);
                 return (
-                  <Badge variant={ipStatus.variant} className={ipStatus.className}>
+                  <Badge variant={ipStatus.variant} className={`text-xs px-1.5 py-0.5 ${ipStatus.className}`}>
                     {ipStatus.text}
                   </Badge>
                 );
               })()}
-              <Badge variant="outline">{member.size_tier}</Badge>
+              <Badge variant="outline" className="text-xs px-1.5 py-0.5">{member.size_tier}</Badge>
             </div>
             
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                {member.soundcloud_followers?.toLocaleString() || '0'}
+                <span>{member.soundcloud_followers?.toLocaleString() || '0'}</span>
               </div>
-            </div>
-
-            {getGenreDisplay(member)}
-
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              {new Date(member.created_at).toLocaleDateString()}
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>{new Date(member.created_at).toLocaleDateString()}</span>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -459,8 +457,8 @@ export const ArtistGenreBrowser: React.FC = () => {
       <AnimatePresence>
         <div className={`${
           viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
-            : 'space-y-2'
+            ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2' 
+            : 'space-y-1'
         }`}>
           {filteredAndSortedMembers.map(member => (
             <ArtistCard key={member.id} member={member} />

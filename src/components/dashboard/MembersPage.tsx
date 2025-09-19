@@ -208,18 +208,36 @@ export const MembersPage = () => {
 
       if (genreFilter !== 'all') {
         if (genreFilter === 'untagged') {
-          // Special filter for untagged members (empty families AND groups arrays)
+          // Members are untagged if they have no groups AND no formal genres
           membersData = membersData.filter(m => 
+            (!m.groups || m.groups.length === 0) && 
             (!m.families || m.families.length === 0) && 
-            (!m.groups || m.groups.length === 0)
+            (!m.subgenres || m.subgenres.length === 0) && 
+            (!m.manual_genres || m.manual_genres.length === 0)
           );
         } else {
-          membersData = membersData.filter(m => 
-            m.families?.includes(genreFilter) || 
-            m.subgenres?.some(sub => sub === genreFilter) ||
-            m.manual_genres?.includes(genreFilter) ||
-            m.groups?.includes(genreFilter)
-          );
+          // Check genre filter against all genre sources, prioritizing groups
+          membersData = membersData.filter(m => {
+            // First check groups (primary source)
+            if (m.groups?.includes(genreFilter)) return true;
+            
+            // Then check formal genre system
+            if (m.families?.includes(genreFilter)) return true;
+            if (m.subgenres?.some(sub => sub === genreFilter)) return true;
+            if (m.manual_genres?.includes(genreFilter)) return true;
+            
+            // Check if genreFilter matches any genre family or subgenre name
+            const genreFamily = genreFamilies.find(f => f.name === genreFilter);
+            if (genreFamily && m.families?.includes(genreFamily.id)) return true;
+            
+            const subgenre = subgenres.find(s => s.name === genreFilter);
+            if (subgenre && m.subgenres?.includes(subgenre.id)) return true;
+            
+            // Check if any group contains the filter term
+            if (m.groups?.some(group => group.toLowerCase().includes(genreFilter.toLowerCase()))) return true;
+            
+            return false;
+          });
         }
       }
 
@@ -567,45 +585,66 @@ export const MembersPage = () => {
     );
   };
 
-  const getGenreBadges = (member: Member) => {
+  const getUnifiedGenreBadges = (member: Member) => {
     const allGenres = [];
     
-    // Add genre families
+    // Prioritize Groups (primary source of truth)
+    if (member.groups && member.groups.length > 0) {
+      member.groups.forEach(group => {
+        allGenres.push({ name: group, type: 'group', priority: 1 });
+      });
+    }
+    
+    // Add genre families (formal classification)
     if (member.families && member.families.length > 0) {
       member.families.forEach(familyId => {
         const family = genreFamilies.find(f => f.id === familyId);
-        if (family) {
-          allGenres.push({ name: family.name, type: 'family' });
+        if (family && !allGenres.some(g => g.name.toLowerCase() === family.name.toLowerCase())) {
+          allGenres.push({ name: family.name, type: 'family', priority: 2 });
         }
       });
     }
     
-    // Add subgenres
+    // Add subgenres (formal classification)
     if (member.subgenres && member.subgenres.length > 0) {
       member.subgenres.forEach(subgenreId => {
         const subgenre = subgenres.find(s => s.id === subgenreId);
-        if (subgenre) {
-          allGenres.push({ name: subgenre.name, type: 'subgenre' });
+        if (subgenre && !allGenres.some(g => g.name.toLowerCase() === subgenre.name.toLowerCase())) {
+          allGenres.push({ name: subgenre.name, type: 'subgenre', priority: 3 });
         }
       });
     }
     
-    // Add manual genres
+    // Add manual genres (lowest priority)
     if (member.manual_genres && member.manual_genres.length > 0) {
       member.manual_genres.forEach(genre => {
-        allGenres.push({ name: genre, type: 'manual' });
+        if (!allGenres.some(g => g.name.toLowerCase() === genre.toLowerCase())) {
+          allGenres.push({ name: genre, type: 'manual', priority: 4 });
+        }
       });
     }
 
-    if (allGenres.length === 0) return <span className="text-xs text-muted-foreground">No genres</span>;
+    // Sort by priority (groups first, then formal genres)
+    allGenres.sort((a, b) => a.priority - b.priority);
+
+    if (allGenres.length === 0) return <span className="text-xs text-muted-foreground">Untagged</span>;
 
     return (
       <div className="flex flex-wrap gap-1">
         {allGenres.slice(0, 3).map((genre, index) => (
           <Badge 
-            key={index} 
-            variant={genre.type === 'family' ? 'default' : genre.type === 'subgenre' ? 'secondary' : 'outline'} 
-            className="text-xs"
+            key={`${genre.type}-${genre.name}-${index}`}
+            variant={
+              genre.type === 'group' ? 'default' : 
+              genre.type === 'family' ? 'secondary' : 
+              genre.type === 'subgenre' ? 'outline' : 
+              'outline'
+            }
+            className={`text-xs ${
+              genre.type === 'group' ? 'bg-primary/10 text-primary border-primary/30' : 
+              genre.type === 'family' ? 'bg-secondary/10' : 
+              ''
+            }`}
           >
             {genre.name}
           </Badge>
@@ -826,20 +865,28 @@ export const MembersPage = () => {
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Genres</SelectItem>
-                <SelectItem value="untagged">Untagged Members</SelectItem>
-                {genreFamilies.map(family => (
-                  <SelectItem key={family.id} value={family.id}>
-                    {family.name} (Family)
-                  </SelectItem>
-                ))}
-                {subgenres.map(subgenre => (
-                  <SelectItem key={subgenre.id} value={subgenre.id}>
-                    {subgenre.name} (Subgenre)
-                  </SelectItem>
-                ))}
-              </SelectContent>
+               <SelectContent>
+                 <SelectItem value="all">All Genres</SelectItem>
+                 <SelectItem value="untagged">Untagged Members</SelectItem>
+                 {/* Groups (primary source) */}
+                 {Array.from(new Set(members.flatMap(m => m.groups || []))).sort().map(group => (
+                   <SelectItem key={`group-${group}`} value={group}>
+                     {group}
+                   </SelectItem>
+                 ))}
+                 {/* Formal genre families */}
+                 {genreFamilies.map(family => (
+                   <SelectItem key={family.id} value={family.id}>
+                     {family.name} (Family)
+                   </SelectItem>
+                 ))}
+                 {/* Formal subgenres */}
+                 {subgenres.map(subgenre => (
+                   <SelectItem key={subgenre.id} value={subgenre.id}>
+                     {subgenre.name} (Subgenre)
+                   </SelectItem>
+                 ))}
+               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-48">
@@ -888,7 +935,6 @@ export const MembersPage = () => {
                       <SortableHeader column="stage_name">Stage Name</SortableHeader>
                       <SortableHeader column="status">Status</SortableHeader>
                       <TableHead>Genres</TableHead>
-                      <TableHead>Group(s)</TableHead>
                       <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
                       <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
                       <SortableHeader column="updated_at">Last Updated</SortableHeader>
@@ -937,10 +983,7 @@ export const MembersPage = () => {
                             {getStatusBadge(member)}
                           </TableCell>
                           <TableCell>
-                            {getGenreBadges(member)}
-                          </TableCell>
-                          <TableCell>
-                            {getGroupsBadges(member.groups)}
+                            {getUnifiedGenreBadges(member)}
                           </TableCell>
                          <TableCell onClick={(e) => e.stopPropagation()}>
                            <Select

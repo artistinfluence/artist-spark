@@ -28,6 +28,7 @@ interface GenreTagFilterProps {
   onGenreChange: (genres: string[]) => void;
   placeholder?: string;
   maxDisplayTags?: number;
+  availableGroups?: string[];
 }
 
 export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
@@ -36,12 +37,21 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
   selectedGenres,
   onGenreChange,
   placeholder = "Filter by genres...",
-  maxDisplayTags = 5
+  maxDisplayTags = 5,
+  availableGroups = []
 }) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
   const allGenres = useMemo(() => {
+    // Add groups first (primary genre source)
+    const groups = availableGroups.map(group => ({
+      id: group,
+      name: group,
+      type: 'group' as const,
+      familyId: 'groups'
+    }));
+    
     const families = genreFamilies.map(family => ({
       ...family,
       type: 'family' as const,
@@ -54,8 +64,8 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
       familyId: subgenre.family_id
     }));
     
-    return [...families, ...subs];
-  }, [genreFamilies, subgenres]);
+    return [...groups, ...families, ...subs];
+  }, [genreFamilies, subgenres, availableGroups]);
 
   const filteredGenres = useMemo(() => {
     if (!searchValue) return allGenres;
@@ -88,6 +98,9 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
     const genre = allGenres.find(g => g.id === genreId);
     if (genre?.type === 'family') {
       return genre;
+    }
+    if (genre?.type === 'group') {
+      return { id: 'groups', name: 'Groups', color: '#primary' };
     }
     return genreFamilies.find(f => f.id === genre?.familyId);
   };

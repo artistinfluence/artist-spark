@@ -43,6 +43,7 @@ interface Member {
   soundcloud_followers?: number;
   influence_planner_status?: string;
   created_at: string;
+  groups?: string[];
 }
 
 interface GenreFamily {
@@ -120,7 +121,7 @@ export const ArtistGenreBrowser: React.FC = () => {
     setLoading(true);
     try {
       const [membersResponse, familiesResponse, subgenresResponse] = await Promise.all([
-        supabase.from('members').select('id, name, stage_name, primary_email, status, size_tier, soundcloud_url, soundcloud_followers, influence_planner_status, created_at'),
+        supabase.from('members').select('id, name, stage_name, primary_email, status, size_tier, soundcloud_url, soundcloud_followers, influence_planner_status, created_at, groups'),
         supabase.from('genre_families').select('*').order('name'),
         supabase.from('subgenres').select('*').order('order_index')
       ]);
@@ -160,8 +161,20 @@ export const ArtistGenreBrowser: React.FC = () => {
       // Tier filter
       const matchesTier = tierFilter === 'all' || member.size_tier === tierFilter;
 
-      // Genre filter - temporarily disabled since genre_classification doesn't exist
-      const matchesGenre = selectedGenres.length === 0; // Always match for now
+      // Genre filter - check against member groups and formal genres
+      const matchesGenre = selectedGenres.length === 0 || 
+        selectedGenres.some(genre => {
+          // Check if it's a group name (direct string match)
+          if (member.groups?.includes(genre)) return true;
+          
+          // Check if it's a formal genre family ID
+          if (genreFamilies.some(f => f.id === genre)) return true;
+          
+          // Check if it's a formal subgenre ID  
+          if (subgenres.some(s => s.id === genre)) return true;
+          
+          return false;
+        });
 
       return matchesSearch && matchesStatus && matchesTier && matchesGenre;
     });
@@ -305,8 +318,38 @@ export const ArtistGenreBrowser: React.FC = () => {
   };
 
   const getGenreDisplay = (member: Member) => {
-    // Genre display temporarily disabled since genre_classification doesn't exist
-    return null;
+    // Get genres from groups field (primary source) and other sources
+    const allGenres = [];
+    
+    // Add groups (primary genre source)
+    if (member.groups && member.groups.length > 0) {
+      member.groups.forEach(group => {
+        allGenres.push({ name: group, type: 'group' });
+      });
+    }
+    
+    if (allGenres.length === 0) {
+      return <span className="text-xs text-muted-foreground">No genres</span>;
+    }
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        {allGenres.slice(0, 2).map((genre, index) => (
+          <Badge 
+            key={`${genre.type}-${genre.name}-${index}`}
+            variant="outline" 
+            className="text-xs bg-primary/5 text-primary border-primary/20"
+          >
+            {genre.name}
+          </Badge>
+        ))}
+        {allGenres.length > 2 && (
+          <Badge variant="outline" className="text-xs">
+            +{allGenres.length - 2}
+          </Badge>
+        )}
+      </div>
+    );
   };
 
   const ArtistCard: React.FC<{ member: Member }> = ({ member }) => {
@@ -406,8 +449,11 @@ export const ArtistGenreBrowser: React.FC = () => {
               </div>
             </div>
 
+            {/* Genre Display */}
+            {getGenreDisplay(member)}
+
             {/* Stats Row */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2 mt-2">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 text-primary/60" />
                 <span className="font-medium">
@@ -546,6 +592,7 @@ export const ArtistGenreBrowser: React.FC = () => {
             subgenres={subgenres as any}
             selectedGenres={selectedGenres}
             onGenreChange={setSelectedGenres}
+            availableGroups={Array.from(new Set(members.flatMap(m => m.groups || []))).sort()}
           />
         </CardContent>
       </Card>

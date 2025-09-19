@@ -725,164 +725,146 @@ export const MembersPage = () => {
           ) : (
             <div className="rounded-md border">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedMembers.length === filteredMembers.length && filteredMembers.length > 0}
-                        onCheckedChange={handleSelectAll}
-                        aria-label="Select all members"
-                      />
-                    </TableHead>
-                    <SortableHeader column="name">Member</SortableHeader>
-                    <SortableHeader column="stage_name">Stage Name</SortableHeader>
-                    <SortableHeader column="status">Status</SortableHeader>
-                    <TableHead>Group(s)</TableHead>
-                    <TableHead>SC URL</TableHead>
-                    <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
-                    <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
-                    <TableHead>First Name</TableHead>
-                    <TableHead>Email 1</TableHead>
-                    <TableHead>Email 2</TableHead>
-                    <SortableHeader column="updated_at">Last Updated</SortableHeader>
-                    <SortableHeader column="monthly_repost_limit">Reposts/Month</SortableHeader>
-                    <SortableHeader column="net_credits">Total Credits</SortableHeader>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                 <TableBody>
-                   {filteredMembers.map((member) => (
-                     <TableRow 
-                       key={member.id} 
-                       className={`hover:bg-muted/50 ${selectedMembers.includes(member.id) ? 'bg-muted/30' : ''}`}
-                     >
-                       <TableCell onClick={(e) => e.stopPropagation()}>
-                         <Checkbox
-                           checked={selectedMembers.includes(member.id)}
-                           onCheckedChange={(checked) => handleMemberSelect(member.id, !!checked)}
-                           aria-label={`Select ${member.name}`}
-                         />
-                       </TableCell>
-                        <TableCell 
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setSelectedMember(member);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <span className="font-medium">{member.name}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{member.stage_name || '-'}</span>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(member)}
-                        </TableCell>
-                        <TableCell>
-                          {getGroupsBadges(member.groups)}
-                        </TableCell>
-                        <TableCell>
-                          {member.soundcloud_url ? (
-                            <a 
-                              href={member.soundcloud_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1 text-orange-500 hover:text-orange-600"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              <span className="text-xs">SoundCloud</span>
-                            </a>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={member.influence_planner_status}
-                            onValueChange={(value: InfluencePlannerStatus) => 
-                              updateInfluencePlannerStatus(member.id, value)
-                            }
-                          >
-                            <SelectTrigger className="w-32 h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="hasnt_logged_in">Hasn't Logged In</SelectItem>
-                              <SelectItem value="invited">Invited</SelectItem>
-                              <SelectItem value="disconnected">Disconnected</SelectItem>
-                              <SelectItem value="connected">Connected</SelectItem>
-                              <SelectItem value="uninterested">Uninterested</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-sm">{member.soundcloud_followers?.toLocaleString() || '0'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{member.first_name || '-'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">{member.primary_email}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {getSecondaryEmail(member.emails, member.primary_email) || '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {member.updated_at ? format(new Date(member.updated_at), 'MMM d, yyyy') : '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{member.monthly_repost_limit || 0}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`text-sm ${member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {member.net_credits}
-                          </span>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead className="w-12">
+                       <Checkbox
+                         checked={selectedMembers.length === filteredMembers.length && filteredMembers.length > 0}
+                         onCheckedChange={handleSelectAll}
+                         aria-label="Select all members"
+                       />
+                     </TableHead>
+                     <SortableHeader column="name">Member</SortableHeader>
+                     <SortableHeader column="stage_name">Stage Name</SortableHeader>
+                     <SortableHeader column="status">Status</SortableHeader>
+                     <TableHead>Group(s)</TableHead>
+                     <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
+                     <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
+                     <SortableHeader column="updated_at">Last Updated</SortableHeader>
+                     <SortableHeader column="monthly_repost_limit">Reposts/Month</SortableHeader>
+                     <SortableHeader column="net_credits">Total Credits</SortableHeader>
+                     <TableHead>Actions</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                  <TableBody>
+                    {filteredMembers.map((member) => (
+                      <TableRow 
+                        key={member.id} 
+                        className={`hover:bg-muted/50 cursor-pointer ${selectedMembers.includes(member.id) ? 'bg-muted/30' : ''}`}
+                        onClick={() => {
+                          setSelectedMember(member);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedMembers.includes(member.id)}
+                            onCheckedChange={(checked) => handleMemberSelect(member.id, !!checked)}
+                            aria-label={`Select ${member.name}`}
+                          />
                         </TableCell>
                          <TableCell>
-                          <div className="flex gap-1">
-                            {mapDbStatusToDisplay(member.status) === 'connected' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateMemberStatus(member.id, 'disconnected');
-                                }}
-                              >
-                                Disconnect
-                              </Button>
-                            )}
-                            {mapDbStatusToDisplay(member.status) === 'disconnected' && (
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateMemberStatus(member.id, 'connected');
-                                }}
-                              >
-                                Connect
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSingleDelete(member);
-                              }}
-                              className="ml-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                     </TableRow>
+                           <span className="font-medium">{member.name}</span>
+                         </TableCell>
+                         <TableCell>
+                           {member.soundcloud_url ? (
+                             <a 
+                               href={member.soundcloud_url} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               onClick={(e) => e.stopPropagation()}
+                               className="flex items-center gap-1 text-primary hover:underline font-medium"
+                             >
+                               {member.stage_name || member.name}
+                               <ExternalLink className="w-3 h-3" />
+                             </a>
+                           ) : (
+                             <span className="text-sm">{member.stage_name || '-'}</span>
+                           )}
+                         </TableCell>
+                         <TableCell>
+                           {getStatusBadge(member)}
+                         </TableCell>
+                         <TableCell>
+                           {getGroupsBadges(member.groups)}
+                         </TableCell>
+                         <TableCell onClick={(e) => e.stopPropagation()}>
+                           <Select
+                             value={member.influence_planner_status}
+                             onValueChange={(value: InfluencePlannerStatus) => 
+                               updateInfluencePlannerStatus(member.id, value)
+                             }
+                           >
+                             <SelectTrigger className="w-32 h-8">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="hasnt_logged_in">Hasn't Logged In</SelectItem>
+                               <SelectItem value="invited">Invited</SelectItem>
+                               <SelectItem value="disconnected">Disconnected</SelectItem>
+                               <SelectItem value="connected">Connected</SelectItem>
+                               <SelectItem value="uninterested">Uninterested</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center gap-1">
+                             <TrendingUp className="w-3 h-3 text-muted-foreground" />
+                             <span className="text-sm">{member.soundcloud_followers?.toLocaleString() || '0'}</span>
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <span className="text-sm text-muted-foreground">
+                             {member.updated_at ? format(new Date(member.updated_at), 'MMM d, yyyy') : '-'}
+                           </span>
+                         </TableCell>
+                         <TableCell>
+                           <span className="text-sm">{member.monthly_repost_limit || 0}</span>
+                         </TableCell>
+                         <TableCell>
+                           <span className={`text-sm ${member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                             {member.net_credits}
+                           </span>
+                         </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                           <div className="flex gap-1">
+                             {mapDbStatusToDisplay(member.status) === 'connected' && (
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   updateMemberStatus(member.id, 'disconnected');
+                                 }}
+                               >
+                                 Disconnect
+                               </Button>
+                             )}
+                             {mapDbStatusToDisplay(member.status) === 'disconnected' && (
+                               <Button
+                                 size="sm"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   updateMemberStatus(member.id, 'connected');
+                                 }}
+                               >
+                                 Connect
+                               </Button>
+                             )}
+                             <Button
+                               size="sm"
+                               variant="destructive"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleSingleDelete(member);
+                               }}
+                               className="ml-1"
+                             >
+                               <Trash2 className="w-3 h-3" />
+                             </Button>
+                           </div>
+                         </TableCell>
+                      </TableRow>
                    ))}
                  </TableBody>
                </Table>

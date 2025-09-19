@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 interface Member {
   id: string;
   name: string;
+  stage_name?: string;
   primary_email: string;
   emails: string[];
   status: string;
@@ -52,6 +53,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
+    name: '',
+    stage_name: '',
+    primary_email: '',
+    emails: [] as string[],
     soundcloud_url: '',
     soundcloud_followers: 0,
     monthly_repost_limit: 1,
@@ -66,6 +71,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   useEffect(() => {
     if (member) {
       setFormData({
+        name: member.name || '',
+        stage_name: member.stage_name || '',
+        primary_email: member.primary_email || '',
+        emails: member.emails || [],
         soundcloud_url: member.soundcloud_url || '',
         soundcloud_followers: member.soundcloud_followers || 0,
         monthly_repost_limit: member.monthly_repost_limit || 1,
@@ -155,6 +164,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       const { error } = await supabase
         .from('members')
         .update({
+          name: formData.name,
+          stage_name: formData.stage_name || null,
+          primary_email: formData.primary_email,
+          emails: formData.emails,
           soundcloud_url: formData.soundcloud_url || null,
           soundcloud_followers: formData.soundcloud_followers,
           monthly_repost_limit: formData.monthly_repost_limit,
@@ -188,6 +201,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const handleCancel = () => {
     if (member) {
       setFormData({
+        name: member.name || '',
+        stage_name: member.stage_name || '',
+        primary_email: member.primary_email || '',
+        emails: member.emails || [],
         soundcloud_url: member.soundcloud_url || '',
         soundcloud_followers: member.soundcloud_followers || 0,
         monthly_repost_limit: member.monthly_repost_limit || 1,
@@ -283,26 +300,116 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             {getTierBadge(currentMember.size_tier)}
           </div>
 
+          {/* Basic Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="member_name" className="text-sm font-medium">Member Name</Label>
+                {isEditing ? (
+                  <Input
+                    id="member_name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Full name"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">{currentMember.name}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="stage_name" className="text-sm font-medium">Stage Name</Label>
+                {isEditing ? (
+                  <Input
+                    id="stage_name"
+                    value={formData.stage_name}
+                    onChange={(e) => setFormData({...formData, stage_name: e.target.value})}
+                    placeholder="Artist/stage name"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">{currentMember.stage_name || 'Not set'}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Contact Information */}
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <Mail className="w-5 h-5" />
               Contact Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">Primary Email</Label>
-                <p className="text-sm text-muted-foreground">{currentMember.primary_email}</p>
+                <Label htmlFor="primary_email" className="text-sm font-medium">Primary Email</Label>
+                {isEditing ? (
+                  <Input
+                    id="primary_email"
+                    type="email"
+                    value={formData.primary_email}
+                    onChange={(e) => setFormData({...formData, primary_email: e.target.value})}
+                    placeholder="primary@example.com"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">{currentMember.primary_email}</p>
+                )}
               </div>
               <div>
-                <Label className="text-sm font-medium">All Emails</Label>
-                <div className="flex flex-wrap gap-1">
-                  {currentMember.emails?.map((email, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {email}
-                    </Badge>
-                  ))}
-                </div>
+                <Label className="text-sm font-medium">All Email Addresses</Label>
+                {isEditing ? (
+                  <div className="space-y-2 mt-1">
+                    {formData.emails.map((email, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          type="email"
+                          value={email}
+                          onChange={(e) => {
+                            const newEmails = [...formData.emails];
+                            newEmails[index] = e.target.value;
+                            setFormData({...formData, emails: newEmails});
+                          }}
+                          placeholder="email@example.com"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newEmails = formData.emails.filter((_, i) => i !== index);
+                            setFormData({...formData, emails: newEmails});
+                          }}
+                          disabled={formData.emails.length <= 1}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({...formData, emails: [...formData.emails, '']});
+                      }}
+                      className="mt-2"
+                    >
+                      Add Email
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {currentMember.emails?.map((email, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {email}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

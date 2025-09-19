@@ -269,6 +269,31 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
     return /^https?:\/\/(www\.)?soundcloud\.com\/.+/.test(url);
   };
 
+  // Valid enum values for validation
+  const VALID_STATUS_VALUES = ['active', 'inactive', 'pending', 'suspended'];
+  const VALID_IP_STATUS_VALUES = ['hasnt_logged_in', 'invited', 'connected', 'disconnected', 'uninterested'];
+
+  // Sanitize and validate enum values with proper typing
+  const sanitizeStatusValue = (value: string | undefined): 'active' | 'needs_reconnect' => {
+    if (!value) return 'active';
+    
+    const cleanValue = value.toString().trim().toLowerCase();
+    const validValues: ('active' | 'needs_reconnect')[] = ['active', 'needs_reconnect'];
+    const matchingValue = validValues.find(v => v.toLowerCase() === cleanValue);
+    
+    return matchingValue || 'active';
+  };
+
+  const sanitizeIPStatusValue = (value: string | undefined): 'hasnt_logged_in' | 'invited' | 'connected' | 'disconnected' | 'uninterested' => {
+    if (!value) return 'hasnt_logged_in';
+    
+    const cleanValue = value.toString().trim().toLowerCase();
+    const validValues: ('hasnt_logged_in' | 'invited' | 'connected' | 'disconnected' | 'uninterested')[] = ['hasnt_logged_in', 'invited', 'connected', 'disconnected', 'uninterested'];
+    const matchingValue = validValues.find(v => v.toLowerCase() === cleanValue);
+    
+    return matchingValue || 'hasnt_logged_in';
+  };
+
   const processImport = async () => {
     setIsProcessing(true);
     setCurrentStep('process');
@@ -318,8 +343,8 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
           manual_monthly_repost_override: member.manual_monthly_repost_override,
           override_reason: member.override_reason,
           size_tier: member.size_tier,
-          status: (member.status as any) || 'active',
-          influence_planner_status: (member.influence_planner_status as any) || 'hasnt_logged_in'
+          status: sanitizeStatusValue(member.status),
+          influence_planner_status: sanitizeIPStatusValue(member.influence_planner_status)
         };
 
         // Insert member

@@ -29,8 +29,7 @@ interface Member {
   status: string;
   size_tier: string;
   soundcloud_url?: string;
-  followers_count?: number;
-  tracks_count?: number;
+  soundcloud_followers?: number;
   genre_classification?: any;
   created_at: string;
   last_activity?: string;
@@ -59,7 +58,7 @@ export const ArtistGenreBrowser: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'name' | 'followers' | 'tracks' | 'created'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'followers' | 'created'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [tierFilter, setTierFilter] = useState<string>('all');
@@ -134,10 +133,7 @@ export const ArtistGenreBrowser: React.FC = () => {
           comparison = a.name.localeCompare(b.name);
           break;
         case 'followers':
-          comparison = (a.followers_count || 0) - (b.followers_count || 0);
-          break;
-        case 'tracks':
-          comparison = (a.tracks_count || 0) - (b.tracks_count || 0);
+          comparison = (a.soundcloud_followers || 0) - (b.soundcloud_followers || 0);
           break;
         case 'created':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -258,11 +254,7 @@ export const ArtistGenreBrowser: React.FC = () => {
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                {member.followers_count?.toLocaleString() || '0'}
-              </div>
-              <div className="flex items-center gap-1">
-                <Music className="h-3 w-3" />
-                {member.tracks_count || '0'}
+                {member.soundcloud_followers?.toLocaleString() || '0'}
               </div>
             </div>
 
@@ -370,7 +362,6 @@ export const ArtistGenreBrowser: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="followers">Followers</SelectItem>
-                    <SelectItem value="tracks">Tracks</SelectItem>
                     <SelectItem value="created">Created</SelectItem>
                   </SelectContent>
                 </Select>

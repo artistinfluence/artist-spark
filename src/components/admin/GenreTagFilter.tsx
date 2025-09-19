@@ -43,29 +43,15 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
+  // Use groups as the primary genre source for filtering
   const allGenres = useMemo(() => {
-    // Add groups first (primary genre source)
-    const groups = availableGroups.map(group => ({
+    return availableGroups.map(group => ({
       id: group,
       name: group,
       type: 'group' as const,
       familyId: 'groups'
     }));
-    
-    const families = genreFamilies.map(family => ({
-      ...family,
-      type: 'family' as const,
-      familyId: family.id
-    }));
-    
-    const subs = subgenres.map(subgenre => ({
-      ...subgenre,
-      type: 'subgenre' as const,
-      familyId: subgenre.family_id
-    }));
-    
-    return [...groups, ...families, ...subs];
-  }, [genreFamilies, subgenres, availableGroups]);
+  }, [availableGroups]);
 
   const filteredGenres = useMemo(() => {
     if (!searchValue) return allGenres;
@@ -76,17 +62,10 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
   }, [allGenres, searchValue]);
 
   const groupedGenres = useMemo(() => {
-    const grouped: { [familyId: string]: typeof filteredGenres } = {};
-    
-    filteredGenres.forEach(genre => {
-      const familyId = genre.type === 'family' ? genre.id : genre.familyId;
-      if (!grouped[familyId]) {
-        grouped[familyId] = [];
-      }
-      grouped[familyId].push(genre);
-    });
-    
-    return grouped;
+    // Simple grouping by "Groups" since we're only using groups now
+    return {
+      'groups': filteredGenres
+    };
   }, [filteredGenres]);
 
   const getGenreName = (genreId: string) => {
@@ -95,14 +74,8 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
   };
 
   const getGenreFamily = (genreId: string) => {
-    const genre = allGenres.find(g => g.id === genreId);
-    if (genre?.type === 'family') {
-      return genre;
-    }
-    if (genre?.type === 'group') {
-      return { id: 'groups', name: 'Groups', color: '#primary' };
-    }
-    return genreFamilies.find(f => f.id === genre?.familyId);
+    // Since we're only using groups now, return a simple groups object
+    return { id: 'groups', name: 'Groups' };
   };
 
   const handleGenreSelect = (genreId: string) => {
@@ -145,42 +118,24 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
               />
               <CommandEmpty>No genres found.</CommandEmpty>
               <ScrollArea className="h-64">
-                {Object.entries(groupedGenres).map(([familyId, genres]) => {
-                  const family = genreFamilies.find(f => f.id === familyId);
-                  if (!family || genres.length === 0) return null;
-                  
-                  return (
-                    <CommandGroup key={familyId} heading={family.name}>
-                      {genres.map(genre => (
-                        <CommandItem
-                          key={genre.id}
-                          onSelect={() => handleGenreSelect(genre.id)}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            {family.color && (
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: family.color }}
-                              />
-                            )}
-                            <span className={genre.type === 'family' ? 'font-medium' : ''}>
-                              {genre.name}
-                            </span>
-                            {genre.type === 'subgenre' && (
-                              <Badge variant="outline" className="text-xs">
-                                Sub
-                              </Badge>
-                            )}
-                          </div>
-                          {selectedGenres.includes(genre.id) && (
-                            <Check className="h-4 w-4" />
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  );
-                })}
+                <CommandGroup heading="Groups">
+                  {filteredGenres.map(genre => (
+                    <CommandItem
+                      key={genre.id}
+                      onSelect={() => handleGenreSelect(genre.id)}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {genre.name}
+                        </span>
+                      </div>
+                      {selectedGenres.includes(genre.id) && (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
               </ScrollArea>
             </Command>
           </PopoverContent>
@@ -200,17 +155,7 @@ export const GenreTagFilter: React.FC<GenreTagFilterProps> = ({
                 <Badge 
                   variant="secondary" 
                   className="flex items-center gap-1 px-2 py-1"
-                  style={{ 
-                    backgroundColor: family?.color ? `${family.color}20` : undefined,
-                    borderColor: family?.color || undefined
-                  }}
                 >
-                  {family?.color && (
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: family.color }}
-                    />
-                  )}
                   <span className="text-xs">{getGenreName(genreId)}</span>
                   <Button
                     variant="ghost"

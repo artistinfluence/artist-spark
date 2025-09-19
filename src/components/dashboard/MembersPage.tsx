@@ -208,15 +208,12 @@ export const MembersPage = () => {
 
       if (genreFilter !== 'all') {
         if (genreFilter === 'untagged') {
-          // Members are untagged if they have no groups AND no formal genres
+          // Members are untagged if they have no groups (primary genre source)
           membersData = membersData.filter(m => 
-            (!m.groups || m.groups.length === 0) && 
-            (!m.families || m.families.length === 0) && 
-            (!m.subgenres || m.subgenres.length === 0) && 
-            (!m.manual_genres || m.manual_genres.length === 0)
+            (!m.groups || m.groups.length === 0)
           );
         } else {
-          // Check genre filter against all genre sources, prioritizing groups
+          // Filter by groups primarily
           membersData = membersData.filter(m => {
             // First check groups (primary source)
             if (m.groups?.includes(genreFilter)) return true;
@@ -586,72 +583,25 @@ export const MembersPage = () => {
   };
 
   const getUnifiedGenreBadges = (member: Member) => {
-    const allGenres = [];
-    
-    // Prioritize Groups (primary source of truth)
-    if (member.groups && member.groups.length > 0) {
-      member.groups.forEach(group => {
-        allGenres.push({ name: group, type: 'group', priority: 1 });
-      });
+    // Show only groups as genre badges - the primary source of truth
+    if (!member.groups || member.groups.length === 0) {
+      return <span className="text-xs text-muted-foreground">Untagged</span>;
     }
-    
-    // Add genre families (formal classification)
-    if (member.families && member.families.length > 0) {
-      member.families.forEach(familyId => {
-        const family = genreFamilies.find(f => f.id === familyId);
-        if (family && !allGenres.some(g => g.name.toLowerCase() === family.name.toLowerCase())) {
-          allGenres.push({ name: family.name, type: 'family', priority: 2 });
-        }
-      });
-    }
-    
-    // Add subgenres (formal classification)
-    if (member.subgenres && member.subgenres.length > 0) {
-      member.subgenres.forEach(subgenreId => {
-        const subgenre = subgenres.find(s => s.id === subgenreId);
-        if (subgenre && !allGenres.some(g => g.name.toLowerCase() === subgenre.name.toLowerCase())) {
-          allGenres.push({ name: subgenre.name, type: 'subgenre', priority: 3 });
-        }
-      });
-    }
-    
-    // Add manual genres (lowest priority)
-    if (member.manual_genres && member.manual_genres.length > 0) {
-      member.manual_genres.forEach(genre => {
-        if (!allGenres.some(g => g.name.toLowerCase() === genre.toLowerCase())) {
-          allGenres.push({ name: genre, type: 'manual', priority: 4 });
-        }
-      });
-    }
-
-    // Sort by priority (groups first, then formal genres)
-    allGenres.sort((a, b) => a.priority - b.priority);
-
-    if (allGenres.length === 0) return <span className="text-xs text-muted-foreground">Untagged</span>;
 
     return (
       <div className="flex flex-wrap gap-1">
-        {allGenres.slice(0, 3).map((genre, index) => (
+        {member.groups.slice(0, 3).map((group, index) => (
           <Badge 
-            key={`${genre.type}-${genre.name}-${index}`}
-            variant={
-              genre.type === 'group' ? 'default' : 
-              genre.type === 'family' ? 'secondary' : 
-              genre.type === 'subgenre' ? 'outline' : 
-              'outline'
-            }
-            className={`text-xs ${
-              genre.type === 'group' ? 'bg-primary/10 text-primary border-primary/30' : 
-              genre.type === 'family' ? 'bg-secondary/10' : 
-              ''
-            }`}
+            key={`group-${group}-${index}`}
+            variant="default"
+            className="text-xs bg-primary/10 text-primary border-primary/30"
           >
-            {genre.name}
+            {group}
           </Badge>
         ))}
-        {allGenres.length > 3 && (
+        {member.groups.length > 3 && (
           <Badge variant="outline" className="text-xs">
-            +{allGenres.length - 3}
+            +{member.groups.length - 3}
           </Badge>
         )}
       </div>

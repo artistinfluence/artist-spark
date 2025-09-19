@@ -153,17 +153,17 @@ export const MembersPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   const statusConfig = {
-    connected: { label: 'Connected', color: 'bg-green-500', icon: CheckCircle },
-    disconnected: { label: 'Disconnected', color: 'bg-red-500', icon: AlertCircle },
-    invited: { label: 'Invited', color: 'bg-blue-500', icon: Activity },
-    uninterested: { label: 'Uninterested', color: 'bg-gray-500', icon: XCircle },
+    connected: { label: 'Connected', color: 'bg-success text-success-foreground', icon: CheckCircle },
+    disconnected: { label: 'Disconnected', color: 'bg-destructive text-destructive-foreground', icon: AlertCircle },
+    invited: { label: 'Invited', color: 'bg-info text-info-foreground', icon: Activity },
+    uninterested: { label: 'Uninterested', color: 'bg-muted text-muted-foreground', icon: XCircle },
   };
 
   const tierConfig = {
-    T1: { label: 'Tier 1', color: 'bg-gray-500', followers: '0-1K' },
-    T2: { label: 'Tier 2', color: 'bg-blue-500', followers: '1K-10K' },
-    T3: { label: 'Tier 3', color: 'bg-purple-500', followers: '10K-100K' },
-    T4: { label: 'Tier 4', color: 'bg-yellow-500', followers: '100K+' },
+    T1: { label: 'Tier 1', color: 'bg-muted text-muted-foreground', followers: '0-1K' },
+    T2: { label: 'Tier 2', color: 'bg-info text-info-foreground', followers: '1K-10K' },
+    T3: { label: 'Tier 3', color: 'bg-primary text-primary-foreground', followers: '10K-100K' },
+    T4: { label: 'Tier 4', color: 'bg-accent text-accent-foreground', followers: '100K+' },
   };
 
   const fetchMembers = async () => {
@@ -497,7 +497,7 @@ export const MembersPage = () => {
     };
     
     return (
-      <Badge className={`${config.color} text-white hover:${config.color}/80`}>
+      <Badge className={`${config.color} hover:opacity-80 transition-opacity`}>
         <config.icon className="w-3 h-3 mr-1" />
         {config.label}
       </Badge>
@@ -516,17 +516,17 @@ export const MembersPage = () => {
   };
 
   const influencePlannerStatusConfig = {
-    hasnt_logged_in: { label: "Hasn't Logged In", color: 'bg-gray-500' },
-    invited: { label: 'Invited', color: 'bg-blue-500' },
-    disconnected: { label: 'Disconnected', color: 'bg-red-500' },
-    connected: { label: 'Connected', color: 'bg-green-500' },
-    uninterested: { label: 'Uninterested', color: 'bg-yellow-500' },
+    hasnt_logged_in: { label: "Hasn't Logged In", color: 'bg-muted text-muted-foreground' },
+    invited: { label: 'Invited', color: 'bg-info text-info-foreground' },
+    disconnected: { label: 'Disconnected', color: 'bg-destructive text-destructive-foreground' },
+    connected: { label: 'Connected', color: 'bg-success text-success-foreground' },
+    uninterested: { label: 'Uninterested', color: 'bg-warning text-warning-foreground' },
   };
 
   const getInfluencePlannerStatusBadge = (status: InfluencePlannerStatus) => {
     const config = influencePlannerStatusConfig[status];
     return (
-      <Badge className={`${config.color} text-white hover:${config.color}/80`}>
+      <Badge className={`${config.color} hover:opacity-80 transition-opacity`}>
         {config.label}
       </Badge>
     );
@@ -603,14 +603,14 @@ export const MembersPage = () => {
         {member.groups.slice(0, 3).map((group, index) => (
           <Badge 
             key={`group-${group}-${index}`}
-            variant="default"
-            className="text-xs bg-primary/10 text-primary border-primary/30"
+            variant="secondary"
+            className="text-xs bg-accent/10 text-accent border-accent/30 hover:bg-accent/20 transition-colors"
           >
             {group}
           </Badge>
         ))}
         {member.groups.length > 3 && (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs hover:bg-muted/50 transition-colors">
             +{member.groups.length - 3}
           </Badge>
         )}
@@ -945,25 +945,63 @@ export const MembersPage = () => {
                           <TableCell>
                             {getUnifiedGenreBadges(member)}
                           </TableCell>
-                         <TableCell onClick={(e) => e.stopPropagation()}>
-                           <Select
-                             value={member.influence_planner_status}
-                             onValueChange={(value: InfluencePlannerStatus) => 
-                               updateInfluencePlannerStatus(member.id, value)
-                             }
-                           >
-                             <SelectTrigger className="w-32 h-8">
-                               <SelectValue />
-                             </SelectTrigger>
-                             <SelectContent>
-                               <SelectItem value="hasnt_logged_in">Hasn't Logged In</SelectItem>
-                               <SelectItem value="invited">Invited</SelectItem>
-                               <SelectItem value="disconnected">Disconnected</SelectItem>
-                               <SelectItem value="connected">Connected</SelectItem>
-                               <SelectItem value="uninterested">Uninterested</SelectItem>
-                             </SelectContent>
-                           </Select>
-                         </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={member.influence_planner_status}
+                              onValueChange={(value: InfluencePlannerStatus) => 
+                                updateInfluencePlannerStatus(member.id, value)
+                              }
+                            >
+                              <SelectTrigger className="w-40 h-9 border-border hover:border-accent/50 transition-colors">
+                                <SelectValue>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      member.influence_planner_status === 'connected' ? 'bg-success' :
+                                      member.influence_planner_status === 'disconnected' ? 'bg-destructive' :
+                                      member.influence_planner_status === 'invited' ? 'bg-info' :
+                                      member.influence_planner_status === 'uninterested' ? 'bg-warning' :
+                                      'bg-muted'
+                                    }`} />
+                                    <span className="text-sm">
+                                      {influencePlannerStatusConfig[member.influence_planner_status]?.label}
+                                    </span>
+                                  </div>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border-border">
+                                <SelectItem value="hasnt_logged_in" className="hover:bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-muted" />
+                                    Hasn't Logged In
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="invited" className="hover:bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-info" />
+                                    Invited
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="disconnected" className="hover:bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-destructive" />
+                                    Disconnected
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="connected" className="hover:bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-success" />
+                                    Connected
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="uninterested" className="hover:bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-warning" />
+                                    Uninterested
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                          <TableCell>
                            <div className="flex items-center gap-1">
                              <TrendingUp className="w-3 h-3 text-muted-foreground" />
@@ -978,49 +1016,51 @@ export const MembersPage = () => {
                          <TableCell>
                            <span className="text-sm">{member.monthly_repost_limit || 0}</span>
                          </TableCell>
-                         <TableCell>
-                           <span className={`text-sm ${member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                             {member.net_credits}
-                           </span>
-                         </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                           <div className="flex gap-1">
-                             {mapDbStatusToDisplay(member.status) === 'connected' && (
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   updateMemberStatus(member.id, 'disconnected');
-                                 }}
-                               >
-                                 Disconnect
-                               </Button>
-                             )}
-                             {mapDbStatusToDisplay(member.status) === 'disconnected' && (
-                               <Button
-                                 size="sm"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   updateMemberStatus(member.id, 'connected');
-                                 }}
-                               >
-                                 Connect
-                               </Button>
-                             )}
-                             <Button
-                               size="sm"
-                               variant="destructive"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleSingleDelete(member);
-                               }}
-                               className="ml-1"
-                             >
-                               <Trash2 className="w-3 h-3" />
-                             </Button>
-                           </div>
-                         </TableCell>
+                          <TableCell>
+                            <span className={`text-sm font-medium ${member.net_credits >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              {member.net_credits >= 0 ? '+' : ''}{member.net_credits}
+                            </span>
+                          </TableCell>
+                           <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-2">
+                              {mapDbStatusToDisplay(member.status) === 'connected' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-3 border-warning/50 text-warning hover:bg-warning/10 hover:border-warning transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateMemberStatus(member.id, 'disconnected');
+                                  }}
+                                >
+                                  Disconnect
+                                </Button>
+                              )}
+                              {mapDbStatusToDisplay(member.status) === 'disconnected' && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3 bg-success hover:bg-success/90 text-success-foreground transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateMemberStatus(member.id, 'connected');
+                                  }}
+                                >
+                                  Connect
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSingleDelete(member);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
                       </TableRow>
                    ))}
                  </TableBody>

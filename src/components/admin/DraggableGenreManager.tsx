@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Trash2, Plus, Edit, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GenreEditModal } from './GenreEditModal';
 
 interface GenreFamily {
   id: string;
@@ -43,6 +44,9 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
   const [genreFamilies, setGenreFamilies] = useState<GenreFamily[]>([]);
   const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingGenre, setEditingGenre] = useState<GenreFamily | Subgenre | null>(null);
+  const [editingType, setEditingType] = useState<'family' | 'subgenre'>('family');
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -144,6 +148,27 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
     return subgenres.filter(sub => sub.family_id === familyId);
   };
 
+  const handleEditGenreFamily = (family: GenreFamily) => {
+    setEditingGenre(family);
+    setEditingType('family');
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubgenre = (subgenre: Subgenre) => {
+    setEditingGenre(subgenre);
+    setEditingType('subgenre');
+    setEditModalOpen(true);
+  };
+
+  const handleEditModalClose = () => {
+    setEditModalOpen(false);
+    setEditingGenre(null);
+  };
+
+  const handleEditSuccess = () => {
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -210,7 +235,7 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onGenreFamilyEdit(family)}
+                                onClick={() => handleEditGenreFamily(family)}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -272,10 +297,10 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  onSubgenreEdit(subgenre);
-                                                }}
+                                                 onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   handleEditSubgenre(subgenre);
+                                                 }}
                                                 className="h-6 w-6 p-0"
                                               >
                                                 <Edit className="h-3 w-3" />
@@ -318,6 +343,14 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
           </div>
         )}
       </Droppable>
+      
+      <GenreEditModal
+        isOpen={editModalOpen}
+        onClose={handleEditModalClose}
+        onSuccess={handleEditSuccess}
+        genre={editingGenre}
+        type={editingType}
+      />
     </DragDropContext>
   );
 };

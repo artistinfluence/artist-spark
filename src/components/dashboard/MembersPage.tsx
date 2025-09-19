@@ -69,6 +69,19 @@ interface Member {
   influence_planner_status: InfluencePlannerStatus;
 }
 
+interface GenreFamily {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+interface Subgenre {
+  id: string;
+  name: string;
+  family_id: string;
+  active: boolean;
+}
+
 // Helper function to map database status to display status
 const mapDbStatusToDisplay = (dbStatus: DbMemberStatus): MemberStatus => {
   switch (dbStatus) {
@@ -105,6 +118,8 @@ interface MemberStats {
 export const MembersPage = () => {
   const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
+  const [genreFamilies, setGenreFamilies] = useState<GenreFamily[]>([]);
+  const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
   const [stats, setStats] = useState<MemberStats>({
     total: 0,
     active: 0,
@@ -116,6 +131,7 @@ export const MembersPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
   const [influencePlannerFilter, setInfluencePlannerFilter] = useState('all');
+  const [genreFilter, setGenreFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -144,31 +160,55 @@ export const MembersPage = () => {
 
   const fetchMembers = async () => {
     try {
-      let query = supabase
-        .from('members')
-        .select('*')
-        .order(sortBy, { ascending: sortDirection === 'asc' });
+      // Fetch members, genre families, and subgenres in parallel
+      const [membersResponse, familiesResponse, subgenresResponse] = await Promise.all([
+        supabase
+          .from('members')
+          .select('*')
+          .order(sortBy, { ascending: sortDirection === 'asc' }),
+        supabase
+          .from('genre_families')
+          .select('*')
+          .eq('active', true)
+          .order('name'),
+        supabase
+          .from('subgenres')
+          .select('*')
+          .eq('active', true)
+          .order('name')
+      ]);
 
+      if (membersResponse.error) throw membersResponse.error;
+      if (familiesResponse.error) throw familiesResponse.error;
+      if (subgenresResponse.error) throw subgenresResponse.error;
+
+      let membersData = membersResponse.data || [];
+
+      // Apply filters
       if (statusFilter !== 'all') {
-        // Map display status to database status for filtering
         const dbStatus = mapDisplayStatusToDb(statusFilter as MemberStatus);
-        query = query.eq('status', dbStatus);
+        membersData = membersData.filter(m => m.status === dbStatus);
       }
 
       if (tierFilter !== 'all') {
-        query = query.eq('size_tier', tierFilter as SizeTier);
+        membersData = membersData.filter(m => m.size_tier === tierFilter);
       }
 
       if (influencePlannerFilter !== 'all') {
-        query = query.eq('influence_planner_status', influencePlannerFilter as InfluencePlannerStatus);
+        membersData = membersData.filter(m => m.influence_planner_status === influencePlannerFilter);
       }
 
-      const { data, error } = await query;
+      if (genreFilter !== 'all') {
+        membersData = membersData.filter(m => 
+          m.families?.includes(genreFilter) || 
+          m.subgenres?.some(sub => sub === genreFilter) ||
+          m.manual_genres?.includes(genreFilter)
+        );
+      }
 
-      if (error) throw error;
-
-      const membersData = data || [];
       setMembers(membersData);
+      setGenreFamilies(familiesResponse.data || []);
+      setSubgenres(subgenresResponse.data || []);
 
       // Calculate stats using mapped values
       const newStats = {
@@ -194,7 +234,7 @@ export const MembersPage = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [statusFilter, tierFilter, influencePlannerFilter, sortBy, sortDirection]);
+  }, [statusFilter, tierFilter, influencePlannerFilter, genreFilter, sortBy, sortDirection]);
 
   const updateMemberStatus = async (memberId: string, newDisplayStatus: MemberStatus) => {
     try {
@@ -488,6 +528,58 @@ export const MembersPage = () => {
     );
   };
 
+  const getGenreBadges = (member: Member) => {
+    const allGenres = [];
+    
+    // Add genre families
+    if (member.families && member.families.length > 0) {
+      member.families.forEach(familyId => {
+        const family = genreFamilies.find(f => f.id === familyId);
+        if (family) {
+          allGenres.push({ name: family.name, type: 'family' });
+        }
+      });
+    }
+    
+    // Add subgenres
+    if (member.subgenres && member.subgenres.length > 0) {
+      member.subgenres.forEach(subgenreId => {
+        const subgenre = subgenres.find(s => s.id === subgenreId);
+        if (subgenre) {
+          allGenres.push({ name: subgenre.name, type: 'subgenre' });
+        }
+      });
+    }
+    
+    // Add manual genres
+    if (member.manual_genres && member.manual_genres.length > 0) {
+      member.manual_genres.forEach(genre => {
+        allGenres.push({ name: genre, type: 'manual' });
+      });
+    }
+
+    if (allGenres.length === 0) return <span className="text-xs text-muted-foreground">No genres</span>;
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {allGenres.slice(0, 3).map((genre, index) => (
+          <Badge 
+            key={index} 
+            variant={genre.type === 'family' ? 'default' : genre.type === 'subgenre' ? 'secondary' : 'outline'} 
+            className="text-xs"
+          >
+            {genre.name}
+          </Badge>
+        ))}
+        {allGenres.length > 3 && (
+          <Badge variant="outline" className="text-xs">
+            +{allGenres.length - 3}
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
   const handleColumnSort = (column: string) => {
     if (sortBy === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -691,6 +783,24 @@ export const MembersPage = () => {
                 <SelectItem value="uninterested">Uninterested</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={genreFilter} onValueChange={setGenreFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Genres</SelectItem>
+                {genreFamilies.map(family => (
+                  <SelectItem key={family.id} value={family.id}>
+                    {family.name} (Family)
+                  </SelectItem>
+                ))}
+                {subgenres.map(subgenre => (
+                  <SelectItem key={subgenre.id} value={subgenre.id}>
+                    {subgenre.name} (Subgenre)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-48">
                 <SelectValue />
@@ -734,16 +844,17 @@ export const MembersPage = () => {
                          aria-label="Select all members"
                        />
                      </TableHead>
-                     <SortableHeader column="name">Member</SortableHeader>
-                     <SortableHeader column="stage_name">Stage Name</SortableHeader>
-                     <SortableHeader column="status">Status</SortableHeader>
-                     <TableHead>Group(s)</TableHead>
-                     <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
-                     <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
-                     <SortableHeader column="updated_at">Last Updated</SortableHeader>
-                     <SortableHeader column="monthly_repost_limit">Reposts/Month</SortableHeader>
-                     <SortableHeader column="net_credits">Total Credits</SortableHeader>
-                     <TableHead>Actions</TableHead>
+                      <SortableHeader column="name">Member</SortableHeader>
+                      <SortableHeader column="stage_name">Stage Name</SortableHeader>
+                      <SortableHeader column="status">Status</SortableHeader>
+                      <TableHead>Genres</TableHead>
+                      <TableHead>Group(s)</TableHead>
+                      <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
+                      <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
+                      <SortableHeader column="updated_at">Last Updated</SortableHeader>
+                      <SortableHeader column="monthly_repost_limit">Reposts/Month</SortableHeader>
+                      <SortableHeader column="net_credits">Total Credits</SortableHeader>
+                      <TableHead>Actions</TableHead>
                    </TableRow>
                  </TableHeader>
                   <TableBody>
@@ -782,12 +893,15 @@ export const MembersPage = () => {
                              <span className="text-sm">{member.stage_name || '-'}</span>
                            )}
                          </TableCell>
-                         <TableCell>
-                           {getStatusBadge(member)}
-                         </TableCell>
-                         <TableCell>
-                           {getGroupsBadges(member.groups)}
-                         </TableCell>
+                          <TableCell>
+                            {getStatusBadge(member)}
+                          </TableCell>
+                          <TableCell>
+                            {getGenreBadges(member)}
+                          </TableCell>
+                          <TableCell>
+                            {getGroupsBadges(member.groups)}
+                          </TableCell>
                          <TableCell onClick={(e) => e.stopPropagation()}>
                            <Select
                              value={member.influence_planner_status}

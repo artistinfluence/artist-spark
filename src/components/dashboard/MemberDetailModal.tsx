@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Mail, Calendar, Crown, Music, Edit, Save, X, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ExternalLink, Mail, Calendar, Crown, Music, Edit, Save, X, Loader2, RefreshCw, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -37,6 +38,19 @@ interface Member {
   computed_monthly_repost_limit?: number;
 }
 
+interface GenreFamily {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+interface Subgenre {
+  id: string;
+  name: string;
+  family_id: string;
+  active: boolean;
+}
+
 interface MemberDetailModalProps {
   member: Member | null;
   isOpen: boolean;
@@ -61,12 +75,18 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     soundcloud_followers: 0,
     monthly_repost_limit: 1,
     manual_monthly_repost_override: null as number | null,
-    override_reason: ''
+    override_reason: '',
+    families: [] as string[],
+    subgenres: [] as string[],
+    manual_genres: [] as string[]
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const [displayMember, setDisplayMember] = useState<Member | null>(null);
+  const [genreFamilies, setGenreFamilies] = useState<GenreFamily[]>([]);
+  const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
+  const [availableSubgenres, setAvailableSubgenres] = useState<Subgenre[]>([]);
 
   useEffect(() => {
     if (member) {
@@ -79,12 +99,57 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         soundcloud_followers: member.soundcloud_followers || 0,
         monthly_repost_limit: member.monthly_repost_limit || 1,
         manual_monthly_repost_override: member.manual_monthly_repost_override || null,
-        override_reason: member.override_reason || ''
+        override_reason: member.override_reason || '',
+        families: member.families || [],
+        subgenres: member.subgenres || [],
+        manual_genres: member.manual_genres || []
       });
       setDisplayMember(member);
       setAnalysisSuccess(false);
     }
   }, [member]);
+
+  // Fetch genre data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchGenreData();
+    }
+  }, [isOpen]);
+
+  const fetchGenreData = async () => {
+    try {
+      const [familiesResponse, subgenresResponse] = await Promise.all([
+        supabase.from('genre_families').select('*').eq('active', true).order('name'),
+        supabase.from('subgenres').select('*').eq('active', true).order('name')
+      ]);
+
+      if (familiesResponse.error) throw familiesResponse.error;
+      if (subgenresResponse.error) throw subgenresResponse.error;
+
+      setGenreFamilies(familiesResponse.data || []);
+      setSubgenres(subgenresResponse.data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load genre data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update available subgenres when families change
+  useEffect(() => {
+    const available = subgenres.filter(sub => formData.families.includes(sub.family_id));
+    setAvailableSubgenres(available);
+    
+    // Remove subgenres that are no longer available
+    const validSubgenres = formData.subgenres.filter(subId => 
+      available.some(sub => sub.id === subId)
+    );
+    if (validSubgenres.length !== formData.subgenres.length) {
+      setFormData(prev => ({ ...prev, subgenres: validSubgenres }));
+    }
+  }, [formData.families, subgenres]);
 
   const validateUrl = (url: string, platform: string) => {
     if (!url) return true;
@@ -174,7 +239,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           manual_monthly_repost_override: formData.manual_monthly_repost_override,
           override_reason: formData.override_reason || null,
           override_set_by: formData.manual_monthly_repost_override ? null : null, // Will be set by auth context in real implementation
-          override_set_at: formData.manual_monthly_repost_override ? new Date().toISOString() : null
+          override_set_at: formData.manual_monthly_repost_override ? new Date().toISOString() : null,
+          families: formData.families,
+          subgenres: formData.subgenres,
+          manual_genres: formData.manual_genres
         })
         .eq('id', member.id);
 
@@ -209,7 +277,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         soundcloud_followers: member.soundcloud_followers || 0,
         monthly_repost_limit: member.monthly_repost_limit || 1,
         manual_monthly_repost_override: member.manual_monthly_repost_override || null,
-        override_reason: member.override_reason || ''
+        override_reason: member.override_reason || '',
+        families: member.families || [],
+        subgenres: member.subgenres || [],
+        manual_genres: member.manual_genres || []
       });
     }
     setIsAnalyzing(false);
@@ -511,6 +582,206 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 )}
                 {isEditing && isAnalyzing && (
                   <p className="text-xs text-muted-foreground mt-1">Analyzing profile...</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Genre Assignment */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Music className="w-5 h-5" />
+              Genre Assignment
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Genre Families</Label>
+                {isEditing ? (
+                  <div className="space-y-2 mt-1">
+                    <Select 
+                      value="" 
+                      onValueChange={(value) => {
+                        if (!formData.families.includes(value)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            families: [...prev.families, value]
+                          }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Add genre family" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {genreFamilies
+                          .filter(family => !formData.families.includes(family.id))
+                          .map(family => (
+                            <SelectItem key={family.id} value={family.id}>
+                              {family.name}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.families.map(familyId => {
+                        const family = genreFamilies.find(f => f.id === familyId);
+                        return family ? (
+                          <Badge key={familyId} variant="default" className="flex items-center gap-1">
+                            {family.name}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 hover:bg-transparent"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  families: prev.families.filter(id => id !== familyId)
+                                }));
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {currentMember.families?.map(familyId => {
+                      const family = genreFamilies.find(f => f.id === familyId);
+                      return family ? (
+                        <Badge key={familyId} variant="default" className="text-xs">
+                          {family.name}
+                        </Badge>
+                      ) : null;
+                    }) || <span className="text-xs text-muted-foreground">No families assigned</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Subgenres</Label>
+                {isEditing ? (
+                  <div className="space-y-2 mt-1">
+                    <Select 
+                      value="" 
+                      onValueChange={(value) => {
+                        if (!formData.subgenres.includes(value)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            subgenres: [...prev.subgenres, value]
+                          }));
+                        }
+                      }}
+                      disabled={availableSubgenres.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={availableSubgenres.length === 0 ? "Select families first" : "Add subgenre"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSubgenres
+                          .filter(subgenre => !formData.subgenres.includes(subgenre.id))
+                          .map(subgenre => (
+                            <SelectItem key={subgenre.id} value={subgenre.id}>
+                              {subgenre.name}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.subgenres.map(subgenreId => {
+                        const subgenre = subgenres.find(s => s.id === subgenreId);
+                        return subgenre ? (
+                          <Badge key={subgenreId} variant="secondary" className="flex items-center gap-1">
+                            {subgenre.name}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 hover:bg-transparent"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  subgenres: prev.subgenres.filter(id => id !== subgenreId)
+                                }));
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {currentMember.subgenres?.map(subgenreId => {
+                      const subgenre = subgenres.find(s => s.id === subgenreId);
+                      return subgenre ? (
+                        <Badge key={subgenreId} variant="secondary" className="text-xs">
+                          {subgenre.name}
+                        </Badge>
+                      ) : null;
+                    }) || <span className="text-xs text-muted-foreground">No subgenres assigned</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Manual Genres</Label>
+                {isEditing ? (
+                  <div className="space-y-2 mt-1">
+                    {formData.manual_genres.map((genre, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={genre}
+                          onChange={(e) => {
+                            const newGenres = [...formData.manual_genres];
+                            newGenres[index] = e.target.value;
+                            setFormData({...formData, manual_genres: newGenres});
+                          }}
+                          placeholder="Manual genre"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newGenres = formData.manual_genres.filter((_, i) => i !== index);
+                            setFormData({...formData, manual_genres: newGenres});
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({...formData, manual_genres: [...formData.manual_genres, '']});
+                      }}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Manual Genre
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {currentMember.manual_genres?.map((genre, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {genre}
+                      </Badge>
+                    )) || <span className="text-xs text-muted-foreground">No manual genres</span>}
+                  </div>
                 )}
               </div>
             </div>

@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Upload, FileText, CheckCircle, XCircle, Loader2, Download } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Upload, FileText, CheckCircle, XCircle, Loader2, Download, MapPin, FileUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { calculateRepostLimit, getFollowerTier } from '@/utils/creditCalculations';
@@ -19,24 +19,88 @@ interface BulkMemberImportProps {
   onSuccess: () => void;
 }
 
-interface ImportMember {
-  stage_name: string;
-  first_name?: string;
-  email_1: string;
-  email_2?: string;
-  soundcloud_url: string;
-  follower_count: number;
+interface CSVData {
+  headers: string[];
+  rows: string[][];
+}
+
+interface ColumnMapping {
+  csvColumn: string;
+  memberField: string | null;
+}
+
+interface MappedMember {
+  name?: string;
+  primary_email?: string;
+  secondary_email?: string;
+  soundcloud_url?: string;
+  soundcloud_handle?: string;
+  spotify_handle?: string;
+  follower_count?: number;
+  status?: string;
+  manual_monthly_repost_override?: number;
+  override_reason?: string;
   // Auto-calculated fields
-  size_tier: 'T1' | 'T2' | 'T3' | 'T4';
-  monthly_repost_limit: number;
+  size_tier?: 'T1' | 'T2' | 'T3' | 'T4';
+  monthly_repost_limit?: number;
 }
 
 interface ImportResult {
-  member: ImportMember;
+  member: MappedMember;
   success: boolean;
   error?: string;
-  analysis?: any;
+  rowIndex: number;
 }
+
+// Available member fields for mapping
+const MEMBER_FIELDS = [
+  { value: 'name', label: 'Name/Stage Name', required: true },
+  { value: 'primary_email', label: 'Primary Email', required: true },
+  { value: 'secondary_email', label: 'Secondary Email', required: false },
+  { value: 'soundcloud_url', label: 'SoundCloud URL', required: true },
+  { value: 'soundcloud_handle', label: 'SoundCloud Handle', required: false },
+  { value: 'spotify_handle', label: 'Spotify Handle', required: false },
+  { value: 'follower_count', label: 'Follower Count', required: true },
+  { value: 'status', label: 'Status', required: false },
+  { value: 'manual_monthly_repost_override', label: 'Manual Repost Override', required: false },
+  { value: 'override_reason', label: 'Override Reason', required: false },
+];
+
+// Smart column matching suggestions
+const SMART_MAPPINGS: Record<string, string> = {
+  'name': 'name',
+  'stage_name': 'name',
+  'stagename': 'name',
+  'artist_name': 'name',
+  'artistname': 'name',
+  'email': 'primary_email',
+  'primary_email': 'primary_email',
+  'email_1': 'primary_email',
+  'email1': 'primary_email',
+  'main_email': 'primary_email',
+  'secondary_email': 'secondary_email',
+  'email_2': 'secondary_email',
+  'email2': 'secondary_email',
+  'backup_email': 'secondary_email',
+  'soundcloud_url': 'soundcloud_url',
+  'soundcloud': 'soundcloud_url',
+  'sc_url': 'soundcloud_url',
+  'url': 'soundcloud_url',
+  'soundcloud_handle': 'soundcloud_handle',
+  'sc_handle': 'soundcloud_handle',
+  'handle': 'soundcloud_handle',
+  'spotify_handle': 'spotify_handle',
+  'spotify': 'spotify_handle',
+  'follower_count': 'follower_count',
+  'followers': 'follower_count',
+  'follower': 'follower_count',
+  'status': 'status',
+  'manual_monthly_repost_override': 'manual_monthly_repost_override',
+  'repost_override': 'manual_monthly_repost_override',
+  'override': 'manual_monthly_repost_override',
+  'override_reason': 'override_reason',
+  'reason': 'override_reason',
+};
 
 export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
   isOpen,
@@ -44,130 +108,91 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
   onSuccess
 }) => {
   const { toast } = useToast();
-  const [csvText, setCsvText] = useState('');
-  const [members, setMembers] = useState<ImportMember[]>([]);
+  const [csvData, setCsvData] = useState<CSVData | null>(null);
+  const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
+  const [mappedMembers, setMappedMembers] = useState<MappedMember[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<ImportResult[]>([]);
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState<'input' | 'validate' | 'process' | 'complete'>('input');
+  const [currentStep, setCurrentStep] = useState<'upload' | 'mapping' | 'preview' | 'process' | 'complete'>('upload');
 
-  const validateUrl = (url: string) => {
-    return /^https?:\/\/(www\.)?soundcloud\.com\/.+/.test(url);
+  const parseCSV = (csvText: string): CSVData => {
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const rows = lines.slice(1).map(line => 
+      line.split(',').map(cell => cell.trim().replace(/"/g, ''))
+    ).filter(row => row.some(cell => cell)); // Remove empty rows
+
+    return { headers, rows };
   };
 
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const parseCsvText = () => {
-    if (!csvText.trim()) {
+    if (!file.name.endsWith('.csv')) {
       toast({
-        title: "No data",
-        description: "Please enter CSV data or paste member information",
+        title: "Invalid file type",
+        description: "Please upload a CSV file",
         variant: "destructive"
       });
       return;
     }
 
-    try {
-      const lines = csvText.trim().split('\n');
-      const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/\s+/g, '_'));
-      
-      const requiredHeaders = ['stage_name', 'email_1', 'soundcloud_url', 'follower_count'];
-      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-      
-      if (missingHeaders.length > 0) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvText = e.target?.result as string;
+      try {
+        const parsed = parseCSV(csvText);
+        setCsvData(parsed);
+        
+        // Auto-generate smart mappings
+        const smartMappings: ColumnMapping[] = parsed.headers.map(header => {
+          const normalizedHeader = header.toLowerCase().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
+          const suggestedField = SMART_MAPPINGS[normalizedHeader] || null;
+          return {
+            csvColumn: header,
+            memberField: suggestedField
+          };
+        });
+        
+        setColumnMappings(smartMappings);
+        setCurrentStep('mapping');
+        
         toast({
-          title: "Missing headers",
-          description: `Required headers: ${missingHeaders.map(h => h.replace('_', ' ')).join(', ')}`,
+          title: "File uploaded",
+          description: `Found ${parsed.headers.length} columns and ${parsed.rows.length} rows`,
+        });
+      } catch (error) {
+        toast({
+          title: "Parse error",
+          description: "Failed to parse CSV file. Please check format.",
           variant: "destructive"
         });
-        return;
       }
-
-      const parsedMembers: ImportMember[] = [];
-      
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length === 0 || values.every(v => !v)) continue; // Skip empty lines
-        
-        const memberData: Partial<ImportMember> = {};
-
-        headers.forEach((header, index) => {
-          const value = values[index];
-          if (!value && !['first_name', 'email_2'].includes(header)) return;
-
-          switch (header) {
-            case 'stage_name':
-              memberData.stage_name = value;
-              break;
-            case 'first_name':
-              memberData.first_name = value || undefined;
-              break;
-            case 'email_1':
-              memberData.email_1 = value;
-              break;
-            case 'email_2':
-              memberData.email_2 = value || undefined;
-              break;
-            case 'soundcloud_url':
-              memberData.soundcloud_url = value;
-              break;
-            case 'follower_count':
-              const followerCount = parseInt(value.replace(/,/g, '')) || 0;
-              memberData.follower_count = followerCount;
-              // Auto-calculate tier and limit
-              memberData.size_tier = getFollowerTier(followerCount).split(' ')[0] as 'T1' | 'T2' | 'T3' | 'T4';
-              memberData.monthly_repost_limit = calculateRepostLimit(followerCount);
-              break;
-          }
-        });
-
-        // Validate required fields
-        if (memberData.stage_name && memberData.email_1 && memberData.soundcloud_url && 
-            memberData.follower_count !== undefined && memberData.size_tier && memberData.monthly_repost_limit) {
-          parsedMembers.push(memberData as ImportMember);
-        }
-      }
-
-      setMembers(parsedMembers);
-      setCurrentStep('validate');
-      
-      toast({
-        title: "Data parsed",
-        description: `Found ${parsedMembers.length} valid members to import`,
-      });
-    } catch (error) {
-      toast({
-        title: "Parse error",
-        description: "Failed to parse CSV data. Please check format.",
-        variant: "destructive"
-      });
-    }
+    };
+    reader.readAsText(file);
   };
 
-  const validateMembers = () => {
-    const validationErrors: string[] = [];
-    
-    members.forEach((member, index) => {
-      if (!validateEmail(member.email_1)) {
-        validationErrors.push(`Row ${index + 1}: Invalid primary email format`);
-      }
-      if (member.email_2 && !validateEmail(member.email_2)) {
-        validationErrors.push(`Row ${index + 1}: Invalid secondary email format`);
-      }
-      if (!validateUrl(member.soundcloud_url)) {
-        validationErrors.push(`Row ${index + 1}: Invalid SoundCloud URL format`);
-      }
-      if (member.follower_count < 0) {
-        validationErrors.push(`Row ${index + 1}: Invalid follower count`);
-      }
-    });
+  const updateColumnMapping = (csvColumn: string, memberField: string | null) => {
+    setColumnMappings(prev => 
+      prev.map(mapping => 
+        mapping.csvColumn === csvColumn 
+          ? { ...mapping, memberField } 
+          : mapping
+      )
+    );
+  };
 
-    if (validationErrors.length > 0) {
+  const validateMappings = (): boolean => {
+    const requiredFields = MEMBER_FIELDS.filter(f => f.required).map(f => f.value);
+    const mappedFields = columnMappings.filter(m => m.memberField).map(m => m.memberField);
+    const missingRequired = requiredFields.filter(field => !mappedFields.includes(field));
+
+    if (missingRequired.length > 0) {
       toast({
-        title: "Validation errors",
-        description: `${validationErrors.length} errors found. Check data format.`,
+        title: "Missing required mappings",
+        description: `Please map: ${missingRequired.join(', ')}`,
         variant: "destructive"
       });
       return false;
@@ -176,38 +201,99 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
     return true;
   };
 
-  const processImport = async () => {
-    if (!validateMembers()) return;
+  const generatePreview = () => {
+    if (!csvData || !validateMappings()) return;
 
+    const members: MappedMember[] = csvData.rows.map(row => {
+      const member: MappedMember = {};
+      
+      columnMappings.forEach(mapping => {
+        if (!mapping.memberField) return;
+        
+        const columnIndex = csvData.headers.indexOf(mapping.csvColumn);
+        const value = row[columnIndex]?.trim();
+        
+        if (!value) return;
+        
+        switch (mapping.memberField) {
+          case 'follower_count':
+            const followerCount = parseInt(value.replace(/,/g, '')) || 0;
+            member.follower_count = followerCount;
+            member.size_tier = getFollowerTier(followerCount).split(' ')[0] as 'T1' | 'T2' | 'T3' | 'T4';
+            member.monthly_repost_limit = calculateRepostLimit(followerCount);
+            break;
+          case 'manual_monthly_repost_override':
+            member.manual_monthly_repost_override = parseInt(value) || undefined;
+            break;
+          default:
+            (member as any)[mapping.memberField] = value;
+        }
+      });
+      
+      return member;
+    });
+
+    setMappedMembers(members);
+    setCurrentStep('preview');
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validateUrl = (url: string) => {
+    return /^https?:\/\/(www\.)?soundcloud\.com\/.+/.test(url);
+  };
+
+  const processImport = async () => {
     setIsProcessing(true);
     setCurrentStep('process');
     setProgress(0);
     
     const importResults: ImportResult[] = [];
     
-    for (let i = 0; i < members.length; i++) {
-      const member = members[i];
+    for (let i = 0; i < mappedMembers.length; i++) {
+      const member = mappedMembers[i];
       
       try {
-        // Prepare member data with calculated values from CSV
-        const emails = [member.email_1];
-        if (member.email_2) {
-          emails.push(member.email_2);
+        // Validate required fields
+        if (!member.name || !member.primary_email || !member.soundcloud_url || member.follower_count === undefined) {
+          throw new Error('Missing required fields');
         }
 
-        // Use first name and stage name to create full name
-        const fullName = member.first_name ? `${member.first_name} (${member.stage_name})` : member.stage_name;
+        // Validate formats
+        if (!validateEmail(member.primary_email)) {
+          throw new Error('Invalid primary email format');
+        }
+
+        if (member.secondary_email && !validateEmail(member.secondary_email)) {
+          throw new Error('Invalid secondary email format');
+        }
+
+        if (!validateUrl(member.soundcloud_url)) {
+          throw new Error('Invalid SoundCloud URL format');
+        }
+
+        // Prepare member data
+        const emails = [member.primary_email];
+        if (member.secondary_email) {
+          emails.push(member.secondary_email);
+        }
 
         const memberData = {
-          name: fullName,
-          primary_email: member.email_1,
+          name: member.name,
+          primary_email: member.primary_email,
           emails: emails,
           soundcloud_url: member.soundcloud_url,
+          soundcloud_handle: member.soundcloud_handle,
+          spotify_handle: member.spotify_handle,
           soundcloud_followers: member.follower_count,
-          monthly_repost_limit: member.monthly_repost_limit,
-          computed_monthly_repost_limit: member.monthly_repost_limit,
+          monthly_repost_limit: member.manual_monthly_repost_override || member.monthly_repost_limit,
+          computed_monthly_repost_limit: member.manual_monthly_repost_override || member.monthly_repost_limit,
+          manual_monthly_repost_override: member.manual_monthly_repost_override,
+          override_reason: member.override_reason,
           size_tier: member.size_tier,
-          status: 'active' as const
+          status: (member.status as any) || 'active'
         };
 
         // Insert member
@@ -219,35 +305,36 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
 
         if (memberError) throw memberError;
 
-        // Create repost credit wallet for the member
+        // Create repost credit wallet
         const { error: walletError } = await supabase
           .from('repost_credit_wallet')
           .insert({
             member_id: insertedMember.id,
-            balance: member.monthly_repost_limit,
-            monthly_grant: member.monthly_repost_limit,
-            cap: member.monthly_repost_limit
+            balance: memberData.monthly_repost_limit,
+            monthly_grant: memberData.monthly_repost_limit,
+            cap: memberData.monthly_repost_limit
           });
 
         if (walletError) {
           console.warn('Failed to create wallet for member:', walletError);
-          // Don't fail the import if wallet creation fails
         }
 
         importResults.push({
           member,
-          success: true
+          success: true,
+          rowIndex: i
         });
 
       } catch (error: any) {
         importResults.push({
           member,
           success: false,
-          error: error.message || 'Unknown error'
+          error: error.message || 'Unknown error',
+          rowIndex: i
         });
       }
 
-      setProgress(((i + 1) / members.length) * 100);
+      setProgress(((i + 1) / mappedMembers.length) * 100);
     }
 
     setResults(importResults);
@@ -269,10 +356,10 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
   };
 
   const downloadTemplate = () => {
-    const template = `stage name,first name,email 1,email 2,soundcloud url,follower count
-DJ Example,John,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,150000
-Producer Name,,producer@example.com,,https://soundcloud.com/producer-name,50000
-Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/artist-stage,1200000`;
+    const template = `Name,Primary Email,Secondary Email,SoundCloud URL,SoundCloud Handle,Spotify Handle,Follower Count,Status
+DJ Example,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,dj-example,dj_example,150000,active
+Producer Name,producer@example.com,,https://soundcloud.com/producer-name,producer-name,,50000,active
+Artist Stage,artist@example.com,jane@personal.com,https://soundcloud.com/artist-stage,artist-stage,artist_stage,1200000,active`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -284,16 +371,17 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
   };
 
   const resetImport = () => {
-    setCsvText('');
-    setMembers([]);
+    setCsvData(null);
+    setColumnMappings([]);
+    setMappedMembers([]);
     setResults([]);
     setProgress(0);
-    setCurrentStep('input');
+    setCurrentStep('upload');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -301,14 +389,14 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
           </DialogTitle>
         </DialogHeader>
 
-        {/* Input Step */}
-        {currentStep === 'input' && (
+        {/* Upload Step */}
+        {currentStep === 'upload' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Import CSV Data</h3>
+                <h3 className="text-lg font-semibold">Upload CSV File</h3>
                 <p className="text-sm text-muted-foreground">
-                  Paste your CSV data or upload member information
+                  Upload a CSV file and map columns to member fields
                 </p>
               </div>
               <Button variant="outline" onClick={downloadTemplate} className="flex items-center gap-2">
@@ -317,23 +405,85 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
               </Button>
             </div>
             
-            <div>
-              <Label htmlFor="csvText">CSV Data</Label>
-              <Textarea
-                id="csvText"
-                value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
-                placeholder="stage name,first name,email 1,email 2,soundcloud url,follower count&#10;DJ Example,John,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,150000"
-                className="min-h-[200px] font-mono text-sm"
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+              <FileUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <Label htmlFor="csvFile" className="cursor-pointer">
+                <span className="text-lg font-medium">Choose CSV file</span>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Or drag and drop your CSV file here
+                </p>
+              </Label>
+              <Input
+                id="csvFile"
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
               />
-              <p className="text-xs text-muted-foreground mt-2">
-                Required: Stage Name, Email 1, SoundCloud URL, Follower Count. Optional: First Name, Email 2. Tier and limits auto-calculated from follower count.
-              </p>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={parseCsvText} disabled={!csvText.trim()}>
-                Parse Data
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Mapping Step */}
+        {currentStep === 'mapping' && csvData && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold">Map Columns</h3>
+              <p className="text-sm text-muted-foreground">
+                Map your CSV columns to member fields. Required fields are marked with *
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {columnMappings.map((mapping, index) => {
+                const mappedField = MEMBER_FIELDS.find(f => f.value === mapping.memberField);
+                return (
+                  <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="font-medium">{mapping.csvColumn}</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Sample: {csvData.rows[0]?.[csvData.headers.indexOf(mapping.csvColumn)] || 'N/A'}
+                      </p>
+                    </div>
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <Select
+                        value={mapping.memberField || 'skip'}
+                        onValueChange={(value) => updateColumnMapping(mapping.csvColumn, value === 'skip' ? null : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="skip">Skip Column</SelectItem>
+                          {MEMBER_FIELDS.map(field => (
+                            <SelectItem key={field.value} value={field.value}>
+                              {field.label} {field.required && '*'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {mappedField?.required && (
+                        <Badge variant="secondary" className="mt-1 text-xs">Required</Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={generatePreview}>
+                Preview Import
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentStep('upload')}>
+                Back to Upload
               </Button>
               <Button variant="outline" onClick={onClose}>
                 Cancel
@@ -342,52 +492,59 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
           </div>
         )}
 
-        {/* Validate Step */}
-        {currentStep === 'validate' && (
+        {/* Preview Step */}
+        {currentStep === 'preview' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold">Validate Import Data</h3>
+              <h3 className="text-lg font-semibold">Preview Import</h3>
               <p className="text-sm text-muted-foreground">
-                Review {members.length} members before import
+                Review {mappedMembers.length} members before import
               </p>
             </div>
 
-            <ScrollArea className="h-64 border rounded-md p-4">
-              <div className="space-y-3">
-                {members.map((member, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-md">
-                    <div>
-                      <p className="font-medium">{member.stage_name} {member.first_name && `(${member.first_name})`}</p>
-                      <p className="text-sm text-muted-foreground">{member.email_1}</p>
-                      <p className="text-xs text-muted-foreground">{member.soundcloud_url}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.follower_count.toLocaleString()} followers → {member.size_tier} → {member.monthly_repost_limit} reposts/month
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {validateEmail(member.email_1) && validateUrl(member.soundcloud_url) && member.follower_count >= 0 ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Valid
+            <ScrollArea className="h-96 border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Primary Email</TableHead>
+                    <TableHead>SoundCloud URL</TableHead>
+                    <TableHead>Followers</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead>Monthly Limit</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mappedMembers.map((member, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{member.name}</TableCell>
+                      <TableCell>{member.primary_email}</TableCell>
+                      <TableCell className="text-xs">{member.soundcloud_url}</TableCell>
+                      <TableCell>{member.follower_count?.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{member.size_tier}</Badge>
+                      </TableCell>
+                      <TableCell>{member.manual_monthly_repost_override || member.monthly_repost_limit}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          !member.name || !member.primary_email || !member.soundcloud_url ? 'destructive' : 'secondary'
+                        }>
+                          {!member.name || !member.primary_email || !member.soundcloud_url ? 'Invalid' : 'Valid'}
                         </Badge>
-                      ) : (
-                        <Badge variant="destructive">
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Invalid
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </ScrollArea>
 
             <div className="flex gap-2">
               <Button onClick={processImport}>
                 Start Import
               </Button>
-              <Button variant="outline" onClick={() => setCurrentStep('input')}>
-                Back to Edit
+              <Button variant="outline" onClick={() => setCurrentStep('mapping')}>
+                Back to Mapping
               </Button>
               <Button variant="outline" onClick={onClose}>
                 Cancel
@@ -402,7 +559,7 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
             <div>
               <h3 className="text-lg font-semibold">Processing Import</h3>
               <p className="text-sm text-muted-foreground">
-                Creating member accounts with auto-calculated tiers and limits...
+                Creating member accounts with calculated tiers and limits...
               </p>
             </div>
 
@@ -433,11 +590,11 @@ Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/ar
                 {results.map((result, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-md">
                     <div>
-                      <p className="font-medium">{result.member.stage_name} {result.member.first_name && `(${result.member.first_name})`}</p>
-                      <p className="text-sm text-muted-foreground">{result.member.email_1}</p>
+                      <p className="font-medium">{result.member.name}</p>
+                      <p className="text-sm text-muted-foreground">{result.member.primary_email}</p>
                       {result.success && (
                         <p className="text-xs text-green-600">
-                          Imported as {result.member.size_tier} with {result.member.monthly_repost_limit} monthly reposts
+                          Imported as {result.member.size_tier} with {result.member.manual_monthly_repost_override || result.member.monthly_repost_limit} monthly reposts
                         </p>
                       )}
                       {result.error && (

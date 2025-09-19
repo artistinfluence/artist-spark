@@ -11,26 +11,35 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Settings2, Clock, Users, Gauge, Bell } from "lucide-react";
+import { Loader2, Save, Settings2, Clock, Users, Bell, Plus, Trash2 } from "lucide-react";
+
+const tierSchema = z.object({
+  name: z.string().min(1, "Tier name is required"),
+  min: z.number().min(0, "Minimum must be non-negative"),
+  max: z.number().min(0, "Maximum must be non-negative"),
+});
 
 const settingsSchema = z.object({
   slack_enabled: z.boolean(),
   slack_channel: z.string().optional(),
   slack_webhook: z.string().url().optional().or(z.literal("")),
-  default_reach_factor: z.number().min(0).max(1),
   preview_cache_days: z.number().min(1).max(365),
   inactivity_days: z.number().min(1).max(365),
   proof_sla_hours: z.number().min(1).max(168),
   decision_sla_hours: z.number().min(1).max(168),
-  target_band_mode: z.enum(["balance", "size"]),
-  size_tier_t1_min: z.number().min(0),
-  size_tier_t1_max: z.number().min(0),
-  size_tier_t2_min: z.number().min(0),
-  size_tier_t2_max: z.number().min(0),
-  size_tier_t3_min: z.number().min(0),
-  size_tier_t3_max: z.number().min(0),
-  size_tier_t4_min: z.number().min(0),
-  size_tier_t4_max: z.number().min(0),
+  size_tiers: z.array(tierSchema).min(1, "At least one tier is required"),
+}).refine((data) => {
+  // Validate that tiers don't overlap and are in logical order
+  const sortedTiers = [...data.size_tiers].sort((a, b) => a.min - b.min);
+  for (let i = 0; i < sortedTiers.length; i++) {
+    const tier = sortedTiers[i];
+    if (tier.min >= tier.max) return false;
+    if (i > 0 && tier.min < sortedTiers[i - 1].max) return false;
+  }
+  return true;
+}, {
+  message: "Tiers must not overlap and minimum must be less than maximum",
+  path: ["size_tiers"],
 });
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
@@ -46,20 +55,16 @@ export const SettingsPage = () => {
       slack_enabled: false,
       slack_channel: "#soundcloud-groups",
       slack_webhook: "",
-      default_reach_factor: 0.06,
       preview_cache_days: 30,
       inactivity_days: 90,
       proof_sla_hours: 24,
       decision_sla_hours: 24,
-      target_band_mode: "balance",
-      size_tier_t1_min: 0,
-      size_tier_t1_max: 1000,
-      size_tier_t2_min: 1000,
-      size_tier_t2_max: 10000,
-      size_tier_t3_min: 10000,
-      size_tier_t3_max: 100000,
-      size_tier_t4_min: 100000,
-      size_tier_t4_max: 999999999,
+      size_tiers: [
+        { name: "Nano", min: 0, max: 1000 },
+        { name: "Micro", min: 1000, max: 10000 },
+        { name: "Mid", min: 10000, max: 100000 },
+        { name: "Macro", min: 100000, max: 999999999 },
+      ],
     },
   });
 
@@ -79,26 +84,37 @@ export const SettingsPage = () => {
       }
 
       if (data) {
-        const sizeTierThresholds = data.size_tier_thresholds as any;
+        // Handle both old format (T1-T4 object) and new format (array)
+        let sizeTiers;
+        if (Array.isArray(data.size_tier_thresholds)) {
+          sizeTiers = data.size_tier_thresholds;
+        } else if (data.size_tier_thresholds) {
+          // Convert old format to new format
+          const oldFormat = data.size_tier_thresholds as any;
+          sizeTiers = [
+            { name: "Nano", min: oldFormat.T1?.min || 0, max: oldFormat.T1?.max || 1000 },
+            { name: "Micro", min: oldFormat.T2?.min || 1000, max: oldFormat.T2?.max || 10000 },
+            { name: "Mid", min: oldFormat.T3?.min || 10000, max: oldFormat.T3?.max || 100000 },
+            { name: "Macro", min: oldFormat.T4?.min || 100000, max: oldFormat.T4?.max || 999999999 },
+          ];
+        } else {
+          sizeTiers = [
+            { name: "Nano", min: 0, max: 1000 },
+            { name: "Micro", min: 1000, max: 10000 },
+            { name: "Mid", min: 10000, max: 100000 },
+            { name: "Macro", min: 100000, max: 999999999 },
+          ];
+        }
         
         form.reset({
           slack_enabled: data.slack_enabled || false,
           slack_channel: data.slack_channel || "#soundcloud-groups",
           slack_webhook: data.slack_webhook || "",
-          default_reach_factor: Number(data.default_reach_factor) || 0.06,
           preview_cache_days: data.preview_cache_days || 30,
           inactivity_days: data.inactivity_days || 90,
           proof_sla_hours: data.proof_sla_hours || 24,
           decision_sla_hours: data.decision_sla_hours || 24,
-          target_band_mode: data.target_band_mode || "balance",
-          size_tier_t1_min: sizeTierThresholds?.T1?.min || 0,
-          size_tier_t1_max: sizeTierThresholds?.T1?.max || 1000,
-          size_tier_t2_min: sizeTierThresholds?.T2?.min || 1000,
-          size_tier_t2_max: sizeTierThresholds?.T2?.max || 10000,
-          size_tier_t3_min: sizeTierThresholds?.T3?.min || 10000,
-          size_tier_t3_max: sizeTierThresholds?.T3?.max || 100000,
-          size_tier_t4_min: sizeTierThresholds?.T4?.min || 100000,
-          size_tier_t4_max: sizeTierThresholds?.T4?.max || 999999999,
+          size_tiers: sizeTiers,
         });
       }
     } catch (error) {
@@ -116,24 +132,15 @@ export const SettingsPage = () => {
   const onSubmit = async (data: SettingsFormData) => {
     setSaving(true);
     try {
-      const sizeTierThresholds = {
-        T1: { min: data.size_tier_t1_min, max: data.size_tier_t1_max },
-        T2: { min: data.size_tier_t2_min, max: data.size_tier_t2_max },
-        T3: { min: data.size_tier_t3_min, max: data.size_tier_t3_max },
-        T4: { min: data.size_tier_t4_min, max: data.size_tier_t4_max },
-      };
-
       const settingsData = {
         slack_enabled: data.slack_enabled,
         slack_channel: data.slack_channel,
         slack_webhook: data.slack_webhook || null,
-        default_reach_factor: data.default_reach_factor,
         preview_cache_days: data.preview_cache_days,
         inactivity_days: data.inactivity_days,
         proof_sla_hours: data.proof_sla_hours,
         decision_sla_hours: data.decision_sla_hours,
-        target_band_mode: data.target_band_mode,
-        size_tier_thresholds: sizeTierThresholds,
+        size_tier_thresholds: data.size_tiers,
         updated_at: new Date().toISOString(),
       };
 
@@ -159,6 +166,24 @@ export const SettingsPage = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const addTier = () => {
+    const currentTiers = form.getValues("size_tiers");
+    const lastTier = currentTiers[currentTiers.length - 1];
+    const newTier = {
+      name: `Tier ${currentTiers.length + 1}`,
+      min: lastTier ? lastTier.max : 0,
+      max: lastTier ? lastTier.max * 10 : 1000,
+    };
+    form.setValue("size_tiers", [...currentTiers, newTier]);
+  };
+
+  const removeTier = (index: number) => {
+    const currentTiers = form.getValues("size_tiers");
+    if (currentTiers.length > 1) {
+      form.setValue("size_tiers", currentTiers.filter((_, i) => i !== index));
     }
   };
 
@@ -358,94 +383,66 @@ export const SettingsPage = () => {
             </CardContent>
           </Card>
 
-          {/* Algorithm Settings */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Gauge className="h-4 w-4" />
-                <CardTitle>Algorithm Settings</CardTitle>
-              </div>
-              <CardDescription>
-                Configure queue generation and reach calculation settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="default_reach_factor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Reach Factor</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          min="0"
-                          max="1"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Default reach factor for new members (0.060 = 6%)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="target_band_mode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Target Band Mode</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select target band mode" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="balance">Balance</SelectItem>
-                          <SelectItem value="size">Size</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Strategy for queue generation and member matching
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Size Tier Settings */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <CardTitle>Size Tier Thresholds</CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <CardTitle>Size Tier Thresholds</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Configure follower count thresholds for member size tiers
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTier}
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Tier
+                </Button>
               </div>
-              <CardDescription>
-                Configure follower count thresholds for member size tiers
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {["t1", "t2", "t3", "t4"].map((tier, index) => (
-                <div key={tier} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium">
-                      Tier {tier.toUpperCase()} {index === 0 && "(Nano)"} {index === 1 && "(Micro)"} {index === 2 && "(Mid)"} {index === 3 && "(Macro)"}
-                    </h4>
+              {form.watch("size_tiers").map((tier, index) => (
+                <div key={index} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Tier {index + 1}</h4>
+                    {form.watch("size_tiers").length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeTier(index)}
+                        className="flex items-center gap-1 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </Button>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name={`size_tier_${tier}_min` as any}
+                      name={`size_tiers.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tier Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Nano, Micro" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`size_tiers.${index}.min`}
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Minimum Followers</FormLabel>
@@ -463,7 +460,7 @@ export const SettingsPage = () => {
                     />
                     <FormField
                       control={form.control}
-                      name={`size_tier_${tier}_max` as any}
+                      name={`size_tiers.${index}.max`}
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Maximum Followers</FormLabel>
@@ -480,7 +477,7 @@ export const SettingsPage = () => {
                       )}
                     />
                   </div>
-                  {index < 3 && <Separator />}
+                  {index < form.watch("size_tiers").length - 1 && <Separator />}
                 </div>
               ))}
             </CardContent>

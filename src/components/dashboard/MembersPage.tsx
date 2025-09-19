@@ -34,10 +34,13 @@ import { BulkMemberImport } from './BulkMemberImport';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-type MemberStatus = 'active' | 'needs_reconnect';
+type MemberStatus = 'connected' | 'disconnected' | 'invited' | 'uninterested';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
 
 type InfluencePlannerStatus = 'hasnt_logged_in' | 'invited' | 'disconnected' | 'connected' | 'uninterested';
+
+// Database still uses old enum values, we'll map them to display values
+type DbMemberStatus = 'active' | 'needs_reconnect';
 
 interface Member {
   id: string;
@@ -46,7 +49,7 @@ interface Member {
   stage_name?: string;
   primary_email: string;
   emails: string[];
-  status: MemberStatus;
+  status: DbMemberStatus; // Database value
   size_tier: SizeTier;
   followers: number;
   soundcloud_followers: number;
@@ -66,14 +69,37 @@ interface Member {
   influence_planner_status: InfluencePlannerStatus;
 }
 
+// Helper function to map database status to display status
+const mapDbStatusToDisplay = (dbStatus: DbMemberStatus): MemberStatus => {
+  switch (dbStatus) {
+    case 'active':
+      return 'connected';
+    case 'needs_reconnect':
+      return 'disconnected';
+    default:
+      return 'disconnected';
+  }
+};
+
+// Helper function to map display status to database status
+const mapDisplayStatusToDb = (displayStatus: MemberStatus): DbMemberStatus => {
+  switch (displayStatus) {
+    case 'connected':
+      return 'active';
+    case 'disconnected':
+    case 'invited':
+    case 'uninterested':
+      return 'needs_reconnect';
+    default:
+      return 'needs_reconnect';
+  }
+};
+
 interface MemberStats {
   total: number;
   active: number;
-  needs_reconnect: number;
-  t1: number;
-  t2: number;
-  t3: number;
-  t4: number;
+  premium: number;
+  needsAttention: number;
 }
 
 export const MembersPage = () => {
@@ -82,11 +108,8 @@ export const MembersPage = () => {
   const [stats, setStats] = useState<MemberStats>({
     total: 0,
     active: 0,
-    needs_reconnect: 0,
-    t1: 0,
-    t2: 0,
-    t3: 0,
-    t4: 0,
+    premium: 0,
+    needsAttention: 0,
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,8 +129,10 @@ export const MembersPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   const statusConfig = {
-    active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
-    needs_reconnect: { label: 'Needs Reconnect', color: 'bg-orange-500', icon: AlertCircle },
+    connected: { label: 'Connected', color: 'bg-green-500', icon: CheckCircle },
+    disconnected: { label: 'Disconnected', color: 'bg-red-500', icon: AlertCircle },
+    invited: { label: 'Invited', color: 'bg-blue-500', icon: Activity },
+    uninterested: { label: 'Uninterested', color: 'bg-gray-500', icon: XCircle },
   };
 
   const tierConfig = {
@@ -125,7 +150,9 @@ export const MembersPage = () => {
         .order(sortBy, { ascending: sortDirection === 'asc' });
 
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as MemberStatus);
+        // Map display status to database status for filtering
+        const dbStatus = mapDisplayStatusToDb(statusFilter as MemberStatus);
+        query = query.eq('status', dbStatus);
       }
 
       if (tierFilter !== 'all') {
@@ -143,15 +170,15 @@ export const MembersPage = () => {
       const membersData = data || [];
       setMembers(membersData);
 
-      // Calculate stats
+      // Calculate stats using mapped values
       const newStats = {
         total: membersData.length,
-        active: membersData.filter(m => m.status === 'active').length,
-        needs_reconnect: membersData.filter(m => m.status === 'needs_reconnect').length,
-        t1: membersData.filter(m => m.size_tier === 'T1').length,
-        t2: membersData.filter(m => m.size_tier === 'T2').length,
-        t3: membersData.filter(m => m.size_tier === 'T3').length,
-        t4: membersData.filter(m => m.size_tier === 'T4').length,
+        active: membersData.filter(m => mapDbStatusToDisplay(m.status) === 'connected').length,
+        premium: membersData.filter(m => m.size_tier === 'T4').length,
+        needsAttention: membersData.filter(m => {
+          const displayStatus = mapDbStatusToDisplay(m.status);
+          return displayStatus === 'disconnected' || displayStatus === 'uninterested';
+        }).length,
       };
       setStats(newStats);
     } catch (error: any) {
@@ -169,18 +196,19 @@ export const MembersPage = () => {
     fetchMembers();
   }, [statusFilter, tierFilter, influencePlannerFilter, sortBy, sortDirection]);
 
-  const updateMemberStatus = async (memberId: string, newStatus: MemberStatus) => {
+  const updateMemberStatus = async (memberId: string, newDisplayStatus: MemberStatus) => {
     try {
+      const newDbStatus = mapDisplayStatusToDb(newDisplayStatus);
       const { error } = await supabase
         .from('members')
-        .update({ status: newStatus })
+        .update({ status: newDbStatus })
         .eq('id', memberId);
 
       if (error) throw error;
 
       toast({
         title: "Status Updated",
-        description: `Member status changed to ${statusConfig[newStatus]?.label || newStatus}`,
+        description: `Member status changed to ${statusConfig[newDisplayStatus]?.label || newDisplayStatus}`,
       });
 
       fetchMembers();
@@ -366,9 +394,10 @@ export const MembersPage = () => {
     member.groups?.some(group => group.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const getStatusBadge = (status: MemberStatus) => {
-    const config = statusConfig[status] || {
-      label: status,
+  const getStatusBadge = (member: Member) => {
+    const displayStatus = mapDbStatusToDisplay(member.status);
+    const config = statusConfig[displayStatus] || {
+      label: displayStatus,
       color: 'bg-gray-500',
       icon: AlertCircle
     };
@@ -570,7 +599,7 @@ export const MembersPage = () => {
             <Crown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.t3 + stats.t4}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.premium}</div>
           </CardContent>
         </Card>
         <Card>
@@ -579,7 +608,7 @@ export const MembersPage = () => {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.needs_reconnect}</div>
+            <div className="text-2xl font-bold text-orange-600">{stats.needsAttention}</div>
           </CardContent>
         </Card>
       </div>
@@ -631,8 +660,10 @@ export const MembersPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="needs_reconnect">Needs Reconnect</SelectItem>
+                <SelectItem value="connected">Connected</SelectItem>
+                <SelectItem value="disconnected">Disconnected</SelectItem>
+                <SelectItem value="invited">Invited</SelectItem>
+                <SelectItem value="uninterested">Uninterested</SelectItem>
               </SelectContent>
             </Select>
             <Select value={tierFilter} onValueChange={setTierFilter}>
@@ -705,6 +736,7 @@ export const MembersPage = () => {
                     </TableHead>
                     <SortableHeader column="name">Member</SortableHeader>
                     <SortableHeader column="stage_name">Stage Name</SortableHeader>
+                    <SortableHeader column="status">Status</SortableHeader>
                     <TableHead>Group(s)</TableHead>
                     <TableHead>SC URL</TableHead>
                     <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
@@ -742,6 +774,9 @@ export const MembersPage = () => {
                         </TableCell>
                         <TableCell>
                           <span className="text-sm">{member.stage_name || '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(member)}
                         </TableCell>
                         <TableCell>
                           {getGroupsBadges(member.groups)}
@@ -811,27 +846,27 @@ export const MembersPage = () => {
                         </TableCell>
                          <TableCell>
                           <div className="flex gap-1">
-                            {member.status === 'active' && (
+                            {mapDbStatusToDisplay(member.status) === 'connected' && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateMemberStatus(member.id, 'needs_reconnect');
+                                  updateMemberStatus(member.id, 'disconnected');
                                 }}
                               >
-                                Flag Issue
+                                Disconnect
                               </Button>
                             )}
-                            {member.status === 'needs_reconnect' && (
+                            {mapDbStatusToDisplay(member.status) === 'disconnected' && (
                               <Button
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateMemberStatus(member.id, 'active');
+                                  updateMemberStatus(member.id, 'connected');
                                 }}
                               >
-                                Resolve
+                                Connect
                               </Button>
                             )}
                             <Button

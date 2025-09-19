@@ -208,15 +208,17 @@ export const MembersPage = () => {
 
       if (genreFilter !== 'all') {
         if (genreFilter === 'untagged') {
-          // Special filter for untagged members (empty or null families array)
+          // Special filter for untagged members (empty families AND groups arrays)
           membersData = membersData.filter(m => 
-            !m.families || m.families.length === 0
+            (!m.families || m.families.length === 0) && 
+            (!m.groups || m.groups.length === 0)
           );
         } else {
           membersData = membersData.filter(m => 
             m.families?.includes(genreFilter) || 
             m.subgenres?.some(sub => sub === genreFilter) ||
-            m.manual_genres?.includes(genreFilter)
+            m.manual_genres?.includes(genreFilter) ||
+            m.groups?.includes(genreFilter)
           );
         }
       }

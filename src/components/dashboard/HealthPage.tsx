@@ -79,7 +79,7 @@ export const HealthPage = () => {
   const handleCardClick = (filterType: string) => {
     switch (filterType) {
       case 'connections':
-        navigate('/dashboard/members?status=disconnected');
+        navigate('/dashboard/members?status=connected');
         break;
       case 'untagged':
         navigate('/dashboard/members?genre=untagged');

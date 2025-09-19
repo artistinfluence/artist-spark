@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           soundcloud_url, families, soundcloud_followers
         `)
         .contains('emails', [userEmail])
-        .single();
+        .maybeSingle();
       
       setMember(memberData || null);
     } catch (error) {

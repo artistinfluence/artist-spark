@@ -89,21 +89,23 @@ export const GenreAdministration = () => {
 
   // Handler functions for DraggableGenreManager
   const handleGenreFamilyEdit = (family: GenreFamily) => {
-    // TODO: Open edit modal
+    // The DraggableGenreManager handles this internally now
     console.log('Edit family:', family);
-    toast({
-      title: "Edit Family",
-      description: `Editing ${family.name} - Modal coming soon!`,
-    });
   };
 
   const handleSubgenreEdit = (subgenre: Subgenre) => {
-    // TODO: Open edit modal
+    // The DraggableGenreManager handles this internally now
     console.log('Edit subgenre:', subgenre);
-    toast({
-      title: "Edit Subgenre", 
-      description: `Editing ${subgenre.name} - Modal coming soon!`,
-    });
+  };
+
+  const handleGenreFamilyAdd = () => {
+    // The DraggableGenreManager handles this internally now
+    console.log('Add family');
+  };
+
+  const handleSubgenreAdd = (familyId: string) => {
+    // The DraggableGenreManager handles this internally now
+    console.log('Add subgenre for family:', familyId);
   };
 
   const handleGenreFamilyDelete = async (id: string) => {
@@ -273,6 +275,8 @@ export const GenreAdministration = () => {
                 onSubgenreEdit={handleSubgenreEdit}
                 onGenreFamilyDelete={handleGenreFamilyDelete}
                 onSubgenreDelete={handleSubgenreDelete}
+                onGenreFamilyAdd={handleGenreFamilyAdd}
+                onSubgenreAdd={handleSubgenreAdd}
               />
             </motion.div>
           </TabsContent>

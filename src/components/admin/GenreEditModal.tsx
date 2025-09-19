@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Save, X } from 'lucide-react';
@@ -29,6 +30,7 @@ interface GenreEditModalProps {
   onSuccess: () => void;
   genre: GenreFamily | Subgenre | null;
   type: 'family' | 'subgenre';
+  selectedFamilyId?: string | null;
 }
 
 export const GenreEditModal: React.FC<GenreEditModalProps> = ({
@@ -36,16 +38,39 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
   onClose,
   onSuccess,
   genre,
-  type
+  type,
+  selectedFamilyId
 }) => {
+  const [families, setFamilies] = useState<GenreFamily[]>([]);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     active: true,
     patterns: [] as string[],
-    order_index: 0
+    order_index: 0,
+    family_id: ''
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (type === 'subgenre') {
+      // Fetch families for dropdown
+      const fetchFamilies = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('genre_families')
+            .select('*')
+            .order('name');
+          
+          if (error) throw error;
+          setFamilies(data || []);
+        } catch (error) {
+          console.error('Error fetching families:', error);
+        }
+      };
+      fetchFamilies();
+    }
+  }, [type]);
 
   useEffect(() => {
     if (genre) {
@@ -53,17 +78,19 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
         name: genre.name || '',
         active: genre.active ?? true,
         patterns: (genre as Subgenre).patterns || [],
-        order_index: (genre as Subgenre).order_index || 0
+        order_index: (genre as Subgenre).order_index || 0,
+        family_id: (genre as Subgenre).family_id || selectedFamilyId || ''
       });
     } else {
       setFormData({
         name: '',
         active: true,
         patterns: [],
-        order_index: 0
+        order_index: 0,
+        family_id: selectedFamilyId || ''
       });
     }
-  }, [genre]);
+  }, [genre, selectedFamilyId]);
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -112,6 +139,15 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
         }
       } else {
         // Subgenre
+        if (!formData.family_id) {
+          toast({
+            title: "Error",
+            description: "Family is required for subgenres",
+            variant: "destructive"
+          });
+          return;
+        }
+
         if (genre) {
           // Update existing subgenre
           const { error } = await supabase
@@ -120,7 +156,8 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
               name: formData.name.trim(),
               active: formData.active,
               patterns: formData.patterns.filter(p => p.trim()),
-              order_index: formData.order_index
+              order_index: formData.order_index,
+              family_id: formData.family_id
             })
             .eq('id', genre.id);
           
@@ -129,6 +166,24 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
           toast({
             title: "Success",
             description: "Subgenre updated successfully"
+          });
+        } else {
+          // Create new subgenre
+          const { error } = await supabase
+            .from('subgenres')
+            .insert({
+              name: formData.name.trim(),
+              active: formData.active,
+              patterns: formData.patterns.filter(p => p.trim()),
+              order_index: formData.order_index,
+              family_id: formData.family_id
+            });
+          
+          if (error) throw error;
+          
+          toast({
+            title: "Success",
+            description: "Subgenre created successfully"
           });
         }
       }
@@ -200,6 +255,25 @@ export const GenreEditModal: React.FC<GenreEditModalProps> = ({
 
           {type === 'subgenre' && (
             <>
+              <div>
+                <Label htmlFor="family">Family</Label>
+                <Select
+                  value={formData.family_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, family_id: value }))}
+                >
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Select a family" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border shadow-xl z-50">
+                    {families.map((family) => (
+                      <SelectItem key={family.id} value={family.id}>
+                        {family.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <Label htmlFor="order_index">Order Index</Label>
                 <Input

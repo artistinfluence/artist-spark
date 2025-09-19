@@ -33,6 +33,8 @@ interface DraggableGenreManagerProps {
   onSubgenreEdit: (subgenre: Subgenre) => void;
   onGenreFamilyDelete: (id: string) => void;
   onSubgenreDelete: (id: string) => void;
+  onGenreFamilyAdd: () => void;
+  onSubgenreAdd: (familyId: string) => void;
 }
 
 export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
@@ -40,6 +42,8 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
   onSubgenreEdit,
   onGenreFamilyDelete,
   onSubgenreDelete,
+  onGenreFamilyAdd,
+  onSubgenreAdd,
 }) => {
   const [genreFamilies, setGenreFamilies] = useState<GenreFamily[]>([]);
   const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
@@ -47,6 +51,7 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingGenre, setEditingGenre] = useState<GenreFamily | Subgenre | null>(null);
   const [editingType, setEditingType] = useState<'family' | 'subgenre'>('family');
+  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -169,6 +174,20 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
     fetchData();
   };
 
+  const handleAddGenreFamily = () => {
+    setEditingGenre(null);
+    setEditingType('family');
+    setSelectedFamilyId(null);
+    setEditModalOpen(true);
+  };
+
+  const handleAddSubgenre = (familyId: string) => {
+    setEditingGenre(null);
+    setEditingType('subgenre');
+    setSelectedFamilyId(familyId);
+    setEditModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -190,16 +209,31 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
   }
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <Droppable droppableId="families" type="FAMILY">
-        {(provided, snapshot) => (
-          <div
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className={`space-y-4 transition-colors duration-200 ${
-              snapshot.isDraggingOver ? 'bg-accent/20 rounded-lg p-2' : ''
-            }`}
-          >
+    <div className="space-y-4">
+      {/* Add Family Button */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-muted-foreground">Genre Families</h3>
+        <Button
+          onClick={handleAddGenreFamily}
+          variant="outline"
+          size="sm"
+          className="bg-background border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Family
+        </Button>
+      </div>
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="families" type="FAMILY">
+          {(provided, snapshot) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className={`space-y-4 transition-colors duration-200 ${
+                snapshot.isDraggingOver ? 'bg-accent/20 rounded-lg p-2' : ''
+              }`}
+            >
             <AnimatePresence>
               {genreFamilies.map((family, index) => (
                 <Draggable key={family.id} draggableId={family.id} index={index}>
@@ -322,13 +356,35 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
                                       </Draggable>
                                     ))}
                                   </AnimatePresence>
-                                  {provided.placeholder}
-                                  {getSubgenresForFamily(family.id).length === 0 && (
-                                    <div className="text-center text-muted-foreground py-4">
-                                      Drop subgenres here or create new ones
-                                    </div>
-                                  )}
-                                </div>
+                                   {provided.placeholder}
+                                   {getSubgenresForFamily(family.id).length === 0 && (
+                                     <div className="text-center text-muted-foreground py-4">
+                                       <div>Drop subgenres here or create new ones</div>
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => handleAddSubgenre(family.id)}
+                                         className="mt-2 text-xs border-2 border-dashed border-muted-foreground/30 hover:border-primary"
+                                       >
+                                         <Plus className="h-3 w-3 mr-1" />
+                                         Add Subgenre
+                                       </Button>
+                                     </div>
+                                   )}
+                                   {getSubgenresForFamily(family.id).length > 0 && (
+                                     <div className="flex justify-center pt-2">
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => handleAddSubgenre(family.id)}
+                                         className="text-xs border-2 border-dashed border-muted-foreground/30 hover:border-primary"
+                                       >
+                                         <Plus className="h-3 w-3 mr-1" />
+                                         Add Subgenre
+                                       </Button>
+                                     </div>
+                                   )}
+                                 </div>
                               </div>
                             )}
                           </Droppable>
@@ -339,18 +395,20 @@ export const DraggableGenreManager: React.FC<DraggableGenreManagerProps> = ({
                 </Draggable>
               ))}
             </AnimatePresence>
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-      
-      <GenreEditModal
-        isOpen={editModalOpen}
-        onClose={handleEditModalClose}
-        onSuccess={handleEditSuccess}
-        genre={editingGenre}
-        type={editingType}
-      />
-    </DragDropContext>
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+        
+        <GenreEditModal
+          isOpen={editModalOpen}
+          onClose={handleEditModalClose}
+          onSuccess={handleEditSuccess}
+          genre={editingGenre}
+          type={editingType}
+          selectedFamilyId={selectedFamilyId}
+        />
+      </DragDropContext>
+    </div>
   );
 };

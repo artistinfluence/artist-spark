@@ -85,6 +85,26 @@ export const ArtistGenreBrowser: React.FC = () => {
     });
   }, [tierCounts]);
 
+  const availableIPStatuses = useMemo(() => {
+    const statusCounts = members.reduce((acc, member) => {
+      const status = member.influence_planner_status || 'unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const statusOptions = [
+      { value: 'all', label: `All (${members.length})` },
+      { value: 'connected', label: `Connected (${statusCounts.connected || 0})` },
+      { value: 'invited', label: `Invited (${statusCounts.invited || 0})` },
+      { value: 'hasnt_logged_in', label: `Not Logged In (${statusCounts.hasnt_logged_in || 0})` },
+      { value: 'disconnected', label: `Disconnected (${statusCounts.disconnected || 0})` },
+      { value: 'uninterested', label: `Uninterested (${statusCounts.uninterested || 0})` },
+      { value: 'unknown', label: `Unknown (${statusCounts.unknown || 0})` }
+    ];
+
+    return statusOptions;
+  }, [members]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -122,8 +142,8 @@ export const ArtistGenreBrowser: React.FC = () => {
       const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            member.primary_email.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Status filter
-      const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+      // IP Status filter
+      const matchesStatus = statusFilter === 'all' || member.influence_planner_status === statusFilter;
 
       // Tier filter
       const matchesTier = tierFilter === 'all' || member.size_tier === tierFilter;
@@ -336,16 +356,17 @@ export const ArtistGenreBrowser: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">IP Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  {availableIPStatuses.map(status => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

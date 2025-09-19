@@ -162,8 +162,33 @@ export const EventList: React.FC<EventListProps> = ({ selectedDate }) => {
               <TableBody>
                 {filteredEvents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No events found matching your criteria
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="text-muted-foreground">
+                          {events.length === 0 ? (
+                            <>
+                              <h3 className="font-medium text-foreground mb-2">No Events Yet</h3>
+                              <p>Events will appear here once campaigns and submissions are scheduled.</p>
+                              <p className="text-sm mt-2">The calendar will show both paid campaigns and free queue submissions.</p>
+                            </>
+                          ) : (
+                            <>
+                              <h3 className="font-medium text-foreground mb-2">No Matching Events</h3>
+                              <p>Try adjusting your filters or search terms.</p>
+                            </>
+                          )}
+                        </div>
+                        {events.length === 0 && (
+                          <div className="flex gap-2 mt-4">
+                            <Button variant="outline" size="sm">
+                              Create Campaign
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              Submit Track
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

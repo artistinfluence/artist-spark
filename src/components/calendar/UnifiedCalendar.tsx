@@ -174,7 +174,11 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
             
             {/* Calendar Days */}
             <div className="grid grid-cols-7">
-              {monthDays.map(date => renderDay(date))}
+              {monthDays.map(date => (
+                <div key={format(date, 'yyyy-MM-dd')}>
+                  {renderDay(date)}
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>

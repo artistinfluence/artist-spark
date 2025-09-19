@@ -583,6 +583,16 @@ export const MembersPage = () => {
   };
 
   const getUnifiedGenreBadges = (member: Member) => {
+    // Debug: Log member data to see what's available
+    console.log('Member data for genre display:', {
+      id: member.id,
+      name: member.name,
+      groups: member.groups,
+      groupsType: typeof member.groups,
+      groupsLength: member.groups?.length,
+      allKeys: Object.keys(member)
+    });
+
     // Show only groups as genre badges - the primary source of truth
     if (!member.groups || member.groups.length === 0) {
       return <span className="text-xs text-muted-foreground">Untagged</span>;
@@ -870,7 +880,7 @@ export const MembersPage = () => {
               <p>No members found matching your criteria</p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border max-h-[70vh] overflow-auto">
               <Table>
                  <TableHeader>
                    <TableRow>

@@ -42,6 +42,7 @@ type InfluencePlannerStatus = 'hasnt_logged_in' | 'invited' | 'disconnected' | '
 interface Member {
   id: string;
   name: string;
+  first_name?: string;
   stage_name?: string;
   primary_email: string;
   emails: string[];
@@ -785,7 +786,7 @@ export const MembersPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{getFirstName(member.name)}</span>
+                          <span className="text-sm">{member.first_name || '-'}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">{member.primary_email}</span>

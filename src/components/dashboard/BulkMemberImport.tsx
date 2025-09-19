@@ -31,6 +31,7 @@ interface ColumnMapping {
 
 interface MappedMember {
   name?: string;
+  first_name?: string;
   stage_name?: string;
   groups?: string[];
   primary_email?: string;
@@ -58,6 +59,7 @@ interface ImportResult {
 // Available member fields for mapping
 const MEMBER_FIELDS = [
   { value: 'name', label: 'Full Name', required: true },
+  { value: 'first_name', label: 'First Name', required: false },
   { value: 'stage_name', label: 'Stage Name', required: false },
   { value: 'groups', label: 'Groups (comma-separated)', required: false },
   { value: 'primary_email', label: 'Primary Email', required: true },
@@ -78,6 +80,10 @@ const SMART_MAPPINGS: Record<string, string> = {
   'full_name': 'name',
   'artist_name': 'name',
   'artistname': 'name',
+  'first_name': 'first_name',
+  'firstname': 'first_name',
+  'contact_name': 'first_name',
+  'contactname': 'first_name',
   'stage_name': 'stage_name',
   'stagename': 'stage_name',
   'stage': 'stage_name',

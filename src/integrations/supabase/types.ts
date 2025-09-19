@@ -1069,6 +1069,7 @@ export type Database = {
           credits_used: number | null
           emails: string[] | null
           families: string[] | null
+          first_name: string | null
           followers: number | null
           genre_family_id: string | null
           genre_notes: string | null
@@ -1116,6 +1117,7 @@ export type Database = {
           credits_used?: number | null
           emails?: string[] | null
           families?: string[] | null
+          first_name?: string | null
           followers?: number | null
           genre_family_id?: string | null
           genre_notes?: string | null
@@ -1163,6 +1165,7 @@ export type Database = {
           credits_used?: number | null
           emails?: string[] | null
           families?: string[] | null
+          first_name?: string | null
           followers?: number | null
           genre_family_id?: string | null
           genre_notes?: string | null

@@ -25,6 +25,7 @@ import {
 interface Member {
   id: string;
   name: string;
+  stage_name?: string;
   primary_email: string;
   status: string;
   size_tier: string;
@@ -109,7 +110,7 @@ export const ArtistGenreBrowser: React.FC = () => {
     setLoading(true);
     try {
       const [membersResponse, familiesResponse, subgenresResponse] = await Promise.all([
-        supabase.from('members').select('id, name, primary_email, status, size_tier, soundcloud_url, soundcloud_followers, influence_planner_status, created_at'),
+        supabase.from('members').select('id, name, stage_name, primary_email, status, size_tier, soundcloud_url, soundcloud_followers, influence_planner_status, created_at'),
         supabase.from('genre_families').select('*').order('name'),
         supabase.from('subgenres').select('*').order('order_index')
       ]);
@@ -139,8 +140,9 @@ export const ArtistGenreBrowser: React.FC = () => {
   const filteredAndSortedMembers = useMemo(() => {
     let filtered = members.filter(member => {
       // Search filter
-      const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           member.primary_email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            member.primary_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (member.stage_name && member.stage_name.toLowerCase().includes(searchTerm.toLowerCase())));
 
       // IP Status filter
       const matchesStatus = statusFilter === 'all' || member.influence_planner_status === statusFilter;
@@ -160,7 +162,7 @@ export const ArtistGenreBrowser: React.FC = () => {
       
       switch (sortBy) {
         case 'name':
-          comparison = a.name.localeCompare(b.name);
+          comparison = (a.stage_name || a.name).localeCompare(b.stage_name || b.name);
           break;
         case 'followers':
           comparison = (a.soundcloud_followers || 0) - (b.soundcloud_followers || 0);
@@ -240,63 +242,68 @@ export const ArtistGenreBrowser: React.FC = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className={`transition-all duration-200 hover:shadow-lg cursor-pointer ${
-        selectedMembers.has(member.id) ? 'ring-2 ring-primary' : ''
+      <Card className={`transition-all duration-200 hover:shadow-md cursor-pointer px-2 py-1 ${
+        selectedMembers.has(member.id) ? 'ring-1 ring-primary' : ''
       }`}>
-        <CardHeader className="pb-1 pt-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={selectedMembers.has(member.id)}
-                onCheckedChange={() => handleMemberSelect(member.id)}
-                onClick={(e) => e.stopPropagation()}
-              />
-              <div>
-                <CardTitle className="text-xs font-medium">{member.name}</CardTitle>
-                <p className="text-xs text-muted-foreground truncate max-w-[150px]">{member.primary_email}</p>
-              </div>
-            </div>
-            {member.soundcloud_url && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(member.soundcloud_url, '_blank');
-                }}
-              >
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 pb-3">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              {(() => {
-                const ipStatus = getIPStatusBadge(member.influence_planner_status);
-                return (
-                  <Badge variant={ipStatus.variant} className={`text-xs px-1.5 py-0.5 ${ipStatus.className}`}>
-                    {ipStatus.text}
-                  </Badge>
-                );
-              })()}
-              <Badge variant="outline" className="text-xs px-1.5 py-0.5">{member.size_tier}</Badge>
-            </div>
-            
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                <span>{member.soundcloud_followers?.toLocaleString() || '0'}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date(member.created_at).toLocaleDateString()}</span>
-              </div>
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: Checkbox + Stage Name */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Checkbox
+              checked={selectedMembers.has(member.id)}
+              onCheckedChange={() => handleMemberSelect(member.id)}
+              onClick={(e) => e.stopPropagation()}
+              className="h-3 w-3"
+            />
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs font-medium truncate">
+                {member.stage_name || member.name}
+              </h4>
             </div>
           </div>
-        </CardContent>
+          
+          {/* Right: External Link */}
+          {member.soundcloud_url && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-4 w-4 p-0 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(member.soundcloud_url, '_blank');
+              }}
+            >
+              <ExternalLink className="h-2.5 w-2.5" />
+            </Button>
+          )}
+        </div>
+        
+        {/* Single Row of Info */}
+        <div className="flex items-center justify-between gap-1 mt-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="truncate max-w-[80px]">{member.name}</span>
+            <span className="truncate max-w-[100px]">{member.primary_email}</span>
+            {(() => {
+              const ipStatus = getIPStatusBadge(member.influence_planner_status);
+              return (
+                <Badge variant={ipStatus.variant} className={`text-xs px-1 py-0 h-4 ${ipStatus.className}`}>
+                  {ipStatus.text}
+                </Badge>
+              );
+            })()}
+            <Badge variant="outline" className="text-xs px-1 py-0 h-4">{member.size_tier}</Badge>
+          </div>
+          
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-0.5">
+              <Users className="h-2.5 w-2.5" />
+              <span>{(member.soundcloud_followers || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <Calendar className="h-2.5 w-2.5" />
+              <span>{new Date(member.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
+            </div>
+          </div>
+        </div>
       </Card>
     </motion.div>
   );
@@ -457,8 +464,8 @@ export const ArtistGenreBrowser: React.FC = () => {
       <AnimatePresence>
         <div className={`${
           viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2' 
-            : 'space-y-1'
+            ? 'grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1' 
+            : 'space-y-0.5'
         }`}>
           {filteredAndSortedMembers.map(member => (
             <ArtistCard key={member.id} member={member} />

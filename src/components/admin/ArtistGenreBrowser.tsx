@@ -71,7 +71,7 @@ export const ArtistGenreBrowser: React.FC = () => {
     try {
       const [membersResponse, familiesResponse, subgenresResponse] = await Promise.all([
         supabase.from('members').select('*'),
-        supabase.from('genre_families').select('*').order('order_index'),
+        supabase.from('genre_families').select('*').order('name'),
         supabase.from('subgenres').select('*').order('order_index')
       ]);
 

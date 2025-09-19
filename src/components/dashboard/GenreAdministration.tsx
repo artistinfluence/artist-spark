@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { DraggableGenreManager } from '@/components/admin/DraggableGenreManager';
 import { GenreMindMap } from '@/components/admin/GenreMindMap';
 import { ArtistGenreBrowser } from '@/components/admin/ArtistGenreBrowser';
-import { AdjacencyMatrixVisualizer } from '@/components/admin/AdjacencyMatrixVisualizer';
+
 import { GenreDistributionChart } from '@/components/admin/GenreDistributionChart';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import {
@@ -20,7 +20,7 @@ import {
   Users,
   BarChart3,
   TrendingUp,
-  Zap,
+  
   Search
 } from 'lucide-react';
 
@@ -49,7 +49,7 @@ export const GenreAdministration = () => {
   const [families, setFamilies] = useState<GenreFamily[]>([]);
   const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'drag-drop' | 'mind-map' | 'artist-browser' | 'matrix' | 'analytics'>('drag-drop');
+  const [activeTab, setActiveTab] = useState<'drag-drop' | 'mind-map' | 'artist-browser' | 'analytics'>('drag-drop');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -221,7 +221,7 @@ export const GenreAdministration = () => {
         transition={{ delay: 0.1 }}
       >
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card shadow-card border border-border">
+          <TabsList className="grid w-full grid-cols-4 bg-card shadow-card border border-border">
             <TabsTrigger value="drag-drop" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
               <Grip className="w-4 h-4" />
               Drag & Drop
@@ -233,10 +233,6 @@ export const GenreAdministration = () => {
             <TabsTrigger value="artist-browser" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               Artist Browser
-            </TabsTrigger>
-            <TabsTrigger value="matrix" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
-              <Zap className="w-4 h-4" />
-              Compatibility
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4" />
@@ -301,18 +297,6 @@ export const GenreAdministration = () => {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="matrix" className="space-y-0">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <AdjacencyMatrixVisualizer 
-                families={families}
-                onUpdate={handleGenreUpdate}
-              />
-            </motion.div>
-          </TabsContent>
 
           <TabsContent value="analytics" className="space-y-0">
             <motion.div

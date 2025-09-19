@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { Search, ExternalLink, Users, DollarSign, CreditCard } from 'lucide-react';
+import { format, isToday } from 'date-fns';
+import { Search, ExternalLink, Users, DollarSign, CreditCard, Filter } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { EventDetailsModal } from './EventDetailsModal';
 import type { CalendarEventData } from '@/types/calendar';
@@ -32,11 +32,17 @@ export const EventList: React.FC<EventListProps> = ({ selectedDate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showTodaysApproved, setShowTodaysApproved] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
   
   const { events, isLoading, error } = useCalendarEvents(selectedDate || new Date());
 
   const filteredEvents = events.filter(event => {
+    // If "Today's Approved" filter is active, only show approved events for today
+    if (showTodaysApproved) {
+      return event.status === 'approved' && isToday(new Date(event.date));
+    }
+    
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.artistName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
@@ -103,8 +109,26 @@ export const EventList: React.FC<EventListProps> = ({ selectedDate }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Today's Approved Quick Filter */}
+          <div className="mb-4">
+            <Button
+              variant={showTodaysApproved ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowTodaysApproved(!showTodaysApproved)}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Today's Approved Songs
+              {showTodaysApproved && (
+                <Badge variant="secondary" className="ml-1">
+                  {events.filter(e => e.status === 'approved' && isToday(new Date(e.date))).length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
+          <div className={`flex flex-wrap gap-4 mb-6 ${showTodaysApproved ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -142,7 +166,11 @@ export const EventList: React.FC<EventListProps> = ({ selectedDate }) => {
 
           {/* Results Count */}
           <div className="text-sm text-muted-foreground mb-4">
-            Showing {filteredEvents.length} of {events.length} events
+            {showTodaysApproved ? (
+              <>Showing {filteredEvents.length} approved songs for today</>
+            ) : (
+              <>Showing {filteredEvents.length} of {events.length} events</>
+            )}
           </div>
 
           {/* Events Table */}

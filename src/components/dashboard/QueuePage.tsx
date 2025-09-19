@@ -126,9 +126,15 @@ export const QueuePage = () => {
                         <Badge variant="outline">Electronic</Badge>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>Submitted 2 hours ago</p>
-                      <p>Credits: 3 allocated</p>
+                    <div className="text-right text-sm space-y-1">
+                      <p className="text-muted-foreground">Submitted 2 hours ago</p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Cost: 1 credit per repost</p>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Badge variant="outline" className="text-xs">Member Credits: 3</Badge>
+                          <Badge variant="default" className="text-xs bg-success text-success-foreground">Sufficient</Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -157,9 +163,15 @@ export const QueuePage = () => {
                         <Badge variant="outline">Alternative</Badge>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>Submitted 4 hours ago</p>
-                      <p>Credits: 2 allocated</p>
+                    <div className="text-right text-sm space-y-1">
+                      <p className="text-muted-foreground">Submitted 4 hours ago</p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Cost: 1 credit per repost</p>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Badge variant="outline" className="text-xs">Member Credits: 2</Badge>
+                          <Badge variant="default" className="text-xs bg-success text-success-foreground">Sufficient</Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Upload, FileText, CheckCircle, XCircle, Loader2, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { calculateRepostLimit, getFollowerTier } from '@/utils/creditCalculations';
 
 interface BulkMemberImportProps {
   isOpen: boolean;
@@ -19,12 +20,15 @@ interface BulkMemberImportProps {
 }
 
 interface ImportMember {
-  name: string;
-  primary_email: string;
+  stage_name: string;
+  first_name?: string;
+  email_1: string;
+  email_2?: string;
   soundcloud_url: string;
-  additional_emails?: string[];
-  size_tier?: 'T1' | 'T2' | 'T3' | 'T4';
-  monthly_repost_limit?: number;
+  follower_count: number;
+  // Auto-calculated fields
+  size_tier: 'T1' | 'T2' | 'T3' | 'T4';
+  monthly_repost_limit: number;
 }
 
 interface ImportResult {
@@ -67,15 +71,15 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
 
     try {
       const lines = csvText.trim().split('\n');
-      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/\s+/g, '_'));
       
-      const requiredHeaders = ['name', 'email', 'soundcloud_url'];
+      const requiredHeaders = ['stage_name', 'email_1', 'soundcloud_url', 'follower_count'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       
       if (missingHeaders.length > 0) {
         toast({
           title: "Missing headers",
-          description: `Required headers: ${missingHeaders.join(', ')}`,
+          description: `Required headers: ${missingHeaders.map(h => h.replace('_', ' ')).join(', ')}`,
           variant: "destructive"
         });
         return;
@@ -85,45 +89,44 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
       
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim());
-        const member: ImportMember = {
-          name: '',
-          primary_email: '',
-          soundcloud_url: ''
-        };
+        if (values.length === 0 || values.every(v => !v)) continue; // Skip empty lines
+        
+        const memberData: Partial<ImportMember> = {};
 
         headers.forEach((header, index) => {
           const value = values[index];
-          if (!value) return;
+          if (!value && !['first_name', 'email_2'].includes(header)) return;
 
           switch (header) {
-            case 'name':
-              member.name = value;
+            case 'stage_name':
+              memberData.stage_name = value;
               break;
-            case 'email':
-              member.primary_email = value;
+            case 'first_name':
+              memberData.first_name = value || undefined;
+              break;
+            case 'email_1':
+              memberData.email_1 = value;
+              break;
+            case 'email_2':
+              memberData.email_2 = value || undefined;
               break;
             case 'soundcloud_url':
-              member.soundcloud_url = value;
+              memberData.soundcloud_url = value;
               break;
-            case 'additional_emails':
-              member.additional_emails = value.split(';').map(e => e.trim());
-              break;
-            case 'size_tier':
-              if (['T1', 'T2', 'T3', 'T4'].includes(value)) {
-                member.size_tier = value as 'T1' | 'T2' | 'T3' | 'T4';
-              }
-              break;
-            case 'monthly_limit':
-              const limit = parseInt(value);
-              if (!isNaN(limit)) {
-                member.monthly_repost_limit = limit;
-              }
+            case 'follower_count':
+              const followerCount = parseInt(value.replace(/,/g, '')) || 0;
+              memberData.follower_count = followerCount;
+              // Auto-calculate tier and limit
+              memberData.size_tier = getFollowerTier(followerCount).split(' ')[0] as 'T1' | 'T2' | 'T3' | 'T4';
+              memberData.monthly_repost_limit = calculateRepostLimit(followerCount);
               break;
           }
         });
 
-        if (member.name && member.primary_email && member.soundcloud_url) {
-          parsedMembers.push(member);
+        // Validate required fields
+        if (memberData.stage_name && memberData.email_1 && memberData.soundcloud_url && 
+            memberData.follower_count !== undefined && memberData.size_tier && memberData.monthly_repost_limit) {
+          parsedMembers.push(memberData as ImportMember);
         }
       }
 
@@ -147,11 +150,17 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
     const validationErrors: string[] = [];
     
     members.forEach((member, index) => {
-      if (!validateEmail(member.primary_email)) {
-        validationErrors.push(`Row ${index + 1}: Invalid email format`);
+      if (!validateEmail(member.email_1)) {
+        validationErrors.push(`Row ${index + 1}: Invalid primary email format`);
+      }
+      if (member.email_2 && !validateEmail(member.email_2)) {
+        validationErrors.push(`Row ${index + 1}: Invalid secondary email format`);
       }
       if (!validateUrl(member.soundcloud_url)) {
         validationErrors.push(`Row ${index + 1}: Invalid SoundCloud URL format`);
+      }
+      if (member.follower_count < 0) {
+        validationErrors.push(`Row ${index + 1}: Invalid follower count`);
       }
     });
 
@@ -180,38 +189,54 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
       const member = members[i];
       
       try {
-        // First analyze SoundCloud profile
-        const { data: analysisData } = await supabase.functions.invoke('analyze-soundcloud-profile', {
-          body: { soundcloudUrl: member.soundcloud_url }
-        });
-
-        // Prepare member data
-        const emails = [member.primary_email];
-        if (member.additional_emails?.length) {
-          emails.push(...member.additional_emails);
+        // Prepare member data with calculated values from CSV
+        const emails = [member.email_1];
+        if (member.email_2) {
+          emails.push(member.email_2);
         }
 
+        // Use first name and stage name to create full name
+        const fullName = member.first_name ? `${member.first_name} (${member.stage_name})` : member.stage_name;
+
         const memberData = {
-          name: member.name,
-          primary_email: member.primary_email,
+          name: fullName,
+          primary_email: member.email_1,
           emails: emails,
           soundcloud_url: member.soundcloud_url,
-          soundcloud_followers: analysisData?.success ? analysisData.followers || 0 : 0,
-          monthly_repost_limit: member.monthly_repost_limit || 1,
-          size_tier: member.size_tier || 'T1',
+          soundcloud_followers: member.follower_count,
+          monthly_repost_limit: member.monthly_repost_limit,
+          computed_monthly_repost_limit: member.monthly_repost_limit,
+          size_tier: member.size_tier,
           status: 'active' as const
         };
 
-        const { error } = await supabase
+        // Insert member
+        const { data: insertedMember, error: memberError } = await supabase
           .from('members')
-          .insert(memberData);
+          .insert(memberData)
+          .select('id')
+          .single();
 
-        if (error) throw error;
+        if (memberError) throw memberError;
+
+        // Create repost credit wallet for the member
+        const { error: walletError } = await supabase
+          .from('repost_credit_wallet')
+          .insert({
+            member_id: insertedMember.id,
+            balance: member.monthly_repost_limit,
+            monthly_grant: member.monthly_repost_limit,
+            cap: member.monthly_repost_limit
+          });
+
+        if (walletError) {
+          console.warn('Failed to create wallet for member:', walletError);
+          // Don't fail the import if wallet creation fails
+        }
 
         importResults.push({
           member,
-          success: true,
-          analysis: analysisData
+          success: true
         });
 
       } catch (error: any) {
@@ -244,9 +269,10 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
   };
 
   const downloadTemplate = () => {
-    const template = `name,email,soundcloud_url,additional_emails,size_tier,monthly_limit
-Artist Name,artist@example.com,https://soundcloud.com/artist-name,backup@example.com,T2,2
-Another Artist,another@example.com,https://soundcloud.com/another-artist,,T1,1`;
+    const template = `stage name,first name,email 1,email 2,soundcloud url,follower count
+DJ Example,John,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,150000
+Producer Name,,producer@example.com,,https://soundcloud.com/producer-name,50000
+Artist Stage,Jane,artist@example.com,jane@personal.com,https://soundcloud.com/artist-stage,1200000`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -297,11 +323,11 @@ Another Artist,another@example.com,https://soundcloud.com/another-artist,,T1,1`;
                 id="csvText"
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
-                placeholder="name,email,soundcloud_url,additional_emails,size_tier,monthly_limit&#10;Artist Name,artist@example.com,https://soundcloud.com/artist-name,backup@example.com,T2,2"
+                placeholder="stage name,first name,email 1,email 2,soundcloud url,follower count&#10;DJ Example,John,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,150000"
                 className="min-h-[200px] font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Required columns: name, email, soundcloud_url. Optional: additional_emails (semicolon separated), size_tier (T1-T4), monthly_limit
+                Required: Stage Name, Email 1, SoundCloud URL, Follower Count. Optional: First Name, Email 2. Tier and limits auto-calculated from follower count.
               </p>
             </div>
 
@@ -331,12 +357,15 @@ Another Artist,another@example.com,https://soundcloud.com/another-artist,,T1,1`;
                 {members.map((member, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-md">
                     <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">{member.primary_email}</p>
+                      <p className="font-medium">{member.stage_name} {member.first_name && `(${member.first_name})`}</p>
+                      <p className="text-sm text-muted-foreground">{member.email_1}</p>
                       <p className="text-xs text-muted-foreground">{member.soundcloud_url}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {member.follower_count.toLocaleString()} followers → {member.size_tier} → {member.monthly_repost_limit} reposts/month
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {validateEmail(member.primary_email) && validateUrl(member.soundcloud_url) ? (
+                      {validateEmail(member.email_1) && validateUrl(member.soundcloud_url) && member.follower_count >= 0 ? (
                         <Badge variant="secondary" className="bg-green-100 text-green-800">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Valid
@@ -373,7 +402,7 @@ Another Artist,another@example.com,https://soundcloud.com/another-artist,,T1,1`;
             <div>
               <h3 className="text-lg font-semibold">Processing Import</h3>
               <p className="text-sm text-muted-foreground">
-                Analyzing SoundCloud profiles and creating member accounts...
+                Creating member accounts with auto-calculated tiers and limits...
               </p>
             </div>
 
@@ -404,8 +433,13 @@ Another Artist,another@example.com,https://soundcloud.com/another-artist,,T1,1`;
                 {results.map((result, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-md">
                     <div>
-                      <p className="font-medium">{result.member.name}</p>
-                      <p className="text-sm text-muted-foreground">{result.member.primary_email}</p>
+                      <p className="font-medium">{result.member.stage_name} {result.member.first_name && `(${result.member.first_name})`}</p>
+                      <p className="text-sm text-muted-foreground">{result.member.email_1}</p>
+                      {result.success && (
+                        <p className="text-xs text-green-600">
+                          Imported as {result.member.size_tier} with {result.member.monthly_repost_limit} monthly reposts
+                        </p>
+                      )}
                       {result.error && (
                         <p className="text-xs text-destructive">{result.error}</p>
                       )}

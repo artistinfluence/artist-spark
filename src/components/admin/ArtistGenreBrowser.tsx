@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { InteractiveCard } from '@/components/ui/interactive-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,16 @@ import {
   Grid,
   List,
   Settings,
-  ExternalLink
+  ExternalLink,
+  Crown,
+  Award,
+  Medal,
+  Zap,
+  CheckCircle,
+  Clock,
+  UserX,
+  AlertCircle,
+  HelpCircle
 } from 'lucide-react';
 
 interface Member {
@@ -212,21 +222,85 @@ export const ArtistGenreBrowser: React.FC = () => {
   };
 
   const getIPStatusBadge = (status?: string) => {
-    if (!status) return { variant: 'outline' as const, text: 'Unknown', className: '' };
+    if (!status || status === 'unknown') {
+      return { 
+        variant: 'outline' as const, 
+        text: 'Unknown', 
+        className: 'text-muted-foreground border-muted-foreground/30',
+        icon: HelpCircle
+      };
+    }
     
     switch (status) {
       case 'connected':
-        return { variant: 'default' as const, text: 'Connected', className: 'bg-green-500 hover:bg-green-600' };
+        return { 
+          variant: 'default' as const, 
+          text: 'Connected', 
+          className: 'bg-emerald-500/90 hover:bg-emerald-600 text-white border-emerald-500',
+          icon: CheckCircle
+        };
       case 'invited':
-        return { variant: 'secondary' as const, text: 'Invited', className: 'bg-yellow-500 hover:bg-yellow-600 text-white' };
+        return { 
+          variant: 'secondary' as const, 
+          text: 'Invited', 
+          className: 'bg-amber-500/90 hover:bg-amber-600 text-white border-amber-500',
+          icon: Clock
+        };
       case 'hasnt_logged_in':
-        return { variant: 'secondary' as const, text: 'Not Logged In', className: '' };
+        return { 
+          variant: 'secondary' as const, 
+          text: 'Not Logged In', 
+          className: 'bg-blue-500/90 hover:bg-blue-600 text-white border-blue-500',
+          icon: AlertCircle
+        };
       case 'disconnected':
-        return { variant: 'destructive' as const, text: 'Disconnected', className: '' };
+        return { 
+          variant: 'destructive' as const, 
+          text: 'Disconnected', 
+          className: 'bg-red-500/90 hover:bg-red-600 text-white border-red-500',
+          icon: UserX
+        };
       case 'uninterested':
-        return { variant: 'outline' as const, text: 'Uninterested', className: '' };
+        return { 
+          variant: 'outline' as const, 
+          text: 'Uninterested', 
+          className: 'text-muted-foreground border-muted-foreground/50',
+          icon: UserX
+        };
       default:
-        return { variant: 'outline' as const, text: status, className: '' };
+        return { 
+          variant: 'outline' as const, 
+          text: status, 
+          className: 'text-muted-foreground border-muted-foreground/30',
+          icon: HelpCircle
+        };
+    }
+  };
+
+  const getTierBadgeInfo = (tier?: string) => {
+    if (!tier) return { icon: Medal, className: 'text-muted-foreground' };
+    
+    switch (tier) {
+      case 'T1':
+        return { 
+          icon: Crown, 
+          className: 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-semibold shadow-lg hover:from-yellow-500 hover:to-yellow-700'
+        };
+      case 'T2':
+        return { 
+          icon: Award, 
+          className: 'bg-gradient-to-r from-gray-300 to-gray-500 text-black font-semibold shadow-lg hover:from-gray-400 hover:to-gray-600'
+        };
+      case 'T3':
+        return { 
+          icon: Medal, 
+          className: 'bg-gradient-to-r from-amber-600 to-amber-800 text-white font-semibold shadow-lg hover:from-amber-700 hover:to-amber-900'
+        };
+      default:
+        return { 
+          icon: Medal, 
+          className: 'bg-muted text-muted-foreground'
+        };
     }
   };
 
@@ -235,78 +309,127 @@ export const ArtistGenreBrowser: React.FC = () => {
     return null;
   };
 
-  const ArtistCard: React.FC<{ member: Member }> = ({ member }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card className={`transition-all duration-200 hover:shadow-md cursor-pointer px-2 py-1 ${
-        selectedMembers.has(member.id) ? 'ring-1 ring-primary' : ''
-      }`}>
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Checkbox + Stage Name */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Checkbox
-              checked={selectedMembers.has(member.id)}
-              onCheckedChange={() => handleMemberSelect(member.id)}
-              onClick={(e) => e.stopPropagation()}
-              className="h-3 w-3"
-            />
-            <div className="min-w-0 flex-1">
-              <h4 className="text-xs font-medium truncate">
-                {member.stage_name || member.name}
-              </h4>
-            </div>
-          </div>
+  const ArtistCard: React.FC<{ member: Member }> = ({ member }) => {
+    const ipStatus = getIPStatusBadge(member.influence_planner_status);
+    const tierInfo = getTierBadgeInfo(member.size_tier);
+    const IPStatusIcon = ipStatus.icon;
+    const TierIcon = tierInfo.icon;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.2 }}
+      >
+        <InteractiveCard
+          className={`relative overflow-hidden border-0 bg-gradient-to-br from-card/50 to-card/80 backdrop-blur-sm hover:from-card/70 hover:to-card/90 transition-all duration-300 ${
+            selectedMembers.has(member.id) 
+              ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/10' 
+              : 'hover:shadow-lg hover:shadow-primary/5'
+          }`}
+          glowOnHover={true}
+          hoverScale={1.02}
+          onClick={() => handleMemberSelect(member.id)}
+        >
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-50" />
           
-          {/* Right: External Link */}
-          {member.soundcloud_url && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-4 w-4 p-0 flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(member.soundcloud_url, '_blank');
-              }}
-            >
-              <ExternalLink className="h-2.5 w-2.5" />
-            </Button>
+          {/* Selection Indicator */}
+          {selectedMembers.has(member.id) && (
+            <div className="absolute top-1 left-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
           )}
-        </div>
-        
-        {/* Single Row of Info */}
-        <div className="flex items-center justify-between gap-1 mt-1 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="truncate max-w-[80px]">{member.name}</span>
-            <span className="truncate max-w-[100px]">{member.primary_email}</span>
-            {(() => {
-              const ipStatus = getIPStatusBadge(member.influence_planner_status);
-              return (
-                <Badge variant={ipStatus.variant} className={`text-xs px-1 py-0 h-4 ${ipStatus.className}`}>
-                  {ipStatus.text}
-                </Badge>
-              );
-            })()}
-            <Badge variant="outline" className="text-xs px-1 py-0 h-4">{member.size_tier}</Badge>
-          </div>
-          
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-0.5">
-              <Users className="h-2.5 w-2.5" />
-              <span>{(member.soundcloud_followers || 0).toLocaleString()}</span>
+
+          <div className="relative p-3 space-y-2">
+            {/* Header Row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Checkbox
+                  checked={selectedMembers.has(member.id)}
+                  onCheckedChange={() => handleMemberSelect(member.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-4 w-4 border-2 transition-all data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Music className="h-3 w-3 text-primary/70 flex-shrink-0" />
+                    <h4 className="text-sm font-semibold text-foreground truncate">
+                      {member.stage_name || member.name}
+                    </h4>
+                  </div>
+                </div>
+              </div>
+              
+              {/* External Link */}
+              {member.soundcloud_url && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(member.soundcloud_url, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
             </div>
-            <div className="flex items-center gap-0.5">
-              <Calendar className="h-2.5 w-2.5" />
-              <span>{new Date(member.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
+
+            {/* Member Info Row */}
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground truncate">
+                {member.name} • {member.primary_email}
+              </div>
+              
+              {/* Status and Badges Row */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* IP Status Badge */}
+                  <Badge 
+                    variant={ipStatus.variant} 
+                    className={`text-xs px-2 py-0.5 h-5 flex items-center gap-1 font-medium ${ipStatus.className}`}
+                  >
+                    <IPStatusIcon className="h-2.5 w-2.5" />
+                    {ipStatus.text}
+                  </Badge>
+                  
+                  {/* Tier Badge */}
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs px-2 py-0.5 h-5 flex items-center gap-1 border-0 ${tierInfo.className}`}
+                  >
+                    <TierIcon className="h-2.5 w-2.5" />
+                    {member.size_tier}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3 text-primary/60" />
+                <span className="font-medium">
+                  {(member.soundcloud_followers || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-primary/60" />
+                <span>
+                  {new Date(member.created_at).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: '2-digit'
+                  })}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
-    </motion.div>
-  );
+        </InteractiveCard>
+      </motion.div>
+    );
+  };
 
   if (loading) {
     return (
@@ -464,8 +587,8 @@ export const ArtistGenreBrowser: React.FC = () => {
       <AnimatePresence>
         <div className={`${
           viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1' 
-            : 'space-y-0.5'
+            ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3' 
+            : 'space-y-2'
         }`}>
           {filteredAndSortedMembers.map(member => (
             <ArtistCard key={member.id} member={member} />

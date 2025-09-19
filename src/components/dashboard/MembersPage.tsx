@@ -25,11 +25,14 @@ import {
   UserPlus,
   Upload,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetailModal } from './MemberDetailModal';
 import { AddMemberModal } from './AddMemberModal';
 import { BulkMemberImport } from './BulkMemberImport';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 type MemberStatus = 'active' | 'needs_reconnect';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
@@ -89,6 +92,10 @@ export const MembersPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [syncingFollowers, setSyncingFollowers] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-green-500', icon: CheckCircle },
@@ -207,10 +214,76 @@ export const MembersPage = () => {
     }
   };
 
-  // Remove Spotify bulk classification logic and replace with import functionality
-  const handleBulkAction = () => {
-    // This could be extended for bulk member management operations
-    console.log('Bulk actions coming soon');
+  const handleMemberSelect = (memberId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMembers(prev => [...prev, memberId]);
+    } else {
+      setSelectedMembers(prev => prev.filter(id => id !== memberId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedMembers(filteredMembers.map(m => m.id));
+    } else {
+      setSelectedMembers([]);
+    }
+  };
+
+  const handleSingleDelete = (member: Member) => {
+    setMemberToDelete(member);
+    setShowDeleteDialog(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedMembers.length === 0) return;
+    setMemberToDelete(null); // Indicates bulk delete
+    setShowDeleteDialog(true);
+  };
+
+  const deleteMember = async (memberId: string) => {
+    const { error } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', memberId);
+    
+    if (error) throw error;
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (memberToDelete) {
+        // Single delete
+        await deleteMember(memberToDelete.id);
+        toast({
+          title: "Success",
+          description: "Member deleted successfully",
+        });
+      } else {
+        // Bulk delete
+        for (const memberId of selectedMembers) {
+          await deleteMember(memberId);
+        }
+        toast({
+          title: "Success", 
+          description: `${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''} deleted successfully`,
+        });
+        setSelectedMembers([]);
+      }
+      
+      setShowDeleteDialog(false);
+      setMemberToDelete(null);
+      fetchMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete member(s)",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const filteredMembers = members.filter(member =>
@@ -288,6 +361,20 @@ export const MembersPage = () => {
           <p className="text-muted-foreground">Manage member accounts and permissions</p>
         </div>
         <div className="flex items-center gap-4">
+          {selectedMembers.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
+              <span className="text-sm font-medium">{selectedMembers.length} selected</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </Button>
+            </div>
+          )}
           <Button 
             variant="outline" 
             onClick={() => setIsBulkImportOpen(true)} 
@@ -453,6 +540,13 @@ export const MembersPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedMembers.length === filteredMembers.length && filteredMembers.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all members"
+                      />
+                    </TableHead>
                     <SortableHeader column="name">Member</SortableHeader>
                     <SortableHeader column="status">Status</SortableHeader>
                     <SortableHeader column="size_tier">Tier</SortableHeader>
@@ -467,13 +561,22 @@ export const MembersPage = () => {
                    {filteredMembers.map((member) => (
                      <TableRow 
                        key={member.id} 
-                       className="cursor-pointer hover:bg-muted/50"
-                       onClick={() => {
-                         setSelectedMember(member);
-                         setIsModalOpen(true);
-                       }}
+                       className={`hover:bg-muted/50 ${selectedMembers.includes(member.id) ? 'bg-muted/30' : ''}`}
                      >
-                       <TableCell>
+                       <TableCell onClick={(e) => e.stopPropagation()}>
+                         <Checkbox
+                           checked={selectedMembers.includes(member.id)}
+                           onCheckedChange={(checked) => handleMemberSelect(member.id, !!checked)}
+                           aria-label={`Select ${member.name}`}
+                         />
+                       </TableCell>
+                       <TableCell 
+                         className="cursor-pointer"
+                         onClick={() => {
+                           setSelectedMember(member);
+                           setIsModalOpen(true);
+                         }}
+                       >
                          <div className="flex flex-col">
                            <div className="flex items-center gap-2">
                              <span className="font-medium">{member.name}</span>
@@ -528,33 +631,44 @@ export const MembersPage = () => {
                            {format(new Date(member.created_at), 'MMM d, yyyy')}
                          </div>
                        </TableCell>
-                        <TableCell>
-                         <div className="flex gap-1">
-                           {member.status === 'active' && (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 updateMemberStatus(member.id, 'needs_reconnect');
-                               }}
-                             >
-                               Flag Issue
-                             </Button>
-                           )}
-                           {member.status === 'needs_reconnect' && (
-                             <Button
-                               size="sm"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 updateMemberStatus(member.id, 'active');
-                               }}
-                             >
-                               Resolve
-                             </Button>
-                           )}
-                         </div>
-                       </TableCell>
+                         <TableCell>
+                          <div className="flex gap-1">
+                            {member.status === 'active' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateMemberStatus(member.id, 'needs_reconnect');
+                                }}
+                              >
+                                Flag Issue
+                              </Button>
+                            )}
+                            {member.status === 'needs_reconnect' && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateMemberStatus(member.id, 'active');
+                                }}
+                              >
+                                Resolve
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSingleDelete(member);
+                              }}
+                              className="ml-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
                      </TableRow>
                    ))}
                  </TableBody>
@@ -593,6 +707,33 @@ export const MembersPage = () => {
             fetchMembers();
           }}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {memberToDelete ? 'Delete Member' : 'Delete Selected Members'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {memberToDelete 
+                  ? `Are you sure you want to delete "${memberToDelete.name}"? This action cannot be undone and will remove all associated data including submissions, credits, and account information.`
+                  : `Are you sure you want to delete ${selectedMembers.length} selected member${selectedMembers.length > 1 ? 's' : ''}? This action cannot be undone and will remove all associated data for these members.`
+                }
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
      </div>
   );
 };

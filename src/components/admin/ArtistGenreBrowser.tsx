@@ -58,12 +58,33 @@ export const ArtistGenreBrowser: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'name' | 'followers' | 'created'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'followers' | 'created' | 'tier'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+
+  // Calculate tier counts dynamically
+  const tierCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    members.forEach(member => {
+      if (member.size_tier) {
+        counts[member.size_tier] = (counts[member.size_tier] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [members]);
+
+  // Get available tiers sorted
+  const availableTiers = useMemo(() => {
+    return Object.keys(tierCounts).sort((a, b) => {
+      // Custom sort for T1, T2, T3 format
+      const aNum = parseInt(a.replace('T', ''));
+      const bNum = parseInt(b.replace('T', ''));
+      return aNum - bNum;
+    });
+  }, [tierCounts]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -134,6 +155,12 @@ export const ArtistGenreBrowser: React.FC = () => {
           break;
         case 'followers':
           comparison = (a.soundcloud_followers || 0) - (b.soundcloud_followers || 0);
+          break;
+        case 'tier':
+          // Sort tiers T1, T2, T3
+          const aTier = parseInt(a.size_tier?.replace('T', '') || '0');
+          const bTier = parseInt(b.size_tier?.replace('T', '') || '0');
+          comparison = aTier - bTier;
           break;
         case 'created':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -345,9 +372,11 @@ export const ArtistGenreBrowser: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tiers</SelectItem>
-                  <SelectItem value="small">Small</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="large">Large</SelectItem>
+                  {availableTiers.map(tier => (
+                    <SelectItem key={tier} value={tier}>
+                      {tier} ({tierCounts[tier]})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -362,6 +391,7 @@ export const ArtistGenreBrowser: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="followers">Followers</SelectItem>
+                    <SelectItem value="tier">Tier</SelectItem>
                     <SelectItem value="created">Created</SelectItem>
                   </SelectContent>
                 </Select>

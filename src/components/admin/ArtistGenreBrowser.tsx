@@ -30,9 +30,8 @@ interface Member {
   size_tier: string;
   soundcloud_url?: string;
   soundcloud_followers?: number;
-  genre_classification?: any;
+  influence_planner_status?: string;
   created_at: string;
-  last_activity?: string;
 }
 
 interface GenreFamily {
@@ -90,7 +89,7 @@ export const ArtistGenreBrowser: React.FC = () => {
     setLoading(true);
     try {
       const [membersResponse, familiesResponse, subgenresResponse] = await Promise.all([
-        supabase.from('members').select('*'),
+        supabase.from('members').select('id, name, primary_email, status, size_tier, soundcloud_url, soundcloud_followers, influence_planner_status, created_at'),
         supabase.from('genre_families').select('*').order('name'),
         supabase.from('subgenres').select('*').order('order_index')
       ]);
@@ -129,18 +128,8 @@ export const ArtistGenreBrowser: React.FC = () => {
       // Tier filter
       const matchesTier = tierFilter === 'all' || member.size_tier === tierFilter;
 
-      // Genre filter
-      const matchesGenre = selectedGenres.length === 0 || 
-        selectedGenres.some(genreId => {
-          // Check if member's genre classification matches selected genres
-          const classification = member.genre_classification;
-          if (!classification) return false;
-          
-          // Check both families and subgenres
-          return classification.primary_genre === genreId ||
-                 classification.secondary_genres?.includes(genreId) ||
-                 classification.families?.includes(genreId);
-        });
+      // Genre filter - temporarily disabled since genre_classification doesn't exist
+      const matchesGenre = selectedGenres.length === 0; // Always match for now
 
       return matchesSearch && matchesStatus && matchesTier && matchesGenre;
     });
@@ -200,36 +189,28 @@ export const ArtistGenreBrowser: React.FC = () => {
     });
   };
 
+  const getIPStatusBadge = (status?: string) => {
+    if (!status) return { variant: 'outline' as const, text: 'Unknown', className: '' };
+    
+    switch (status) {
+      case 'connected':
+        return { variant: 'default' as const, text: 'Connected', className: 'bg-green-500 hover:bg-green-600' };
+      case 'invited':
+        return { variant: 'secondary' as const, text: 'Invited', className: 'bg-yellow-500 hover:bg-yellow-600 text-white' };
+      case 'hasnt_logged_in':
+        return { variant: 'secondary' as const, text: 'Not Logged In', className: '' };
+      case 'disconnected':
+        return { variant: 'destructive' as const, text: 'Disconnected', className: '' };
+      case 'uninterested':
+        return { variant: 'outline' as const, text: 'Uninterested', className: '' };
+      default:
+        return { variant: 'outline' as const, text: status, className: '' };
+    }
+  };
+
   const getGenreDisplay = (member: Member) => {
-    const classification = member.genre_classification;
-    if (!classification) return null;
-
-    const primaryGenre = genreFamilies.find(g => g.id === classification.primary_genre) ||
-                        subgenres.find(g => g.id === classification.primary_genre);
-
-    return (
-      <div className="flex flex-wrap gap-1">
-        {primaryGenre && (
-          <Badge variant="default" className="text-xs">
-            {primaryGenre.name}
-          </Badge>
-        )}
-        {classification.families?.slice(0, 2).map((genreId: string) => {
-          const genre = genreFamilies.find(g => g.id === genreId) ||
-                       subgenres.find(g => g.id === genreId);
-          return genre ? (
-            <Badge key={genreId} variant="secondary" className="text-xs">
-              {genre.name}
-            </Badge>
-          ) : null;
-        })}
-        {(classification.families?.length > 2) && (
-          <Badge variant="outline" className="text-xs">
-            +{(classification.families?.length || 0) - 2}
-          </Badge>
-        )}
-      </div>
-    );
+    // Genre display temporarily disabled since genre_classification doesn't exist
+    return null;
   };
 
   const ArtistCard: React.FC<{ member: Member }> = ({ member }) => (
@@ -272,9 +253,14 @@ export const ArtistGenreBrowser: React.FC = () => {
         <CardContent className="pt-0">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                {member.status}
-              </Badge>
+              {(() => {
+                const ipStatus = getIPStatusBadge(member.influence_planner_status);
+                return (
+                  <Badge variant={ipStatus.variant} className={ipStatus.className}>
+                    {ipStatus.text}
+                  </Badge>
+                );
+              })()}
               <Badge variant="outline">{member.size_tier}</Badge>
             </div>
             

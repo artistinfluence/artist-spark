@@ -242,12 +242,72 @@ export const MembersPage = () => {
   };
 
   const deleteMember = async (memberId: string) => {
-    const { error } = await supabase
+    // Delete related records in the correct order to avoid foreign key constraints
+    
+    // 1. First get member_account IDs to delete integration_status records
+    const { data: memberAccounts } = await supabase
+      .from('member_accounts')
+      .select('id')
+      .eq('member_id', memberId);
+
+    if (memberAccounts && memberAccounts.length > 0) {
+      const accountIds = memberAccounts.map(acc => acc.id);
+      
+      // Delete integration_status records
+      const { error: integrationError } = await supabase
+        .from('integration_status')
+        .delete()
+        .in('member_account_id', accountIds);
+      
+      if (integrationError) throw integrationError;
+    }
+
+    // 2. Delete member_accounts (references members)
+    const { error: accountsError } = await supabase
+      .from('member_accounts')
+      .delete()
+      .eq('member_id', memberId);
+    
+    if (accountsError) throw accountsError;
+
+    // 3. Delete other related records
+    const { error: avoidListError } = await supabase
+      .from('avoid_list_items')
+      .delete()
+      .eq('member_id', memberId);
+    if (avoidListError) throw avoidListError;
+
+    const { error: cohortsError } = await supabase
+      .from('member_cohorts')
+      .delete()
+      .eq('member_id', memberId);
+    if (cohortsError) throw cohortsError;
+
+    const { error: genresError } = await supabase
+      .from('member_genres')
+      .delete()
+      .eq('member_id', memberId);
+    if (genresError) throw genresError;
+
+    const { error: ledgerError } = await supabase
+      .from('repost_credit_ledger')
+      .delete()
+      .eq('member_id', memberId);
+    if (ledgerError) throw ledgerError;
+
+    const { error: walletError } = await supabase
+      .from('repost_credit_wallet')
+      .delete()
+      .eq('member_id', memberId);
+    if (walletError) throw walletError;
+
+    // 4. Finally delete the member
+    const { error: memberError } = await supabase
       .from('members')
       .delete()
       .eq('id', memberId);
     
-    if (error) throw error;
+    if (memberError) throw memberError;
   };
 
   const confirmDelete = async () => {

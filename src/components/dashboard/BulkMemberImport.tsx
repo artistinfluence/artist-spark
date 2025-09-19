@@ -315,7 +315,6 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
           spotify_handle: member.spotify_handle,
           soundcloud_followers: member.follower_count,
           monthly_repost_limit: member.manual_monthly_repost_override || member.monthly_repost_limit,
-          computed_monthly_repost_limit: member.manual_monthly_repost_override || member.monthly_repost_limit,
           manual_monthly_repost_override: member.manual_monthly_repost_override,
           override_reason: member.override_reason,
           size_tier: member.size_tier,

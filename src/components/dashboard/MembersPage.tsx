@@ -37,9 +37,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 type MemberStatus = 'active' | 'needs_reconnect';
 type SizeTier = 'T1' | 'T2' | 'T3' | 'T4';
 
+type InfluencePlannerStatus = 'hasnt_logged_in' | 'invited' | 'disconnected' | 'connected' | 'uninterested';
+
 interface Member {
   id: string;
   name: string;
+  stage_name?: string;
   primary_email: string;
   emails: string[];
   status: MemberStatus;
@@ -49,14 +52,17 @@ interface Member {
   soundcloud_url: string;
   families: string[];
   subgenres: string[];
+  groups: string[];
   monthly_repost_limit: number;
   submissions_this_month: number;
   net_credits: number;
   created_at: string;
+  updated_at: string;
   last_submission_at: string;
   manual_genres: string[];
   genre_family_id?: string;
   genre_notes?: string;
+  influence_planner_status: InfluencePlannerStatus;
 }
 
 interface MemberStats {
@@ -85,6 +91,7 @@ export const MembersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
+  const [influencePlannerFilter, setInfluencePlannerFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -124,6 +131,10 @@ export const MembersPage = () => {
         query = query.eq('size_tier', tierFilter as SizeTier);
       }
 
+      if (influencePlannerFilter !== 'all') {
+        query = query.eq('influence_planner_status', influencePlannerFilter as InfluencePlannerStatus);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -155,7 +166,7 @@ export const MembersPage = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [statusFilter, tierFilter, sortBy, sortDirection]);
+  }, [statusFilter, tierFilter, influencePlannerFilter, sortBy, sortDirection]);
 
   const updateMemberStatus = async (memberId: string, newStatus: MemberStatus) => {
     try {
@@ -348,8 +359,10 @@ export const MembersPage = () => {
 
   const filteredMembers = members.filter(member =>
     member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.stage_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.primary_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.emails?.some(email => email.toLowerCase().includes(searchTerm.toLowerCase()))
+    member.emails?.some(email => email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    member.groups?.some(group => group.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusBadge = (status: MemberStatus) => {
@@ -375,6 +388,73 @@ export const MembersPage = () => {
         <Crown className="w-3 h-3 mr-1" />
         {config.label}
       </Badge>
+    );
+  };
+
+  const influencePlannerStatusConfig = {
+    hasnt_logged_in: { label: "Hasn't Logged In", color: 'bg-gray-500' },
+    invited: { label: 'Invited', color: 'bg-blue-500' },
+    disconnected: { label: 'Disconnected', color: 'bg-red-500' },
+    connected: { label: 'Connected', color: 'bg-green-500' },
+    uninterested: { label: 'Uninterested', color: 'bg-yellow-500' },
+  };
+
+  const getInfluencePlannerStatusBadge = (status: InfluencePlannerStatus) => {
+    const config = influencePlannerStatusConfig[status];
+    return (
+      <Badge className={`${config.color} text-white hover:${config.color}/80`}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const updateInfluencePlannerStatus = async (memberId: string, newStatus: InfluencePlannerStatus) => {
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update({ influence_planner_status: newStatus })
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status Updated",
+        description: `Influence Planner status changed to ${influencePlannerStatusConfig[newStatus]?.label}`,
+      });
+
+      fetchMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update influence planner status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFirstName = (fullName: string) => {
+    return fullName?.split(' ')[0] || '';
+  };
+
+  const getSecondaryEmail = (emails: string[], primaryEmail: string) => {
+    return emails?.find(email => email !== primaryEmail) || '';
+  };
+
+  const getGroupsBadges = (groups: string[]) => {
+    if (!groups || groups.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {groups.slice(0, 2).map((group, index) => (
+          <Badge key={index} variant="outline" className="text-xs">
+            {group}
+          </Badge>
+        ))}
+        {groups.length > 2 && (
+          <Badge variant="outline" className="text-xs">
+            +{groups.length - 2}
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -566,16 +646,31 @@ export const MembersPage = () => {
                 <SelectItem value="T4">Tier 4 (100K+)</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={influencePlannerFilter} onValueChange={setInfluencePlannerFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="created_at">Newest First</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="followers">Followers</SelectItem>
-                <SelectItem value="last_submission_at">Last Activity</SelectItem>
+                <SelectItem value="all">All IP Status</SelectItem>
+                <SelectItem value="hasnt_logged_in">Hasn't Logged In</SelectItem>
+                <SelectItem value="invited">Invited</SelectItem>
+                <SelectItem value="disconnected">Disconnected</SelectItem>
+                <SelectItem value="connected">Connected</SelectItem>
+                <SelectItem value="uninterested">Uninterested</SelectItem>
               </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at">Newest First</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="stage_name">Stage Name</SelectItem>
+                  <SelectItem value="soundcloud_followers">SC Followers</SelectItem>
+                  <SelectItem value="updated_at">Last Updated</SelectItem>
+                  <SelectItem value="influence_planner_status">IP Status</SelectItem>
+                </SelectContent>
             </Select>
           </div>
         </CardContent>
@@ -608,12 +703,17 @@ export const MembersPage = () => {
                       />
                     </TableHead>
                     <SortableHeader column="name">Member</SortableHeader>
-                    <SortableHeader column="status">Status</SortableHeader>
-                    <SortableHeader column="size_tier">Tier</SortableHeader>
-                    <SortableHeader column="followers">Followers</SortableHeader>
-                    <SortableHeader column="submissions_this_month">Activity</SortableHeader>
-                    <SortableHeader column="net_credits">Monthly Reposts</SortableHeader>
-                    <SortableHeader column="created_at">Joined</SortableHeader>
+                    <SortableHeader column="stage_name">Stage Name</SortableHeader>
+                    <TableHead>Group(s)</TableHead>
+                    <TableHead>SC URL</TableHead>
+                    <SortableHeader column="influence_planner_status">IP Status</SortableHeader>
+                    <SortableHeader column="soundcloud_followers">SC Followers</SortableHeader>
+                    <TableHead>First Name</TableHead>
+                    <TableHead>Email 1</TableHead>
+                    <TableHead>Email 2</TableHead>
+                    <SortableHeader column="updated_at">Last Updated</SortableHeader>
+                    <SortableHeader column="monthly_repost_limit">Reposts/Month</SortableHeader>
+                    <SortableHeader column="net_credits">Total Credits</SortableHeader>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -630,67 +730,84 @@ export const MembersPage = () => {
                            aria-label={`Select ${member.name}`}
                          />
                        </TableCell>
-                       <TableCell 
-                         className="cursor-pointer"
-                         onClick={() => {
-                           setSelectedMember(member);
-                           setIsModalOpen(true);
-                         }}
-                       >
-                         <div className="flex flex-col">
-                           <div className="flex items-center gap-2">
-                             <span className="font-medium">{member.name}</span>
-                              <div className="flex gap-1">
-                                {member.soundcloud_url && (
-                                  <span title="SoundCloud">
-                                    <ExternalLink className="w-3 h-3 text-orange-500" />
-                                  </span>
-                                 )}
-                                 <span title="SoundCloud">
-                                   <ExternalLink className="w-3 w-3 text-blue-500" />
-                                 </span>
-                              </div>
-                           </div>
-                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                             <Mail className="w-3 h-3" />
-                             {member.primary_email}
-                           </div>
-                         </div>
-                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(member.status)}
-                      </TableCell>
-                      <TableCell>
-                        {getTierBadge(member.size_tier)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-muted-foreground" />
-                          {member.followers?.toLocaleString() || '0'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="text-sm">
-                           <div>{member.submissions_this_month}/{member.monthly_repost_limit} this month</div>
-                           {member.last_submission_at && (
-                             <div className="text-xs text-muted-foreground">
-                               Last: {format(new Date(member.last_submission_at), 'MMM d')}
-                             </div>
-                           )}
-                         </div>
-                      </TableCell>
-                       <TableCell>
-                         <div className="text-sm">
-                           <span className={member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}>
-                             {member.net_credits}
-                           </span>
-                         </div>
-                       </TableCell>
-                       <TableCell>
-                         <div className="text-sm text-muted-foreground">
-                           {format(new Date(member.created_at), 'MMM d, yyyy')}
-                         </div>
-                       </TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setSelectedMember(member);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <span className="font-medium">{member.name}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{member.stage_name || '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          {getGroupsBadges(member.groups)}
+                        </TableCell>
+                        <TableCell>
+                          {member.soundcloud_url ? (
+                            <a 
+                              href={member.soundcloud_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 text-orange-500 hover:text-orange-600"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span className="text-xs">SoundCloud</span>
+                            </a>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={member.influence_planner_status}
+                            onValueChange={(value: InfluencePlannerStatus) => 
+                              updateInfluencePlannerStatus(member.id, value)
+                            }
+                          >
+                            <SelectTrigger className="w-32 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hasnt_logged_in">Hasn't Logged In</SelectItem>
+                              <SelectItem value="invited">Invited</SelectItem>
+                              <SelectItem value="disconnected">Disconnected</SelectItem>
+                              <SelectItem value="connected">Connected</SelectItem>
+                              <SelectItem value="uninterested">Uninterested</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-sm">{member.soundcloud_followers?.toLocaleString() || '0'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{getFirstName(member.name)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">{member.primary_email}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {getSecondaryEmail(member.emails, member.primary_email) || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {member.updated_at ? format(new Date(member.updated_at), 'MMM d, yyyy') : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{member.monthly_repost_limit || 0}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`text-sm ${member.net_credits >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {member.net_credits}
+                          </span>
+                        </TableCell>
                          <TableCell>
                           <div className="flex gap-1">
                             {member.status === 'active' && (

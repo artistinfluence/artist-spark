@@ -31,6 +31,8 @@ interface ColumnMapping {
 
 interface MappedMember {
   name?: string;
+  stage_name?: string;
+  groups?: string[];
   primary_email?: string;
   secondary_email?: string;
   soundcloud_url?: string;
@@ -38,6 +40,7 @@ interface MappedMember {
   spotify_handle?: string;
   follower_count?: number;
   status?: string;
+  influence_planner_status?: string;
   manual_monthly_repost_override?: number;
   override_reason?: string;
   // Auto-calculated fields
@@ -54,7 +57,9 @@ interface ImportResult {
 
 // Available member fields for mapping
 const MEMBER_FIELDS = [
-  { value: 'name', label: 'Name/Stage Name', required: true },
+  { value: 'name', label: 'Full Name', required: true },
+  { value: 'stage_name', label: 'Stage Name', required: false },
+  { value: 'groups', label: 'Groups (comma-separated)', required: false },
   { value: 'primary_email', label: 'Primary Email', required: true },
   { value: 'secondary_email', label: 'Secondary Email', required: false },
   { value: 'soundcloud_url', label: 'SoundCloud URL', required: true },
@@ -62,6 +67,7 @@ const MEMBER_FIELDS = [
   { value: 'spotify_handle', label: 'Spotify Handle', required: false },
   { value: 'follower_count', label: 'Follower Count', required: true },
   { value: 'status', label: 'Status', required: false },
+  { value: 'influence_planner_status', label: 'Influence Planner Status', required: false },
   { value: 'manual_monthly_repost_override', label: 'Manual Repost Override', required: false },
   { value: 'override_reason', label: 'Override Reason', required: false },
 ];
@@ -69,10 +75,14 @@ const MEMBER_FIELDS = [
 // Smart column matching suggestions
 const SMART_MAPPINGS: Record<string, string> = {
   'name': 'name',
-  'stage_name': 'name',
-  'stagename': 'name',
+  'full_name': 'name',
   'artist_name': 'name',
   'artistname': 'name',
+  'stage_name': 'stage_name',
+  'stagename': 'stage_name',
+  'stage': 'stage_name',
+  'groups': 'groups',
+  'group': 'groups',
   'email': 'primary_email',
   'primary_email': 'primary_email',
   'email_1': 'primary_email',
@@ -94,7 +104,12 @@ const SMART_MAPPINGS: Record<string, string> = {
   'follower_count': 'follower_count',
   'followers': 'follower_count',
   'follower': 'follower_count',
+  'sc_followers': 'follower_count',
+  'soundcloud_followers': 'follower_count',
   'status': 'status',
+  'influence_planner_status': 'influence_planner_status',
+  'ip_status': 'influence_planner_status',
+  'planner_status': 'influence_planner_status',
   'manual_monthly_repost_override': 'manual_monthly_repost_override',
   'repost_override': 'manual_monthly_repost_override',
   'override': 'manual_monthly_repost_override',
@@ -216,6 +231,9 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
         if (!value) return;
         
         switch (mapping.memberField) {
+          case 'groups':
+            member.groups = value ? value.split(',').map(g => g.trim()).filter(Boolean) : [];
+            break;
           case 'follower_count':
             const followerCount = parseInt(value.replace(/,/g, '')) || 0;
             member.follower_count = followerCount;
@@ -282,6 +300,8 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
 
         const memberData = {
           name: member.name,
+          stage_name: member.stage_name,
+          groups: member.groups || [],
           primary_email: member.primary_email,
           emails: emails,
           soundcloud_url: member.soundcloud_url,
@@ -293,7 +313,8 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
           manual_monthly_repost_override: member.manual_monthly_repost_override,
           override_reason: member.override_reason,
           size_tier: member.size_tier,
-          status: (member.status as any) || 'active'
+          status: (member.status as any) || 'active',
+          influence_planner_status: (member.influence_planner_status as any) || 'hasnt_logged_in'
         };
 
         // Insert member
@@ -356,10 +377,10 @@ export const BulkMemberImport: React.FC<BulkMemberImportProps> = ({
   };
 
   const downloadTemplate = () => {
-    const template = `Name,Primary Email,Secondary Email,SoundCloud URL,SoundCloud Handle,Spotify Handle,Follower Count,Status
-DJ Example,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,dj-example,dj_example,150000,active
-Producer Name,producer@example.com,,https://soundcloud.com/producer-name,producer-name,,50000,active
-Artist Stage,artist@example.com,jane@personal.com,https://soundcloud.com/artist-stage,artist-stage,artist_stage,1200000,active`;
+    const template = `Name,Stage Name,Groups,Primary Email,Secondary Email,SoundCloud URL,SoundCloud Handle,Spotify Handle,Follower Count,Status,Influence Planner Status
+DJ Example,DJ Example,Electronic House,dj@example.com,john@backup.com,https://soundcloud.com/dj-example,dj-example,dj_example,150000,active,connected
+Producer Name,Producer,Techno,producer@example.com,,https://soundcloud.com/producer-name,producer-name,,50000,active,invited
+Artist Stage,Artist Stage,"Pop, Dance",artist@example.com,jane@personal.com,https://soundcloud.com/artist-stage,artist-stage,artist_stage,1200000,active,hasnt_logged_in`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

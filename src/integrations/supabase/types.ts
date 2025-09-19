@@ -1072,7 +1072,11 @@ export type Database = {
           followers: number | null
           genre_family_id: string | null
           genre_notes: string | null
+          groups: string[] | null
           id: string
+          influence_planner_status:
+            | Database["public"]["Enums"]["influence_planner_status"]
+            | null
           last_activity_at: string | null
           last_classified_at: string | null
           last_follower_sync_at: string | null
@@ -1094,6 +1098,7 @@ export type Database = {
           soundcloud_handle: string | null
           soundcloud_url: string | null
           spotify_handle: string | null
+          stage_name: string | null
           status: Database["public"]["Enums"]["member_status"] | null
           subgenres: string[] | null
           submissions_this_month: number | null
@@ -1114,7 +1119,11 @@ export type Database = {
           followers?: number | null
           genre_family_id?: string | null
           genre_notes?: string | null
+          groups?: string[] | null
           id?: string
+          influence_planner_status?:
+            | Database["public"]["Enums"]["influence_planner_status"]
+            | null
           last_activity_at?: string | null
           last_classified_at?: string | null
           last_follower_sync_at?: string | null
@@ -1136,6 +1145,7 @@ export type Database = {
           soundcloud_handle?: string | null
           soundcloud_url?: string | null
           spotify_handle?: string | null
+          stage_name?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
@@ -1156,7 +1166,11 @@ export type Database = {
           followers?: number | null
           genre_family_id?: string | null
           genre_notes?: string | null
+          groups?: string[] | null
           id?: string
+          influence_planner_status?:
+            | Database["public"]["Enums"]["influence_planner_status"]
+            | null
           last_activity_at?: string | null
           last_classified_at?: string | null
           last_follower_sync_at?: string | null
@@ -1178,6 +1192,7 @@ export type Database = {
           soundcloud_handle?: string | null
           soundcloud_url?: string | null
           spotify_handle?: string | null
+          stage_name?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
           subgenres?: string[] | null
           submissions_this_month?: number | null
@@ -2391,6 +2406,12 @@ export type Database = {
         | "paused"
       complaint_status: "todo" | "in_progress" | "done"
       connection_status: "linked" | "reconnect" | "disconnected" | "error"
+      influence_planner_status:
+        | "hasnt_logged_in"
+        | "invited"
+        | "disconnected"
+        | "connected"
+        | "uninterested"
       inquiry_status: "undecided" | "admitted" | "rejected"
       member_status: "active" | "needs_reconnect"
       notification_type:
@@ -2557,6 +2578,13 @@ export const Constants = {
       ],
       complaint_status: ["todo", "in_progress", "done"],
       connection_status: ["linked", "reconnect", "disconnected", "error"],
+      influence_planner_status: [
+        "hasnt_logged_in",
+        "invited",
+        "disconnected",
+        "connected",
+        "uninterested",
+      ],
       inquiry_status: ["undecided", "admitted", "rejected"],
       member_status: ["active", "needs_reconnect"],
       notification_type: [

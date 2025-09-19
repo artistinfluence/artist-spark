@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -117,6 +118,7 @@ interface MemberStats {
 
 export const MembersPage = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<Member[]>([]);
   const [genreFamilies, setGenreFamilies] = useState<GenreFamily[]>([]);
   const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
@@ -128,10 +130,16 @@ export const MembersPage = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const urlStatus = searchParams.get('status');
+    return urlStatus || 'all';
+  });
   const [tierFilter, setTierFilter] = useState('all');
   const [influencePlannerFilter, setInfluencePlannerFilter] = useState('all');
-  const [genreFilter, setGenreFilter] = useState('all');
+  const [genreFilter, setGenreFilter] = useState(() => {
+    const urlGenre = searchParams.get('genre');
+    return urlGenre || 'all';
+  });
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -199,11 +207,18 @@ export const MembersPage = () => {
       }
 
       if (genreFilter !== 'all') {
-        membersData = membersData.filter(m => 
-          m.families?.includes(genreFilter) || 
-          m.subgenres?.some(sub => sub === genreFilter) ||
-          m.manual_genres?.includes(genreFilter)
-        );
+        if (genreFilter === 'untagged') {
+          // Special filter for untagged members (empty or null families array)
+          membersData = membersData.filter(m => 
+            !m.families || m.families.length === 0
+          );
+        } else {
+          membersData = membersData.filter(m => 
+            m.families?.includes(genreFilter) || 
+            m.subgenres?.some(sub => sub === genreFilter) ||
+            m.manual_genres?.includes(genreFilter)
+          );
+        }
       }
 
       setMembers(membersData);
@@ -235,6 +250,28 @@ export const MembersPage = () => {
   useEffect(() => {
     fetchMembers();
   }, [statusFilter, tierFilter, influencePlannerFilter, genreFilter, sortBy, sortDirection]);
+
+  // Handle URL parameters and show notification when filters are applied
+  useEffect(() => {
+    const urlStatus = searchParams.get('status');
+    const urlGenre = searchParams.get('genre');
+    
+    if (urlStatus && urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+      toast({
+        title: "Filter Applied",
+        description: `Showing ${urlStatus === 'disconnected' ? 'disconnected' : urlStatus} members`,
+      });
+    }
+    
+    if (urlGenre && urlGenre !== genreFilter) {
+      setGenreFilter(urlGenre);
+      toast({
+        title: "Filter Applied", 
+        description: `Showing ${urlGenre === 'untagged' ? 'untagged' : urlGenre} members`,
+      });
+    }
+  }, [searchParams]);
 
   const updateMemberStatus = async (memberId: string, newDisplayStatus: MemberStatus) => {
     try {
@@ -789,6 +826,7 @@ export const MembersPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Genres</SelectItem>
+                <SelectItem value="untagged">Untagged Members</SelectItem>
                 {genreFamilies.map(family => (
                   <SelectItem key={family.id} value={family.id}>
                     {family.name} (Family)

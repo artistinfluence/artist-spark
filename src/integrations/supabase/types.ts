@@ -446,15 +446,19 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           created_by: string | null
+          date_requested: string | null
           end_date: string | null
           goal_reposts: number | null
           id: string
+          invoice_status: string | null
           ip_tracking_url: string | null
           metadata: Json | null
           notes: string | null
           price_usd: number | null
+          salesperson_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["campaign_status"] | null
+          submission_date: string | null
           track_name: string
           track_url: string
           updated_at: string | null
@@ -468,15 +472,19 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_requested?: string | null
           end_date?: string | null
           goal_reposts?: number | null
           id?: string
+          invoice_status?: string | null
           ip_tracking_url?: string | null
           metadata?: Json | null
           notes?: string | null
           price_usd?: number | null
+          salesperson_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["campaign_status"] | null
+          submission_date?: string | null
           track_name: string
           track_url: string
           updated_at?: string | null
@@ -490,15 +498,19 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_requested?: string | null
           end_date?: string | null
           goal_reposts?: number | null
           id?: string
+          invoice_status?: string | null
           ip_tracking_url?: string | null
           metadata?: Json | null
           notes?: string | null
           price_usd?: number | null
+          salesperson_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["campaign_status"] | null
+          submission_date?: string | null
           track_name?: string
           track_url?: string
           updated_at?: string | null
@@ -511,7 +523,47 @@ export type Database = {
             referencedRelation: "soundcloud_clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_campaigns_client_id"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      clients: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       communication_integrations: {
         Row: {

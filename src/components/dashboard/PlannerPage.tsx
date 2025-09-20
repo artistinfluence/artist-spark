@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Plus, Filter } from 'lucide-react';
+import { Calendar, List, Plus, Filter, DollarSign, Music } from 'lucide-react';
 import { UnifiedCalendar } from '@/components/calendar/UnifiedCalendar';
 import { EventList } from '@/components/calendar/EventList';
+import { CampaignIntakeForm } from './CampaignIntakeForm';
+import { MemberSubmissionForm } from './MemberSubmissionForm';
 
 export const PlannerPage = () => {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [showCampaignForm, setShowCampaignForm] = useState(false);
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+
+  const handleFormsSuccess = () => {
+    // Refresh data or trigger re-fetch
+    // This will be called after successful form submission
+  };
 
   return (
     <div className="space-y-6">
@@ -25,10 +34,25 @@ export const PlannerPage = () => {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Campaign
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+              onClick={() => setShowCampaignForm(true)}
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              New Campaign
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10"
+              onClick={() => setShowSubmissionForm(true)}
+            >
+              <Music className="h-4 w-4 mr-2" />
+              Submit Track
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -56,6 +80,19 @@ export const PlannerPage = () => {
           <EventList selectedDate={selectedDate} />
         </TabsContent>
       </Tabs>
+
+      {/* Intake Forms */}
+      <CampaignIntakeForm
+        open={showCampaignForm}
+        onOpenChange={setShowCampaignForm}
+        onSuccess={handleFormsSuccess}
+      />
+      
+      <MemberSubmissionForm
+        open={showSubmissionForm}
+        onOpenChange={setShowSubmissionForm}
+        onSuccess={handleFormsSuccess}
+      />
     </div>
   );
 };

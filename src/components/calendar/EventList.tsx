@@ -271,8 +271,8 @@ export const EventList: React.FC<EventListProps> = ({ selectedDate }) => {
                               <div className="p-1.5 rounded-full bg-green-500/10">
                                 <DollarSign className="h-3.5 w-3.5 text-green-400" />
                               </div>
-                              <span className="text-green-400 font-semibold">
-                                ${event.budget.toLocaleString()}
+                               <span className="text-green-400 font-semibold">
+                                ${event.budget?.toLocaleString()}
                               </span>
                             </>
                           ) : event.creditsAllocated ? (

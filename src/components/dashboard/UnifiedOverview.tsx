@@ -14,7 +14,9 @@ export const UnifiedOverview = () => {
 
   const handleCopyLink = async (formType: 'campaign' | 'member') => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/dashboard/planner?form=${formType}`;
+    const link = formType === 'campaign' 
+      ? `${baseUrl}/dashboard/planner?form=${formType}`
+      : `${baseUrl}/submit`; // Public member submission form
     
     try {
       await navigator.clipboard.writeText(link);

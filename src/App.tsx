@@ -47,6 +47,9 @@ const AttributionDashboard = React.lazy(() => import("@/components/portal/Attrib
 const AvoidListManager = React.lazy(() => import("@/components/portal/AvoidListManager").then(m => ({ default: m.AvoidListManager })));
 const MemberProfile = React.lazy(() => import("@/components/portal/MemberProfile").then(m => ({ default: m.MemberProfile })));
 
+// Public components
+const PublicMemberSubmissionForm = React.lazy(() => import("@/components/public/PublicMemberSubmissionForm").then(m => ({ default: m.PublicMemberSubmissionForm })));
+
 // Loading component for Suspense
 const PageLoadingSpinner = () => (
   <div className="min-h-[400px] flex items-center justify-center">
@@ -107,6 +110,7 @@ const App = () => (
               <Route path="/preview" element={<PreviewTool />} />
               <Route path="/auth" element={<AuthenticatedRedirect />} />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="/submit" element={<Suspense fallback={<PageLoadingSpinner />}><PublicMemberSubmissionForm /></Suspense>} />
               
               {/* Admin Dashboard - New 9-Section Architecture */}
               <Route path="/dashboard" element={

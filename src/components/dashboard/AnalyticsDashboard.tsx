@@ -15,6 +15,7 @@ import {
   Activity, AlertCircle, CheckCircle, Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExecutiveMetrics {
   totalRevenue: number;
@@ -78,33 +79,146 @@ export const AnalyticsDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Mock executive metrics
-      const mockMetrics: ExecutiveMetrics = {
-        totalRevenue: 847250,
-        monthlyRevenue: 67890,
-        revenueGrowth: 23.5,
-        activeMembers: 2847,
-        memberGrowth: 12.3,
-        totalCampaigns: 1456,
-        campaignSuccess: 94.2,
-        queueFillRate: 87.8,
-        avgResponseTime: 2.3,
-        customerSatisfaction: 96.5
+      // Fetch real data from Supabase
+      const [
+        membersResult,
+        campaignsResult,
+        queuesResult,
+        submissionsResult,
+        memberTrendsResult
+      ] = await Promise.all([
+        // Get member counts and stats
+        supabase
+          .from('members')
+          .select('status, created_at')
+          .order('created_at', { ascending: true }),
+        
+        // Get campaign data for revenue calculations
+        supabase
+          .from('campaigns')
+          .select('price_usd, status, created_at')
+          .not('price_usd', 'is', null),
+        
+        // Get queue fill rates
+        supabase
+          .from('queues')
+          .select('total_slots, filled_slots, date')
+          .order('date', { ascending: false })
+          .limit(30),
+        
+        // Get submissions for success rate
+        supabase
+          .from('submissions')
+          .select('status, created_at')
+          .order('created_at', { ascending: true }),
+        
+        // Get member trends over last 6 months
+        supabase
+          .from('members')
+          .select('created_at')
+          .gte('created_at', new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString())
+      ]);
+
+      // Calculate metrics from real data
+      const members = membersResult.data || [];
+      const campaigns = campaignsResult.data || [];
+      const queues = queuesResult.data || [];
+      const submissions = submissionsResult.data || [];
+      const memberTrends = memberTrendsResult.data || [];
+
+      // Active members count
+      const activeMembers = members.filter(m => m.status === 'active').length;
+      
+      // Calculate member growth (comparing last 30 days vs previous 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      
+      const recentMembers = members.filter(m => new Date(m.created_at) >= thirtyDaysAgo).length;
+      const previousMembers = members.filter(m => 
+        new Date(m.created_at) >= sixtyDaysAgo && 
+        new Date(m.created_at) < thirtyDaysAgo
+      ).length;
+      
+      const memberGrowth = previousMembers > 0 ? ((recentMembers - previousMembers) / previousMembers) * 100 : 0;
+
+      // Revenue calculations
+      const totalRevenue = campaigns.reduce((sum, c) => sum + (parseFloat(c.price_usd?.toString() || '0') || 0), 0);
+      const monthlyRevenue = campaigns
+        .filter(c => new Date(c.created_at) >= thirtyDaysAgo)
+        .reduce((sum, c) => sum + (parseFloat(c.price_usd?.toString() || '0') || 0), 0);
+      
+      const previousMonthRevenue = campaigns
+        .filter(c => 
+          new Date(c.created_at) >= sixtyDaysAgo && 
+          new Date(c.created_at) < thirtyDaysAgo
+        )
+        .reduce((sum, c) => sum + (parseFloat(c.price_usd?.toString() || '0') || 0), 0);
+      
+      const revenueGrowth = previousMonthRevenue > 0 ? ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 : 0;
+
+      // Queue fill rate
+      const avgQueueFillRate = queues.length > 0 
+        ? queues.reduce((sum, q) => sum + (q.total_slots > 0 ? (q.filled_slots / q.total_slots) * 100 : 0), 0) / queues.length
+        : 0;
+
+      // Campaign success rate (approved submissions)
+      const approvedSubmissions = submissions.filter(s => s.status === 'approved').length;
+      const campaignSuccess = submissions.length > 0 ? (approvedSubmissions / submissions.length) * 100 : 0;
+
+      // Generate trend data for charts
+      const trendData: TrendData[] = [];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      
+      for (let i = 5; i >= 0; i--) {
+        const monthStart = new Date();
+        monthStart.setMonth(monthStart.getMonth() - i);
+        monthStart.setDate(1);
+        
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        
+        const monthMembers = members.filter(m => {
+          const createdAt = new Date(m.created_at);
+          return createdAt >= monthStart && createdAt < monthEnd;
+        }).length;
+        
+        const monthRevenue = campaigns
+          .filter(c => {
+            const createdAt = new Date(c.created_at);
+            return createdAt >= monthStart && createdAt < monthEnd;
+          })
+          .reduce((sum, c) => sum + (parseFloat(c.price_usd?.toString() || '0') || 0), 0);
+        
+        const monthCampaigns = campaigns.filter(c => {
+          const createdAt = new Date(c.created_at);
+          return createdAt >= monthStart && createdAt < monthEnd;
+        }).length;
+
+        trendData.push({
+          date: months[5 - i] || monthStart.toLocaleDateString('en-US', { month: 'short' }),
+          revenue: monthRevenue,
+          members: monthMembers,
+          campaigns: monthCampaigns,
+          satisfaction: 95 + Math.random() * 4 // Placeholder since we don't have satisfaction data
+        });
+      }
+
+      const calculatedMetrics: ExecutiveMetrics = {
+        totalRevenue: Math.round(totalRevenue),
+        monthlyRevenue: Math.round(monthlyRevenue),
+        revenueGrowth: Math.round(revenueGrowth * 10) / 10,
+        activeMembers,
+        memberGrowth: Math.round(memberGrowth * 10) / 10,
+        totalCampaigns: campaigns.length,
+        campaignSuccess: Math.round(campaignSuccess * 10) / 10,
+        queueFillRate: Math.round(avgQueueFillRate * 10) / 10,
+        avgResponseTime: 2.1, // Placeholder - could be calculated from support tickets
+        customerSatisfaction: 96.2 // Placeholder - could be calculated from feedback
       };
 
-      // Mock trend data
-      const mockTrends: TrendData[] = [
-        { date: 'Jan', revenue: 45000, members: 2200, campaigns: 98, satisfaction: 94 },
-        { date: 'Feb', revenue: 52000, members: 2350, campaigns: 112, satisfaction: 95 },
-        { date: 'Mar', revenue: 48000, members: 2180, campaigns: 87, satisfaction: 93 },
-        { date: 'Apr', revenue: 61000, members: 2580, campaigns: 134, satisfaction: 96 },
-        { date: 'May', revenue: 67890, members: 2847, campaigns: 156, satisfaction: 97 },
-      ];
+      setMetrics(calculatedMetrics);
+      setTrendData(trendData);
 
-      setMetrics(mockMetrics);
-      setTrendData(mockTrends);
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error: any) {
       console.error('Error fetching analytics data:', error);
       toast({

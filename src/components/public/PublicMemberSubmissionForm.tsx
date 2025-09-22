@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Member {
   id: string;
   name: string;
+  stage_name: string;
 }
 
 export function PublicMemberSubmissionForm() {
@@ -57,11 +58,11 @@ export function PublicMemberSubmissionForm() {
 
     setSearching(true);
     try {
-      // Only search by name, return limited results, no email exposure
+      // Search by stage name, return limited results, no email exposure
       const { data, error } = await supabase
         .from('members')
-        .select('id, name')
-        .ilike('name', `%${query}%`)
+        .select('id, name, stage_name')
+        .ilike('stage_name', `%${query}%`)
         .limit(5); // Limit results to prevent data scraping
 
       if (error) throw error;
@@ -79,10 +80,10 @@ export function PublicMemberSubmissionForm() {
     setFormData(prev => ({
       ...prev,
       member_id: member.id,
-      stage_name: member.name,
-      first_name: member.name.split(' ')[0] || '',
+      stage_name: member.stage_name || member.name,
+      first_name: (member.name || '').split(' ')[0] || '',
     }));
-    setSearchQuery(member.name);
+    setSearchQuery(member.stage_name || member.name);
     setSearchResults([]);
   };
 
@@ -277,7 +278,7 @@ export function PublicMemberSubmissionForm() {
                             className="w-full text-left p-3 hover:bg-accent/10 first:rounded-t-md last:rounded-b-md transition-colors"
                             onClick={() => handleMemberSelect(member)}
                           >
-                            <div className="font-medium text-popover-foreground">{member.name}</div>
+                            <div className="font-medium text-popover-foreground">{member.stage_name || member.name}</div>
                           </button>
                         ))}
                       </div>
@@ -291,7 +292,7 @@ export function PublicMemberSubmissionForm() {
                     )}
                   </div>
                   {selectedMember && (
-                    <p className="text-xs text-success mt-1">✓ Selected: {selectedMember.name}</p>
+                    <p className="text-xs text-success mt-1">✓ Selected: {selectedMember.stage_name || selectedMember.name}</p>
                   )}
                 </div>
               </div>

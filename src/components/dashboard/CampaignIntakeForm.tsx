@@ -151,7 +151,7 @@ export function CampaignIntakeForm({ open, onOpenChange, onSuccess }: CampaignIn
         client_id: formData.client_id,
         goal_reposts: parseInt(formData.goal_reposts) * 1000000, // Convert millions to actual number
         price_usd: parseFloat(formData.sales_price),
-        salesperson_id: formData.salesperson_id || null,
+        salesperson_id: formData.salesperson_id === "none" ? null : formData.salesperson_id || null,
         invoice_status: formData.invoice_status,
         submission_date: formData.submission_date.toISOString().split('T')[0],
         date_requested: formData.date_requested?.toISOString().split('T')[0] || null,
@@ -339,7 +339,7 @@ export function CampaignIntakeForm({ open, onOpenChange, onSuccess }: CampaignIn
                     <SelectValue placeholder="Select salesperson" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No salesperson assigned</SelectItem>
+                    <SelectItem value="none">No salesperson assigned</SelectItem>
                     <SelectItem value="f112706b-7004-4bba-ad9c-36b0644815c3">jared@artistinfluence.com</SelectItem>
                   </SelectContent>
                 </Select>

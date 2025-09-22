@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Member {
   id: string;
   name: string;
+  stage_name: string;
   primary_email: string;
   emails: string[];
 }
@@ -78,8 +79,8 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
     try {
       const { data, error } = await supabase
         .from('members')
-        .select('id, name, primary_email, emails')
-        .order('name');
+        .select('id, name, stage_name, primary_email, emails')
+        .order('stage_name');
 
       if (error) throw error;
       setMembers(data || []);
@@ -102,10 +103,10 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
       setFormData(prev => ({
         ...prev,
         member_id: memberId,
-        stage_name: member.name,
+        stage_name: member.stage_name || member.name,
         primary_email: member.primary_email,
         // Extract first name from full name
-        first_name: member.name.split(' ')[0] || '',
+        first_name: (member.name || '').split(' ')[0] || '',
       }));
     }
   };
@@ -269,20 +270,20 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
                       aria-expanded={searchOpen}
                       className="w-full justify-between"
                     >
-                      {formData.stage_name || "Search and select member..."}
+                      {formData.stage_name || "Search and select stage name..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search members..." />
+                      <CommandInput placeholder="Search by stage name..." />
                       <CommandList className="max-h-60 overflow-y-auto">
                         <CommandEmpty>No member found.</CommandEmpty>
                         <CommandGroup>
                           {members.map((member) => (
                             <CommandItem
                               key={member.id}
-                              value={member.name}
+                              value={member.stage_name || member.name}
                               onSelect={() => {
                                 handleMemberSelect(member.id);
                                 setSearchOpen(false);
@@ -295,7 +296,7 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
                                 )}
                               />
                               <div>
-                                <div className="font-medium">{member.name}</div>
+                                <div className="font-medium">{member.stage_name || member.name}</div>
                                 <div className="text-sm text-muted-foreground">{member.primary_email}</div>
                               </div>
                             </CommandItem>

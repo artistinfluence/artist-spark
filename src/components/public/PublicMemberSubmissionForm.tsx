@@ -25,6 +25,7 @@ interface Member {
   id: string;
   name: string;
   stage_name: string;
+  influence_planner_status: string;
 }
 
 export function PublicMemberSubmissionForm() {
@@ -61,7 +62,7 @@ export function PublicMemberSubmissionForm() {
       // Search by stage name, return limited results, no email exposure
       const { data, error } = await supabase
         .from('members')
-        .select('id, name, stage_name')
+        .select('id, name, stage_name, influence_planner_status')
         .ilike('stage_name', `%${query}%`)
         .limit(5); // Limit results to prevent data scraping
 
@@ -76,6 +77,34 @@ export function PublicMemberSubmissionForm() {
   };
 
   const handleMemberSelect = (member: Member) => {
+    // Check if member is disconnected
+    if (member.influence_planner_status === 'disconnected') {
+      toast({
+        title: "Reconnection Required",
+        description: (
+          <div className="space-y-2">
+            <p>You need to reconnect to Influence Planner before submitting.</p>
+            <div className="flex flex-col gap-1 text-sm">
+              <a 
+                href="https://influenceplanner.com/user/invite/artistinfluence" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary underline hover:no-underline"
+              >
+                👉 Reconnect Now
+              </a>
+              <p>If you think this is an error, contact: <span className="text-primary">katt@artistinfluence.com</span></p>
+            </div>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 10000,
+      });
+      setSearchQuery("");
+      setSearchResults([]);
+      return;
+    }
+
     setSelectedMember(member);
     setFormData(prev => ({
       ...prev,
@@ -96,6 +125,16 @@ export function PublicMemberSubmissionForm() {
       toast({
         title: "Member Required",
         description: "Please search and select your stage name from the list.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check if selected member is disconnected
+    if (selectedMember.influence_planner_status === 'disconnected') {
+      toast({
+        title: "Reconnection Required",
+        description: "Please reconnect to Influence Planner before submitting.",
         variant: "destructive",
       });
       return false;

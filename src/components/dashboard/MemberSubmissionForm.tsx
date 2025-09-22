@@ -41,6 +41,7 @@ interface Member {
   stage_name: string;
   primary_email: string;
   emails: string[];
+  influence_planner_status: string;
 }
 
 interface MemberSubmissionFormProps {
@@ -79,7 +80,7 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
     try {
       const { data, error } = await supabase
         .from('members')
-        .select('id, name, stage_name, primary_email, emails')
+        .select('id, name, stage_name, primary_email, emails, influence_planner_status')
         .order('stage_name');
 
       if (error) throw error;
@@ -100,6 +101,32 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
   const handleMemberSelect = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
     if (member) {
+      // Check if member is disconnected
+      if (member.influence_planner_status === 'disconnected') {
+        toast({
+          title: "Reconnection Required",
+          description: (
+            <div className="space-y-2">
+              <p>You need to reconnect to Influence Planner before submitting.</p>
+              <div className="flex flex-col gap-1 text-sm">
+                <a 
+                  href="https://influenceplanner.com/user/invite/artistinfluence" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:no-underline"
+                >
+                  👉 Reconnect Now
+                </a>
+                <p>If you think this is an error, contact: <span className="text-primary">katt@artistinfluence.com</span></p>
+              </div>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 10000,
+        });
+        return;
+      }
+
       setFormData(prev => ({
         ...prev,
         member_id: memberId,
@@ -112,6 +139,17 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
   };
 
   const validateForm = () => {
+    // Check if selected member is disconnected
+    const selectedMember = members.find(m => m.id === formData.member_id);
+    if (selectedMember?.influence_planner_status === 'disconnected') {
+      toast({
+        title: "Reconnection Required",
+        description: "Please reconnect to Influence Planner before submitting.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     // Check minimum 2 week notice
     if (formData.date_requested && !isAfter(formData.date_requested, addDays(new Date(), 13))) {
       toast({

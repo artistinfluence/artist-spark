@@ -14,7 +14,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import React, { Suspense } from "react";
 
 // Lazy load dashboard pages for better performance
-const UnifiedOverview = React.lazy(() => import("@/components/dashboard/UnifiedOverview").then(m => ({ default: m.UnifiedOverview })));
+const UnifiedOverview = React.lazy(() => import("@/components/dashboard/UnifiedOverview"));
 const PlannerPage = React.lazy(() => import("@/components/dashboard/PlannerPage").then(m => ({ default: m.PlannerPage })));
 const CampaignsPage = React.lazy(() => import("@/components/dashboard/CampaignsPage"));
 const QueuePage = React.lazy(() => import("@/components/dashboard/QueuePage").then(m => ({ default: m.QueuePage })));

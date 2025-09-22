@@ -7,7 +7,7 @@ import { CampaignIntakeForm } from './CampaignIntakeForm';
 import { MemberSubmissionForm } from './MemberSubmissionForm';
 import { useToast } from '@/hooks/use-toast';
 
-export const UnifiedOverview = () => {
+const UnifiedOverview = () => {
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
   const { toast } = useToast();
@@ -276,3 +276,5 @@ export const UnifiedOverview = () => {
     </div>
   );
 };
+
+export default UnifiedOverview;

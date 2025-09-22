@@ -1,9 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, Calendar, Users, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Calendar, Users, Activity, TrendingUp, AlertTriangle, Music, Link, Copy } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
+import { CampaignIntakeForm } from './CampaignIntakeForm';
+import { MemberSubmissionForm } from './MemberSubmissionForm';
+import { useToast } from '@/hooks/use-toast';
 
 export const UnifiedOverview = () => {
+  const [showCampaignForm, setShowCampaignForm] = useState(false);
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const { toast } = useToast();
+
+  const handleCopyLink = async (formType: 'campaign' | 'member') => {
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/dashboard/planner?form=${formType}`;
+    
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({
+        title: "Link copied!",
+        description: `${formType === 'campaign' ? 'Campaign intake' : 'Member submission'} form link copied to clipboard.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFormsSuccess = () => {
+    // Refresh data or trigger re-fetch if needed
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -74,6 +105,86 @@ export const UnifiedOverview = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Intake Forms - Quick Actions */}
+      <Card className="bg-gradient-to-br from-card to-muted border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Intake Forms
+          </CardTitle>
+          <CardDescription>
+            Open forms directly or copy links to share with members and clients
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Campaign Intake Form */}
+            <div className="group relative overflow-hidden rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-foreground">Campaign Intake</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Submit new paid campaign requests from clients
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary-glow hover:to-primary"
+                      onClick={() => setShowCampaignForm(true)}
+                    >
+                      Open Form
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary/30 hover:bg-primary/10"
+                      onClick={() => handleCopyLink('campaign')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Member Submission Form */}
+            <div className="group relative overflow-hidden rounded-lg border border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 p-4 transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/20">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Music className="h-5 w-5 text-accent" />
+                    <h3 className="font-semibold text-foreground">Member Submission</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Submit tracks for free queue support
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-accent to-accent hover:from-accent/90 hover:to-accent/90"
+                      onClick={() => setShowSubmissionForm(true)}
+                    >
+                      Open Form
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-accent/30 hover:bg-accent/10"
+                      onClick={() => handleCopyLink('member')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions & Alerts */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -147,6 +258,19 @@ export const UnifiedOverview = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Intake Form Modals */}
+      <CampaignIntakeForm
+        open={showCampaignForm}
+        onOpenChange={setShowCampaignForm}
+        onSuccess={handleFormsSuccess}
+      />
+      
+      <MemberSubmissionForm
+        open={showSubmissionForm}
+        onOpenChange={setShowSubmissionForm}
+        onSuccess={handleFormsSuccess}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,18 @@ export const PlannerPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+
+  // Handle URL parameters for deep linking
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const formParam = urlParams.get('form');
+    
+    if (formParam === 'campaign') {
+      setShowCampaignForm(true);
+    } else if (formParam === 'member') {
+      setShowSubmissionForm(true);
+    }
+  }, []);
 
   const handleFormsSuccess = () => {
     // Refresh data or trigger re-fetch

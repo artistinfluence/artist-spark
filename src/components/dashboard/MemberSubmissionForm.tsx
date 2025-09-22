@@ -276,7 +276,7 @@ export function MemberSubmissionForm({ open, onOpenChange, onSuccess }: MemberSu
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Search members..." />
-                      <CommandList>
+                      <CommandList className="max-h-60 overflow-y-auto">
                         <CommandEmpty>No member found.</CommandEmpty>
                         <CommandGroup>
                           {members.map((member) => (

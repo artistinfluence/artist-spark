@@ -149,7 +149,7 @@ export function CampaignIntakeForm({ open, onOpenChange, onSuccess }: CampaignIn
         track_name,
         track_url: formData.track_url,
         client_id: formData.client_id,
-        goal_reposts: parseInt(formData.goal_reposts),
+        goal_reposts: parseInt(formData.goal_reposts) * 1000000, // Convert millions to actual number
         price_usd: parseFloat(formData.sales_price),
         salesperson_id: formData.salesperson_id || null,
         invoice_status: formData.invoice_status,
@@ -301,15 +301,20 @@ export function CampaignIntakeForm({ open, onOpenChange, onSuccess }: CampaignIn
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="goal_reposts">Goal (Repost Reach)</Label>
-                <Input
-                  id="goal_reposts"
-                  type="number"
-                  value={formData.goal_reposts}
-                  onChange={(e) => handleInputChange("goal_reposts", e.target.value)}
-                  placeholder="1000"
-                  required
-                />
+                <Label htmlFor="goal_reposts">Goal (Millions of Reach)</Label>
+                <div className="relative">
+                  <Input
+                    id="goal_reposts"
+                    type="number"
+                    value={formData.goal_reposts}
+                    onChange={(e) => handleInputChange("goal_reposts", e.target.value)}
+                    placeholder="20"
+                    required
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">M</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Enter number in millions (e.g., 20 = 20M reach)</p>
               </div>
 
               <div>
@@ -329,12 +334,15 @@ export function CampaignIntakeForm({ open, onOpenChange, onSuccess }: CampaignIn
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="salesperson">Salesperson (Optional)</Label>
-                <Input
-                  id="salesperson"
-                  value={formData.salesperson_id}
-                  onChange={(e) => handleInputChange("salesperson_id", e.target.value)}
-                  placeholder="Salesperson ID"
-                />
+                <Select value={formData.salesperson_id} onValueChange={(value) => handleInputChange("salesperson_id", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select salesperson" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No salesperson assigned</SelectItem>
+                    <SelectItem value="f112706b-7004-4bba-ad9c-36b0644815c3">jared@artistinfluence.com</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

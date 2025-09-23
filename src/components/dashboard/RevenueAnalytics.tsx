@@ -24,6 +24,7 @@ interface RevenueMetrics {
   activeCampaigns: number;
   completedCampaigns: number;
   revenueGrowth: number;
+  campaignSuccessRate: number;
 }
 
 interface RevenueData {
@@ -44,6 +45,7 @@ export const RevenueAnalytics: React.FC = () => {
     activeCampaigns: 0,
     completedCampaigns: 0,
     revenueGrowth: 0,
+    campaignSuccessRate: 0,
   });
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
 
@@ -103,6 +105,9 @@ export const RevenueAnalytics: React.FC = () => {
         }
       }
 
+      // Calculate campaign success rate
+      const campaignSuccessRate = totalCampaigns > 0 ? (completedCampaigns / totalCampaigns) * 100 : 0;
+
       const calculatedMetrics: RevenueMetrics = {
         totalRevenue,
         campaignRevenue: totalRevenue, // All revenue comes from campaigns
@@ -111,6 +116,7 @@ export const RevenueAnalytics: React.FC = () => {
         activeCampaigns,
         completedCampaigns,
         revenueGrowth,
+        campaignSuccessRate,
       };
 
       setMetrics(calculatedMetrics);
@@ -133,6 +139,7 @@ export const RevenueAnalytics: React.FC = () => {
         activeCampaigns: 0,
         completedCampaigns: 0,
         revenueGrowth: 0,
+        campaignSuccessRate: 0,
       });
       setRevenueData([]);
     } finally {
@@ -355,7 +362,12 @@ export const RevenueAnalytics: React.FC = () => {
                     <Target className="h-4 w-4 text-primary" />
                     <span className="font-semibold text-primary">Campaign Success</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">SoundCloud campaigns generate {metrics.totalRevenue > 0 ? '100%' : '0%'} of revenue with focus on repost services.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {metrics.totalCampaigns > 0 
+                      ? `Campaign completion rate is ${metrics.campaignSuccessRate.toFixed(1)}% with ${metrics.completedCampaigns} of ${metrics.totalCampaigns} campaigns completed.`
+                      : 'No completed campaigns to analyze yet.'
+                    }
+                  </p>
                 </div>
 
                 <div className="p-4 bg-card border border-border rounded-lg shadow-card">

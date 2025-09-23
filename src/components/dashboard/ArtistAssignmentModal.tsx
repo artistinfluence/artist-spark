@@ -25,6 +25,113 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
 import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
+// Smart artist selection algorithm to find the best combination for target reach
+const optimizeArtistSelection = (artists: Member[], targetReach: number): string[] => {
+  if (artists.length === 0) return [];
+  
+  // Calculate reach for each artist
+  const artistsWithReach = artists.map(artist => ({
+    ...artist,
+    estimatedReach: estimateReach(artist.soundcloud_followers)?.reach_median || 0
+  }));
+  
+  // Strategy 1: Smallest first (good for precise targeting)
+  const strategy1 = findBestCombination(
+    artistsWithReach.sort((a, b) => a.estimatedReach - b.estimatedReach),
+    targetReach
+  );
+  
+  // Strategy 2: Largest first (good for efficiency)  
+  const strategy2 = findBestCombination(
+    artistsWithReach.sort((a, b) => b.estimatedReach - a.estimatedReach),
+    targetReach
+  );
+  
+  // Strategy 3: Medium-sized first (balanced approach)
+  const strategy3 = findBestCombination(
+    artistsWithReach.sort((a, b) => Math.abs(a.estimatedReach - targetReach/3) - Math.abs(b.estimatedReach - targetReach/3)),
+    targetReach
+  );
+  
+  // Evaluate all strategies and pick the best one
+  const strategies = [strategy1, strategy2, strategy3];
+  let bestStrategy: { artistIds: string[], totalReach: number, accuracy: number } = strategies[0];
+  
+  for (const strategy of strategies) {
+    if (strategy.accuracy < bestStrategy.accuracy) {
+      bestStrategy = strategy;
+    }
+  }
+  
+  console.log('Strategy evaluation:', {
+    targetReach,
+    strategy1: { reach: strategy1.totalReach, accuracy: strategy1.accuracy, count: strategy1.artistIds.length },
+    strategy2: { reach: strategy2.totalReach, accuracy: strategy2.accuracy, count: strategy2.artistIds.length },
+    strategy3: { reach: strategy3.totalReach, accuracy: strategy3.accuracy, count: strategy3.artistIds.length },
+    bestStrategy: { reach: bestStrategy.totalReach, accuracy: bestStrategy.accuracy, count: bestStrategy.artistIds.length }
+  });
+  
+  return bestStrategy.artistIds;
+};
+
+// Find the best combination using greedy approach with replacement optimization
+const findBestCombination = (sortedArtists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  const selected: string[] = [];
+  let currentReach = 0;
+  
+  // Phase 1: Initial greedy selection
+  for (const artist of sortedArtists) {
+    if (selected.length >= 12) break; // Reasonable upper limit
+    
+    const newTotal = currentReach + artist.estimatedReach;
+    const currentDiff = Math.abs(currentReach - targetReach);
+    const newDiff = Math.abs(newTotal - targetReach);
+    
+    // Add artist if it improves our accuracy or if we're still under target
+    if (newDiff < currentDiff || currentReach < targetReach * 0.8) {
+      selected.push(artist.id);
+      currentReach = newTotal;
+    }
+  }
+  
+  // Phase 2: Replacement optimization
+  // Try replacing artists to get closer to target
+  for (let i = 0; i < 5; i++) { // Max 5 replacement iterations
+    let improved = false;
+    
+    for (let j = 0; j < selected.length; j++) {
+      const currentArtist = sortedArtists.find(a => a.id === selected[j]);
+      if (!currentArtist) continue;
+      
+      const reachWithoutCurrent = currentReach - currentArtist.estimatedReach;
+      
+      // Try replacing with each unused artist
+      for (const candidate of sortedArtists) {
+        if (selected.includes(candidate.id)) continue;
+        
+        const newReach = reachWithoutCurrent + candidate.estimatedReach;
+        const currentAccuracy = Math.abs(currentReach - targetReach);
+        const newAccuracy = Math.abs(newReach - targetReach);
+        
+        // Replace if it's more accurate
+        if (newAccuracy < currentAccuracy) {
+          selected[j] = candidate.id;
+          currentReach = newReach;
+          improved = true;
+          break;
+        }
+      }
+      
+      if (improved) break;
+    }
+    
+    if (!improved) break;
+  }
+  
+  const accuracy = Math.abs(currentReach - targetReach);
+  return { artistIds: selected, totalReach: currentReach, accuracy };
+};
+
 interface Member {
   id: string;
   name: string;
@@ -165,41 +272,17 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       setSuggestedArtists(compatible.slice(0, 20));
       
-      // Auto-selection: select artists to meet target reach
-      const autoSelected = [];
-      let currentEstimatedReach = 0;
-      const targetMin = targetReach * 0.9; // Allow 10% under target
-      const targetMax = targetReach * 1.1; // Don't go more than 10% over
+      // Smart auto-selection: find the best combination to match target reach
+      const autoSelected = optimizeArtistSelection(compatible, targetReach);
       
-      console.log('Auto-selection targets:', { targetReach, targetMin, targetMax, totalArtists: compatible.length });
-      
-      // Sort by follower count (smallest first) for better combinations
-      const sortedCompatible = compatible.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
-      
-      // Select artists until we reach target estimated reach
-      for (const artist of sortedCompatible) {
-        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
-        
-        console.log(`Evaluating artist ${artist.stage_name}: ${artist.soundcloud_followers} followers → ${artistReach} reach, current total: ${currentEstimatedReach}`);
-        
-        // Continue selecting if we haven't reached the target yet
-        if (currentEstimatedReach < targetReach) {
-          // Don't add if it would put us way over target (unless we have no artists yet)
-          if (currentEstimatedReach + artistReach <= targetMax || autoSelected.length === 0) {
-            autoSelected.push(artist.id);
-            currentEstimatedReach += artistReach;
-            console.log(`Selected artist ${artist.stage_name}, new total reach: ${currentEstimatedReach}`);
-          }
-        }
-        
-        // Stop if we've reached a good target range or have too many artists
-        if (currentEstimatedReach >= targetMin && currentEstimatedReach <= targetMax) {
-          break;
-        }
-        if (autoSelected.length >= 15) { // Increased limit to allow for more artists
-          break;
-        }
-      }
+      console.log('Auto-selection result:', {
+        selectedCount: autoSelected.length,
+        targetReach,
+        estimatedReach: autoSelected.reduce((total, artistId) => {
+          const artist = compatible.find(a => a.id === artistId);
+          return total + (estimateReach(artist?.soundcloud_followers || 0)?.reach_median || 0);
+        }, 0)
+      });
       
       setSelectedArtists(autoSelected);
 

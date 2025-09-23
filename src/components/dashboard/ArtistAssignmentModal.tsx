@@ -54,7 +54,7 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number, submitt
   };
 };
 
-// Enhanced selection algorithm for 12-50 artists with tight tolerance
+// Enhanced selection algorithm for 12-50 artists with 110% hard cap
 const findOptimalSelection = (artists: Member[], targetReach: number, submitterFollowers: number) => {
   // Calculate similarity scores and tier-based weighting
   const artistsWithSimilarity = artists.map(artist => {
@@ -82,29 +82,45 @@ const findOptimalSelection = (artists: Member[], targetReach: number, submitterF
   
   const selected: string[] = [];
   let currentFollowerSum = 0;
-  const targetTolerance = targetReach * 0.06; // Tightened to 6% tolerance
+  const hardCap = targetReach * 1.10; // Hard 110% cap to prevent overdelivery
+  const targetTolerance = targetReach * 0.06; // 6% tolerance for optimization
   
-  console.log('Starting selection with tight tolerance:', {
+  console.log('Starting selection with 110% hard cap:', {
     targetReach,
+    hardCap,
     tolerance: targetTolerance,
     maxArtists: 50,
     availableArtists: sorted.length
   });
   
-  // Enhanced algorithm for 12-50 artists
+  // Enhanced algorithm for 12-50 artists with overdelivery prevention
   for (const artist of sorted) {
     if (selected.length >= 50) break; // Hard cap at 50 artists
     
     const newSum = currentFollowerSum + artist.followers;
+    
+    // CRITICAL: Never exceed 110% hard cap
+    if (newSum > hardCap) {
+      console.log('Skipping artist to prevent overdelivery:', {
+        name: artist.stage_name || artist.name,
+        followers: artist.followers,
+        wouldReach: newSum,
+        hardCap: hardCap,
+        overdeliveryPrevented: true
+      });
+      continue; // Skip this artist to prevent overdelivery
+    }
+    
     const currentDistance = Math.abs(targetReach - currentFollowerSum);
     const newDistance = Math.abs(targetReach - newSum);
     
-    // More aggressive selection - always add if we're under target or if it gets us closer
+    // Selection logic: add if under target, or if it gets us closer without exceeding cap
     const shouldAdd = currentFollowerSum < targetReach || newDistance <= currentDistance;
     
     if (shouldAdd) {
       selected.push(artist.id);
       currentFollowerSum = newSum;
+      const reachPercentage = (currentFollowerSum / targetReach) * 100;
       
       console.log('Added artist:', {
         name: artist.stage_name || artist.name,
@@ -112,17 +128,22 @@ const findOptimalSelection = (artists: Member[], targetReach: number, submitterF
         similarityScore: artist.similarityScore.toFixed(2),
         currentSum: currentFollowerSum,
         targetReach,
+        reachPercentage: reachPercentage.toFixed(1) + '%',
         distance: Math.abs(currentFollowerSum - targetReach),
-        tolerance: targetTolerance,
-        selectedCount: selected.length
+        selectedCount: selected.length,
+        withinHardCap: currentFollowerSum <= hardCap
       });
       
-      // Success criteria: within 6% tolerance AND at least 12 artists
-      if (selected.length >= 12 && Math.abs(currentFollowerSum - targetReach) <= targetTolerance) {
-        console.log('✅ Target reached successfully:', {
+      // Success criteria: within tolerance, at least 12 artists, and under hard cap
+      if (selected.length >= 12 && 
+          Math.abs(currentFollowerSum - targetReach) <= targetTolerance && 
+          currentFollowerSum <= hardCap) {
+        console.log('✅ Target reached successfully with hard cap respected:', {
           selectedCount: selected.length,
           finalReach: currentFollowerSum,
           targetReach,
+          hardCap,
+          reachPercentage: reachPercentage.toFixed(1) + '%',
           accuracy: `${((1 - Math.abs(currentFollowerSum - targetReach) / targetReach) * 100).toFixed(1)}%`
         });
         break;
@@ -148,12 +169,16 @@ const findOptimalSelection = (artists: Member[], targetReach: number, submitterF
     }
   }
   
-  console.log('Final selection result:', {
+  console.log('Final selection result with hard cap compliance:', {
     selectedCount: selected.length,
     totalReach: currentFollowerSum,
     targetReach,
+    hardCap,
+    reachPercentage: ((currentFollowerSum / targetReach) * 100).toFixed(1) + '%',
     accuracy: `${((1 - Math.abs(currentFollowerSum - targetReach) / targetReach) * 100).toFixed(1)}%`,
-    withinTolerance: Math.abs(currentFollowerSum - targetReach) <= targetTolerance
+    withinTolerance: Math.abs(currentFollowerSum - targetReach) <= targetTolerance,
+    respectsHardCap: currentFollowerSum <= hardCap,
+    overdeliveryPrevented: currentFollowerSum <= hardCap
   });
   
   return { selected, totalReach: currentFollowerSum };
@@ -512,7 +537,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const submitterFollowers = submission.members?.soundcloud_followers || 0;
   const targetReach = estimateReach(submitterFollowers)?.reach_median || 0;
   const reachPercentage = (totalReach / targetReach) * 100;
-  const isReachGood = reachPercentage >= 94 && reachPercentage <= 106; // Tightened to 6% tolerance
+  const hardCapPercentage = 110;
+  
+  // Updated reach status with 110% hard cap awareness
+  const isReachGood = reachPercentage >= 94 && reachPercentage <= 106;
+  const isReachWarning = reachPercentage > 106 && reachPercentage <= hardCapPercentage;
+  const isReachExceeded = reachPercentage > hardCapPercentage;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -544,22 +574,47 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Current Estimated Reach</div>
-                  <div className={`text-2xl font-bold ${isReachGood ? 'text-green-600' : 'text-orange-600'}`}>
+                  <div className={`text-2xl font-bold ${
+                    isReachGood ? 'text-green-600' : 
+                    isReachWarning ? 'text-yellow-600' : 
+                    isReachExceeded ? 'text-red-600' : 'text-orange-600'
+                  }`}>
                     {totalReach.toLocaleString()}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Progress</div>
-                  <div className={`text-2xl font-bold ${isReachGood ? 'text-green-600' : 'text-orange-600'}`}>
+                  <div className={`text-2xl font-bold ${
+                    isReachGood ? 'text-green-600' : 
+                    isReachWarning ? 'text-yellow-600' : 
+                    isReachExceeded ? 'text-red-600' : 'text-orange-600'
+                  }`}>
                     {reachPercentage.toFixed(0)}%
                   </div>
                 </div>
               </div>
-              {!isReachGood && (
-                <div className="flex items-center gap-2 mt-3 p-3 bg-orange-50 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm text-orange-800">
-                    {reachPercentage < 90 ? 'Consider adding more artists to reach target reach' : 'Consider removing artists to avoid over-delivery'}
+              {(isReachWarning || isReachExceeded || (!isReachGood && reachPercentage < 90)) && (
+                <div className={`flex items-center gap-2 mt-3 p-3 rounded-lg ${
+                  isReachExceeded ? 'bg-red-50' : 
+                  isReachWarning ? 'bg-yellow-50' : 
+                  'bg-orange-50'
+                }`}>
+                  <AlertCircle className={`w-4 h-4 ${
+                    isReachExceeded ? 'text-red-600' : 
+                    isReachWarning ? 'text-yellow-600' : 
+                    'text-orange-600'
+                  }`} />
+                  <span className={`text-sm ${
+                    isReachExceeded ? 'text-red-800' : 
+                    isReachWarning ? 'text-yellow-800' : 
+                    'text-orange-800'
+                  }`}>
+                    {isReachExceeded 
+                      ? `❌ Exceeds 110% limit! Remove artists to prevent overdelivery (currently ${reachPercentage.toFixed(0)}%)`
+                      : isReachWarning 
+                        ? `⚠️ Approaching overdelivery limit (${reachPercentage.toFixed(0)}%). Max allowed: 110%`
+                        : 'Consider adding more artists to reach target reach'
+                    }
                   </span>
                 </div>
               )}
@@ -690,9 +745,18 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
               <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleConfirm} disabled={selectedArtists.length === 0 || !supportDate}>
+              <Button 
+                onClick={handleConfirm} 
+                disabled={selectedArtists.length === 0 || !supportDate || isReachExceeded}
+                variant={isReachExceeded ? "destructive" : "default"}
+              >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {supportDate ? `Approve for ${format(supportDate, 'MMM d')}` : 'Approve with Selected Artists'}
+                {isReachExceeded 
+                  ? 'Cannot Approve - Exceeds 110%'
+                  : supportDate 
+                    ? `Approve for ${format(supportDate, 'MMM d')}` 
+                    : 'Approve with Selected Artists'
+                }
               </Button>
             </div>
           </div>

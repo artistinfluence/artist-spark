@@ -27,6 +27,7 @@ export interface SubmissionWithMember {
     size_tier: string;
     status: string;
     net_credits: number;
+    soundcloud_followers: number;
     repost_credit_wallet: {
       balance: number;
       monthly_grant: number;
@@ -68,6 +69,7 @@ export const useSubmissionsList = (status?: string | 'all') => {
             size_tier,
             status,
             net_credits,
+            soundcloud_followers,
             repost_credit_wallet!inner(balance, monthly_grant)
           )
         `)

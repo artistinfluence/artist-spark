@@ -11,6 +11,7 @@ import { useSubmissionsList } from '@/hooks/useSubmissionsList';
 import { SubmissionDetailModal } from './SubmissionDetailModal';
 import { ArtistAssignmentModal } from './ArtistAssignmentModal';
 import { formatDistanceToNow } from 'date-fns';
+import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
 export const QueuePage = () => {
   const { stats } = useSubmissions();
@@ -73,6 +74,7 @@ export const QueuePage = () => {
             <TableHead>Genre</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Expected Reach</TableHead>
+            <TableHead>Suggested Reach</TableHead>
             <TableHead>Credits</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead>Actions</TableHead>
@@ -130,6 +132,16 @@ export const QueuePage = () => {
               <TableCell>
                 <div className="text-sm">
                   {submission.expected_reach_planned?.toLocaleString() || 'Not set'}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  {(() => {
+                    // Calculate suggested reach based on member's follower count
+                    const memberFollowers = submission.members?.soundcloud_followers || 25000;
+                    const estimate = estimateReach(memberFollowers);
+                    return estimate ? estimate.reach_median.toLocaleString() : 'N/A';
+                  })()}
                 </div>
               </TableCell>
               <TableCell>

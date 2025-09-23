@@ -91,15 +91,6 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
     setLoading(true);
     try {
-      // Build genre matching criteria
-      const genreFilters = [];
-      if (submission.family) {
-        genreFilters.push(`families.cs.{${submission.family}}`);
-      }
-      if (submission.subgenres?.length > 0) {
-        genreFilters.push(`groups.cs.{${submission.subgenres.join(',')}}`);
-      }
-
       let query = supabase
         .from('members')
         .select(`
@@ -108,41 +99,83 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         `)
         .eq('status', 'active')
         .gt('repost_credit_wallet.balance', 0)
-        .gt('soundcloud_followers', 1000)
-        .order('soundcloud_followers', { ascending: false });
+        .gt('soundcloud_followers', 1000);
 
-      // Apply genre filters if available
-      if (genreFilters.length > 0) {
-        query = query.or(genreFilters.join(','));
+      // Apply genre filters if available using proper PostgreSQL array syntax
+      const genreConditions = [];
+      if (submission.family) {
+        genreConditions.push(`families@>{"${submission.family}"}`);
+      }
+      if (submission.subgenres?.length > 0) {
+        // Check if any of the subgenres match
+        submission.subgenres.forEach(subgenre => {
+          genreConditions.push(`groups@>{"${subgenre}"}`);
+        });
       }
 
-      const { data, error } = await query.limit(20);
+      if (genreConditions.length > 0) {
+        query = query.or(genreConditions.join(','));
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
-      // Filter and score artists based on reach compatibility using new estimator
+      let members = data as Member[];
+      
+      // If no genre matches found, fall back to all active members
+      if (members.length === 0) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('members')
+          .select(`
+            *,
+            repost_credit_wallet!inner(balance, monthly_grant)
+          `)
+          .eq('status', 'active')
+          .gt('repost_credit_wallet.balance', 0)
+          .gt('soundcloud_followers', 1000);
+        
+        if (fallbackError) throw fallbackError;
+        members = fallbackData as Member[];
+      }
+
+      // Sort by follower count (smallest first) for strategic selection
+      const sortedMembers = members.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
+
+      // Filter based on reach compatibility and set suggested artists
       const targetReach = submission.expected_reach_planned || 50000;
-      const compatible = (data as Member[]).filter(member => {
+      const compatible = sortedMembers.filter(member => {
         const estimate = estimateReach(member.soundcloud_followers);
         const estimatedReach = estimate?.reach_median || 0;
-        // Include artists whose reach is between 10% and 200% of target per artist
-        const targetPerArtist = targetReach / 5; // Assuming ~5 artists
-        return estimatedReach >= targetPerArtist * 0.1 && estimatedReach <= targetPerArtist * 2;
+        // Include artists whose individual reach is reasonable for the target
+        return estimatedReach >= 1000 && estimatedReach <= targetReach;
       });
 
-      setSuggestedArtists(compatible.slice(0, 10));
+      setSuggestedArtists(compatible.slice(0, 15));
       
-      // Auto-select top artists to meet reach target using new estimator
+      // Smart auto-selection: start with smaller artists and build up
       const autoSelected = [];
       let currentReach = 0;
-      for (const artist of compatible) {
-        if (currentReach < targetReach) {
+      
+      // First pass: select smaller artists (up to 30k followers)
+      for (const artist of compatible.filter(a => a.soundcloud_followers <= 30000)) {
+        if (currentReach < targetReach * 0.7) { // Fill 70% with smaller artists
           autoSelected.push(artist.id);
           const estimate = estimateReach(artist.soundcloud_followers);
           currentReach += estimate?.reach_median || 0;
         }
-        if (autoSelected.length >= 8 || currentReach >= targetReach * 1.2) break;
       }
+      
+      // Second pass: add larger artists if needed
+      for (const artist of compatible.filter(a => a.soundcloud_followers > 30000)) {
+        if (currentReach < targetReach && currentReach < targetReach * 1.15) { // Don't over-deliver by more than 15%
+          autoSelected.push(artist.id);
+          const estimate = estimateReach(artist.soundcloud_followers);
+          currentReach += estimate?.reach_median || 0;
+        }
+        if (autoSelected.length >= 8 || currentReach >= targetReach * 1.15) break;
+      }
+      
       setSelectedArtists(autoSelected);
 
     } catch (error: any) {

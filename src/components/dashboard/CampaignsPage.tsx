@@ -32,7 +32,9 @@ import {
   ExternalLink,
   BarChart3,
   Mail,
-  Eye
+  Eye,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -81,6 +83,8 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -93,7 +97,7 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     filterCampaigns();
-  }, [campaigns, searchTerm, statusFilter]);
+  }, [campaigns, searchTerm, statusFilter, sortBy, sortDirection]);
 
   const fetchCampaigns = async () => {
     try {
@@ -134,6 +138,54 @@ export default function CampaignsPage() {
       filtered = filtered.filter(campaign => campaign.status === statusFilter);
     }
 
+    // Apply sorting
+    if (sortBy) {
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (sortBy) {
+          case 'track':
+            aVal = a.track_name.toLowerCase();
+            bVal = b.track_name.toLowerCase();
+            break;
+          case 'artist':
+            aVal = a.artist_name.toLowerCase();
+            bVal = b.artist_name.toLowerCase();
+            break;
+          case 'client':
+            aVal = a.client.name.toLowerCase();
+            bVal = b.client.name.toLowerCase();
+            break;
+          case 'status':
+            aVal = a.status;
+            bVal = b.status;
+            break;
+          case 'progress':
+            aVal = calculateProgress(a.goals, a.remaining_metrics);
+            bVal = calculateProgress(b.goals, b.remaining_metrics);
+            break;
+          case 'reach':
+            aVal = calculateReachProgress(getTotalReach(a.id), a.goals);
+            bVal = calculateReachProgress(getTotalReach(b.id), b.goals);
+            break;
+          case 'price':
+            aVal = a.sales_price || 0;
+            bVal = b.sales_price || 0;
+            break;
+          case 'date':
+            aVal = new Date(a.start_date || 0);
+            bVal = new Date(b.start_date || 0);
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
     setFilteredCampaigns(filtered);
   };
 
@@ -169,6 +221,44 @@ export default function CampaignsPage() {
       case 'Cancelled': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('soundcloud_campaigns')
+        .update({ status: newStatus })
+        .eq('id', campaignId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Campaign status updated successfully",
+      });
+      fetchCampaigns();
+    } catch (error) {
+      console.error('Error updating campaign status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update campaign status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) return null;
+    return sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
   };
 
   // Calculate progress based on remaining metrics (legacy approach)
@@ -277,14 +367,70 @@ export default function CampaignsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Track</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Reach Performance</TableHead>
-                    <TableHead>Revenue</TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('track')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Track
+                        {getSortIcon('track')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('client')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Client
+                        {getSortIcon('client')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {getSortIcon('status')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('progress')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Progress
+                        {getSortIcon('progress')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('reach')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Reach Performance
+                        {getSortIcon('reach')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('price')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Sale Price
+                        {getSortIcon('price')}
+                      </div>
+                    </TableHead>
                     <TableHead>Invoice</TableHead>
-                    <TableHead>Start Date</TableHead>
+                    <TableHead 
+                      className="cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort('date')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Start Date
+                        {getSortIcon('date')}
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -313,9 +459,23 @@ export default function CampaignsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${getStatusColor(campaign.status)} text-white`}>
-                          {campaign.status}
-                        </Badge>
+                        <Select
+                          value={campaign.status}
+                          onValueChange={(value) => updateCampaignStatus(campaign.id, value)}
+                        >
+                          <SelectTrigger 
+                            className="w-28 h-6 text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Complete">Complete</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         {campaign.goals > 0 ? (

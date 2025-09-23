@@ -108,14 +108,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000);
 
-      // Apply genre filters if available using proper Supabase array methods
-      if (submission.family) {
-        console.log('Adding family filter:', submission.family);
-        query = query.overlaps('families', [submission.family]);
-      }
+      // Apply subgenre filter only for precise matching
       if (submission.subgenres?.length > 0) {
         console.log('Adding subgenres filter:', submission.subgenres);
-        // Filter for any matching subgenres
         query = query.overlaps('groups', submission.subgenres);
       }
 

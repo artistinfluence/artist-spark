@@ -445,8 +445,8 @@ export type Database = {
           reach_amount: number
           scheduled_date: string | null
           status: string
-          supporter_handle: string
-          supporter_name: string
+          supporter_handle: string | null
+          supporter_name: string | null
           updated_at: string
         }
         Insert: {
@@ -457,8 +457,8 @@ export type Database = {
           reach_amount?: number
           scheduled_date?: string | null
           status?: string
-          supporter_handle: string
-          supporter_name: string
+          supporter_handle?: string | null
+          supporter_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -469,8 +469,8 @@ export type Database = {
           reach_amount?: number
           scheduled_date?: string | null
           status?: string
-          supporter_handle?: string
-          supporter_name?: string
+          supporter_handle?: string | null
+          supporter_name?: string | null
           updated_at?: string
         }
         Relationships: []

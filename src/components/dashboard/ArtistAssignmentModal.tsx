@@ -230,8 +230,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         `)
         .eq('status', 'active')
         .gt('repost_credit_wallet.balance', 0)
-        .or(`name.ilike.%${term}%,stage_name.ilike.%${term}%`)
-        .limit(10);
+        .or(`name.ilike.${term}%,stage_name.ilike.${term}%`)
+        .order('name')
+        .limit(20);
 
       if (error) throw error;
 
@@ -363,20 +364,6 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Suggested Artists */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Suggested Artists ({suggestedArtists.length})</h3>
-            {loading ? (
-              <div className="text-center py-8">Loading suggestions...</div>
-            ) : (
-              <div className="space-y-2">
-                {suggestedArtists.map(artist => 
-                  renderArtistItem(artist, selectedArtists.includes(artist.id))
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Search Additional Artists */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Add More Artists</h3>
@@ -388,14 +375,46 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
+              {searchTerm && searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {searchResults
+                    .filter(artist => !suggestedArtists.find(s => s.id === artist.id))
+                    .map(artist => (
+                      <div
+                        key={artist.id}
+                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0"
+                        onClick={() => {
+                          handleArtistToggle(artist.id);
+                          setSearchTerm('');
+                          setSearchResults([]);
+                        }}
+                      >
+                        <span className="font-medium">{artist.stage_name || artist.name}</span>
+                        <span className="text-muted-foreground">
+                          ({formatFollowerCount(artist.soundcloud_followers)})
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+              {searchTerm && searchResults.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10 p-3 text-sm text-muted-foreground">
+                  No artists found starting with "{searchTerm}"
+                </div>
+              )}
             </div>
-            {searchResults.length > 0 && (
+          </div>
+
+          {/* Suggested Artists */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Suggested Artists ({suggestedArtists.length})</h3>
+            {loading ? (
+              <div className="text-center py-8">Loading suggestions...</div>
+            ) : (
               <div className="space-y-2">
-                {searchResults
-                  .filter(artist => !suggestedArtists.find(s => s.id === artist.id))
-                  .map(artist => 
-                    renderArtistItem(artist, selectedArtists.includes(artist.id))
-                  )}
+                {suggestedArtists.map(artist => 
+                  renderArtistItem(artist, selectedArtists.includes(artist.id))
+                )}
               </div>
             )}
           </div>

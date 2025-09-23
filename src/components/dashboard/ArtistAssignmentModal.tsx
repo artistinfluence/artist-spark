@@ -54,6 +54,7 @@ interface ArtistAssignmentModalProps {
     expected_reach_planned: number;
     members: {
       size_tier: string;
+      soundcloud_followers: number;
     };
   } | null;
 }
@@ -142,8 +143,17 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       // Sort by follower count (smallest first) for strategic selection
       const sortedMembers = members.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
 
-      // Filter based on reach compatibility and set suggested artists
-      const targetReach = submission.expected_reach_planned || 50000;
+      // Calculate target reach using power-law algorithm from member's follower count
+      const memberFollowers = submission.members?.soundcloud_followers || 25000;
+      const memberReachEstimate = estimateReach(memberFollowers);
+      const targetReach = memberReachEstimate?.reach_median || 50000;
+      
+      console.log('Target reach calculation:', {
+        memberFollowers,
+        memberReachEstimate,
+        targetReach,
+        dbExpectedReach: submission.expected_reach_planned
+      });
       const compatible = sortedMembers.filter(member => {
         const estimate = estimateReach(member.soundcloud_followers);
         const estimatedReach = estimate?.reach_median || 0;
@@ -297,7 +307,10 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  const targetReach = submission.expected_reach_planned || 50000;
+  // Calculate target reach using power-law algorithm from member's follower count
+  const memberFollowers = submission.members?.soundcloud_followers || 25000;
+  const memberReachEstimate = estimateReach(memberFollowers);
+  const targetReach = memberReachEstimate?.reach_median || 50000;
   const reachPercentage = (totalReach / targetReach) * 100;
   const isReachGood = reachPercentage >= 80 && reachPercentage <= 120;
 

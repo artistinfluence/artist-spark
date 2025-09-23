@@ -74,7 +74,7 @@ export const QueuePage = () => {
             <TableHead>Genre</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Scheduled Date</TableHead>
-            <TableHead>Expected Reach</TableHead>
+            <TableHead>Member Followers</TableHead>
             <TableHead>Suggested Reach</TableHead>
             <TableHead>Credits</TableHead>
             <TableHead>Submitted</TableHead>
@@ -145,22 +145,22 @@ export const QueuePage = () => {
                      <span className="text-muted-foreground">Not scheduled</span>
                    )}
                  </div>
-               </TableCell>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {submission.members?.soundcloud_followers?.toLocaleString() || 'N/A'}
+                  </div>
+                </TableCell>
                <TableCell>
-                <div className="text-sm">
-                  {submission.expected_reach_planned?.toLocaleString() || 'Not set'}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {(() => {
-                    // Calculate suggested reach based on member's follower count
-                    const memberFollowers = submission.members?.soundcloud_followers || 25000;
-                    const estimate = estimateReach(memberFollowers);
-                    return estimate ? estimate.reach_median.toLocaleString() : 'N/A';
-                  })()}
-                </div>
-              </TableCell>
+                 <div className="text-sm">
+                   {(() => {
+                     // Calculate suggested reach based on member's follower count
+                     const memberFollowers = submission.members?.soundcloud_followers || 25000;
+                     const estimate = estimateReach(memberFollowers);
+                     return estimate ? estimate.reach_median.toLocaleString() : 'N/A';
+                   })()}
+                 </div>
+               </TableCell>
               <TableCell>
                 <div className="text-sm">
                   <div>{submission.members?.repost_credit_wallet?.balance || 0} available</div>

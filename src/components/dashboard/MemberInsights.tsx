@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
 import { 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter
+  BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { 
-  Users, UserCheck, UserX, Star, Activity, Clock, 
-  Search, Download, Filter, TrendingUp, Award, Music
+  Users, UserCheck, TrendingUp, Star, Activity, 
+  Download, Award, Music
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,26 +35,6 @@ interface MemberSegment {
   color: string;
 }
 
-interface PerformanceData {
-  memberId: string;
-  name: string;
-  handle: string;
-  score: number;
-  submissions: number;
-  completionRate: number;
-  avgResponseTime: number;
-  tier: string;
-  genres: string[];
-  lastActive: string;
-}
-
-interface EngagementTrend {
-  date: string;
-  activeUsers: number;
-  submissions: number;
-  completionRate: number;
-  responseTime: number;
-}
 
 interface GenrePerformance {
   genre: string;
@@ -69,9 +49,6 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 export const MemberInsights: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterTier, setFilterTier] = useState('all');
-  const [sortBy, setSortBy] = useState('score');
   
   const [metrics, setMetrics] = useState<MemberMetrics>({
     totalMembers: 0,
@@ -83,8 +60,6 @@ export const MemberInsights: React.FC = () => {
   });
   
   const [segments, setSegments] = useState<MemberSegment[]>([]);
-  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [engagementTrend, setEngagementTrend] = useState<EngagementTrend[]>([]);
   const [genrePerformance, setGenrePerformance] = useState<GenrePerformance[]>([]);
 
   useEffect(() => {
@@ -137,26 +112,6 @@ export const MemberInsights: React.FC = () => {
       // Create member segments based on actual data
       const segments = createMemberSegments(membersWithScores, avgEngagement);
 
-      // Create performance leaderboard
-      const performanceData = membersWithScores
-        .sort((a, b) => b.engagementScore - a.engagementScore)
-        .slice(0, 20)
-        .map((member, index) => ({
-          memberId: member.id,
-          name: member.name,
-          handle: extractHandle(member.soundcloud_url) || member.primary_email.split('@')[0],
-          score: member.engagementScore,
-          submissions: 0, // Will be updated when submissions data is available
-          completionRate: 0, // Will be updated when queue data is available
-          avgResponseTime: 0, // Will be updated when queue data is available
-          tier: member.size_tier,
-          genres: [], // Will be updated when genre classification is complete
-          lastActive: formatLastActive(member.updated_at)
-        }));
-
-      // Create engagement trends (monthly member growth)
-      const engagementTrend = createEngagementTrends(memberData || []);
-
       // Fetch genre performance data
       const genrePerformanceData = await fetchGenrePerformance();
 
@@ -171,8 +126,6 @@ export const MemberInsights: React.FC = () => {
 
       setMetrics(calculatedMetrics);
       setSegments(segments);
-      setPerformanceData(performanceData);
-      setEngagementTrend(engagementTrend);
       setGenrePerformance(genrePerformanceData);
     } catch (error: any) {
       console.error('Error fetching member insights:', error);
@@ -251,25 +204,6 @@ export const MemberInsights: React.FC = () => {
     ];
   };
 
-  const createEngagementTrends = (members: any[]): EngagementTrend[] => {
-    const monthlyData: { [key: string]: number } = {};
-    
-    members.forEach(member => {
-      const month = new Date(member.created_at).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + 1;
-    });
-
-    return Object.entries(monthlyData)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6)
-      .map(([date, count]) => ({
-        date,
-        activeUsers: count,
-        submissions: 0, // Will be updated when submission data is available
-        completionRate: 0, // Will be updated when queue data is available
-        responseTime: 0 // Will be updated when queue data is available
-      }));
-  };
 
   const fetchGenrePerformance = async (): Promise<GenrePerformance[]> => {
     try {
@@ -340,12 +274,6 @@ export const MemberInsights: React.FC = () => {
     return <Badge className="bg-red-500 text-white">Needs Improvement</Badge>;
   };
 
-  const filteredPerformanceData = performanceData.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.handle.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTier = filterTier === 'all' || member.tier === filterTier;
-    return matchesSearch && matchesTier;
-  });
 
   if (loading) {
     return (
@@ -449,12 +377,9 @@ export const MemberInsights: React.FC = () => {
       </div>
 
       <Tabs defaultValue="segments" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="segments">Segments</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement</TabsTrigger>
           <TabsTrigger value="genres">By Genre</TabsTrigger>
-          <TabsTrigger value="cohort">Cohort Analysis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="segments" className="space-y-4">
@@ -514,116 +439,6 @@ export const MemberInsights: React.FC = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Member Performance Leaderboard</CardTitle>
-                  <CardDescription>Top performing members by engagement score</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search members..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 w-64"
-                    />
-                  </div>
-                  <Select value={filterTier} onValueChange={setFilterTier}>
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tiers</SelectItem>
-                      <SelectItem value="T1">T1</SelectItem>
-                      <SelectItem value="T2">T2</SelectItem>
-                      <SelectItem value="T3">T3</SelectItem>
-                      <SelectItem value="T4">T4</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredPerformanceData.map((member, index) => (
-                  <div key={member.memberId} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold">{member.name}</h4>
-                          {getTierBadge(member.tier)}
-                          {getScoreBadge(member.score)}
-                        </div>
-                        <p className="text-sm text-muted-foreground">@{member.handle}</p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                          <span>{member.submissions} submissions</span>
-                          <span>{member.completionRate}% completion</span>
-                          <span>{member.avgResponseTime}h avg response</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{member.score}%</div>
-                      <div className="flex gap-1 mt-1">
-                        {member.genres.map((genre, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {genre}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Active {member.lastActive}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="engagement" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Engagement Trends</CardTitle>
-              <CardDescription>Member activity and response patterns over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={engagementTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="submissions" fill="#0088FE" name="Submissions" />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="completionRate" 
-                    stroke="#00C49F" 
-                    name="Completion Rate (%)"
-                    strokeWidth={2}
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="responseTime" 
-                    stroke="#FF8042" 
-                    name="Response Time (hrs)"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="genres" className="space-y-4">
           <Card>
@@ -675,23 +490,6 @@ export const MemberInsights: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="cohort" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cohort Analysis</CardTitle>
-              <CardDescription>Member retention and behavior by signup period</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Cohort Analysis Coming Soon</h3>
-                <p className="text-muted-foreground">
-                  Advanced cohort tracking and retention analysis will be available in the next update.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

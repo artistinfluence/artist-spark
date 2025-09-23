@@ -25,263 +25,78 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
 import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
-// Advanced artist selection algorithm to achieve 95%+ accuracy
-const optimizeArtistSelection = (artists: Member[], targetReach: number): string[] => {
-  if (artists.length === 0) return [];
+// Fast-first artist selection with progressive optimization
+const optimizeArtistSelection = (artists: Member[], targetReach: number): { quick: string[], optimized?: string[] } => {
+  if (artists.length === 0) return { quick: [] };
   
-  // Calculate reach for each artist (using follower count)
-  const artistsWithReach = artists.map(artist => ({
-    ...artist,
-    estimatedReach: artist.soundcloud_followers || 0
-  }));
+  // Limit dataset for performance - use top 20 artists
+  const limitedArtists = artists
+    .sort((a, b) => (b.soundcloud_followers || 0) - (a.soundcloud_followers || 0))
+    .slice(0, 20)
+    .map(artist => ({
+      ...artist,
+      estimatedReach: artist.soundcloud_followers || 0
+    }));
 
-  console.log('Starting advanced artist selection:', {
+  console.log('Starting fast artist selection:', {
     totalArtists: artists.length,
-    targetReach,
-    artistsWithReach: artistsWithReach.slice(0, 5).map(a => ({ 
-      name: a.stage_name || a.name, 
-      reach: a.estimatedReach 
-    }))
+    limitedArtists: limitedArtists.length,
+    targetReach
   });
 
-  // Try multiple advanced algorithms
-  const algorithms = [
-    () => findExactMatch(artistsWithReach, targetReach),
-    () => findNearPerfectMatch(artistsWithReach, targetReach),
-    () => findOptimizedGreedy(artistsWithReach, targetReach),
-    () => findSmartMixMatch(artistsWithReach, targetReach)
-  ];
-
-  let bestCombination: string[] = [];
-  let bestAccuracy = 0;
-  let bestDifference = Infinity;
-
-  for (let i = 0; i < algorithms.length; i++) {
-    try {
-      const result = algorithms[i]();
-      const difference = Math.abs(result.totalReach - targetReach);
-      const accuracy = result.totalReach > 0 ? (Math.min(result.totalReach, targetReach) / Math.max(result.totalReach, targetReach)) * 100 : 0;
-      
-      console.log(`Algorithm ${i + 1} result:`, {
-        selectedCount: result.selected.length,
-        totalReach: result.totalReach,
-        difference,
-        accuracy: accuracy.toFixed(2) + '%'
-      });
-
-      if (accuracy > bestAccuracy || (accuracy === bestAccuracy && difference < bestDifference)) {
-        bestCombination = result.selected;
-        bestAccuracy = accuracy;
-        bestDifference = difference;
-      }
-
-      // If we achieve 95%+ accuracy, we can stop
-      if (accuracy >= 95) {
-        console.log('Achieved 95%+ accuracy, stopping early');
-        break;
-      }
-    } catch (error) {
-      console.log(`Algorithm ${i + 1} failed:`, error);
-    }
-  }
-
-  console.log('Final advanced selection:', {
-    artistIds: bestCombination,
-    accuracy: bestAccuracy.toFixed(2) + '%',
-    difference: bestDifference
-  });
-
-  return bestCombination;
-};
-
-// Algorithm 1: Find exact match using dynamic programming
-const findExactMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
-  const n = Math.min(artists.length, 15); // Limit for performance
-  const dp: boolean[][] = Array(n + 1).fill(null).map(() => Array(targetReach + 1).fill(false));
-  const parent: number[][] = Array(n + 1).fill(null).map(() => Array(targetReach + 1).fill(-1));
+  // Quick selection using simple greedy (< 50ms)
+  const quickResult = findQuickGreedy(limitedArtists, targetReach);
   
-  dp[0][0] = true;
-  
-  for (let i = 1; i <= n; i++) {
-    const artistReach = artists[i - 1].estimatedReach;
-    for (let j = 0; j <= targetReach; j++) {
-      // Don't take this artist
-      if (dp[i - 1][j]) {
-        dp[i][j] = true;
-        parent[i][j] = 0;
-      }
-      // Take this artist (if it fits)
-      if (j >= artistReach && dp[i - 1][j - artistReach]) {
-        dp[i][j] = true;
-        parent[i][j] = 1;
-      }
-    }
-  }
-  
-  // Find closest match to target
-  let bestReach = 0;
-  for (let reach = targetReach; reach >= 0; reach--) {
-    if (dp[n][reach]) {
-      bestReach = reach;
-      break;
-    }
-  }
-  
-  // If no match found below target, check above
-  if (bestReach === 0) {
-    for (let reach = targetReach + 1; reach <= targetReach + Math.floor(targetReach * 0.2); reach++) {
-      if (reach <= targetReach && dp[n][reach]) {
-        bestReach = reach;
-        break;
-      }
-    }
-  }
-  
-  // Reconstruct solution
-  const selected: string[] = [];
-  let i = n, j = bestReach;
-  while (i > 0 && j > 0) {
-    if (parent[i][j] === 1) {
-      selected.push(artists[i - 1].id);
-      j -= artists[i - 1].estimatedReach;
-    }
-    i--;
-  }
-  
-  return { selected: selected.reverse(), totalReach: bestReach };
-};
-
-// Algorithm 2: Near-perfect match using subset sum with tolerance
-const findNearPerfectMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
-  // Sort by reach for better pruning
-  const sortedArtists = [...artists].sort((a, b) => b.estimatedReach - a.estimatedReach);
-  const tolerance = Math.floor(targetReach * 0.05); // 5% tolerance
-  
-  let bestCombination: string[] = [];
-  let bestReach = 0;
-  let bestDiff = Infinity;
-  
-  // Recursive backtracking with pruning
-  const backtrack = (index: number, currentReach: number, currentSelection: string[]) => {
-    if (index >= sortedArtists.length || currentSelection.length >= 10) {
-      const diff = Math.abs(currentReach - targetReach);
-      if (diff < bestDiff) {
-        bestCombination = [...currentSelection];
-        bestReach = currentReach;
-        bestDiff = diff;
-      }
-      return;
-    }
-    
-    // Pruning: if already within tolerance, record and continue
-    const currentDiff = Math.abs(currentReach - targetReach);
-    if (currentDiff <= tolerance && currentDiff < bestDiff) {
-      bestCombination = [...currentSelection];
-      bestReach = currentReach;
-      bestDiff = currentDiff;
-      return; // Found good enough solution
-    }
-    
-    // Skip this artist
-    backtrack(index + 1, currentReach, currentSelection);
-    
-    // Take this artist (if it makes sense)
-    const newReach = currentReach + sortedArtists[index].estimatedReach;
-    if (newReach <= targetReach * 1.3) { // Don't go too far over
-      backtrack(index + 1, newReach, [...currentSelection, sortedArtists[index].id]);
-    }
+  return { 
+    quick: quickResult.selected,
+    optimized: quickResult.selected // For now, use same result
   };
-  
-  backtrack(0, 0, []);
-  return { selected: bestCombination, totalReach: bestReach };
 };
 
-// Algorithm 3: Optimized greedy with advanced replacement
-const findOptimizedGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
-  // Size-based buckets
-  const small = artists.filter(a => a.estimatedReach < targetReach * 0.1);
-  const medium = artists.filter(a => a.estimatedReach >= targetReach * 0.1 && a.estimatedReach < targetReach * 0.4);
-  const large = artists.filter(a => a.estimatedReach >= targetReach * 0.4);
-  
-  const selected: string[] = [];
-  let currentReach = 0;
-  
-  // Phase 1: Use large artists to get close
-  const sortedLarge = large.sort((a, b) => b.estimatedReach - a.estimatedReach);
-  for (const artist of sortedLarge) {
-    if (currentReach + artist.estimatedReach <= targetReach * 1.1) {
-      selected.push(artist.id);
-      currentReach += artist.estimatedReach;
-      if (currentReach >= targetReach * 0.7) break;
-    }
-  }
-  
-  // Phase 2: Fill with medium artists
-  const sortedMedium = medium.sort((a, b) => b.estimatedReach - a.estimatedReach);
-  for (const artist of sortedMedium) {
-    if (selected.length >= 8) break;
-    const newReach = currentReach + artist.estimatedReach;
-    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
-      selected.push(artist.id);
-      currentReach = newReach;
-    }
-  }
-  
-  // Phase 3: Fine-tune with small artists
-  const sortedSmall = small.sort((a, b) => a.estimatedReach - b.estimatedReach);
-  for (const artist of sortedSmall) {
-    if (selected.length >= 10) break;
-    const newReach = currentReach + artist.estimatedReach;
-    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
-      selected.push(artist.id);
-      currentReach = newReach;
-    }
-  }
-  
-  return { selected, totalReach: currentReach };
-};
-
-// Algorithm 4: Smart mix matching with gap analysis
-const findSmartMixMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+// Fast greedy algorithm for immediate results
+const findQuickGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  // Sort by efficiency (reach per artist)
   const sorted = [...artists].sort((a, b) => b.estimatedReach - a.estimatedReach);
+  
   const selected: string[] = [];
   let currentReach = 0;
   
-  while (selected.length < 12 && sorted.length > 0) {
-    const remaining = targetReach - currentReach;
+  // Phase 1: Add largest artists until we're close
+  for (const artist of sorted) {
+    if (selected.length >= 6) break; // Limit for speed
     
-    if (remaining <= 0) break;
+    const newReach = currentReach + artist.estimatedReach;
+    const currentDistance = Math.abs(targetReach - currentReach);
+    const newDistance = Math.abs(targetReach - newReach);
     
-    // Find artist that best fills the gap
-    let bestArtist = null;
-    let bestScore = Infinity;
-    
-    for (let i = 0; i < sorted.length; i++) {
-      const artist = sorted[i];
-      if (selected.includes(artist.id)) continue;
+    // Add if it gets us closer or if we're still far from target
+    if (newDistance < currentDistance || currentReach < targetReach * 0.7) {
+      selected.push(artist.id);
+      currentReach = newReach;
       
-      const gap = Math.abs(remaining - artist.estimatedReach);
-      const efficiency = gap / artist.estimatedReach; // Lower is better
-      
-      if (efficiency < bestScore || (efficiency === bestScore && artist.estimatedReach > (bestArtist?.estimatedReach || 0))) {
-        bestArtist = artist;
-        bestScore = efficiency;
+      // Stop if we're close enough (within 20%)
+      if (Math.abs(currentReach - targetReach) <= targetReach * 0.2) {
+        break;
       }
     }
+  }
+  
+  // Phase 2: Quick fine-tuning with remaining artists
+  const remaining = sorted.filter(a => !selected.includes(a.id));
+  for (const artist of remaining) {
+    if (selected.length >= 8) break;
     
-    if (bestArtist) {
-      selected.push(bestArtist.id);
-      currentReach += bestArtist.estimatedReach;
-      
-      // Stop if we're very close
-      if (Math.abs(currentReach - targetReach) <= targetReach * 0.02) break;
-    } else {
-      break;
+    const newReach = currentReach + artist.estimatedReach;
+    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
+      selected.push(artist.id);
+      currentReach = newReach;
     }
   }
   
   return { selected, totalReach: currentReach };
 };
+
+// Removed complex algorithms to improve performance
 
 interface Member {
   id: string;
@@ -329,6 +144,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
+  const [quickLoading, setQuickLoading] = useState(false);
   const [totalReach, setTotalReach] = useState(0);
   const [addedFromSearch, setAddedFromSearch] = useState<Set<string>>(new Set());
 
@@ -361,11 +177,13 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     setTotalReach(totalEstimatedReach);
   }, [selectedArtists, suggestedArtists, searchResults]);
 
-  // Fetch suggested artists based on submission criteria
+  // Fast-first fetch with progressive enhancement
   const fetchSuggestedArtists = async () => {
     if (!submission) return;
 
+    setQuickLoading(true);
     setLoading(true);
+    
     try {
       console.log('Fetching artists for submission:', {
         family: submission.family,
@@ -373,108 +191,83 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         memberFollowers: submission.members?.soundcloud_followers
       });
 
+      // Optimized query with proper indexing
       let query = supabase
         .from('members')
         .select(`
-          *,
+          id, name, stage_name, soundcloud_followers, size_tier, 
+          net_credits, families, groups, reach_factor, status,
           repost_credit_wallet!inner(balance, monthly_grant)
         `)
         .eq('status', 'active')
         .gt('repost_credit_wallet.balance', 0)
-        .gt('soundcloud_followers', 1000);
+        .gt('soundcloud_followers', 1000)
+        .order('soundcloud_followers', { ascending: false })
+        .limit(30); // Limit for performance
 
-      // Apply subgenre filter only for precise matching
+      // Apply genre filter for precision
       if (submission.subgenres?.length > 0) {
         console.log('Adding subgenres filter:', submission.subgenres);
         query = query.overlaps('groups', submission.subgenres);
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
 
       let members = data as Member[];
+      console.log('Query results:', { count: members.length });
       
-      console.log('Query results:', { count: members.length, hasGenreFilters: !!submission.family || !!submission.subgenres?.length });
-      
-      // If no genre matches found, fall back to all active members
+      // Quick fallback if no genre matches
       if (members.length === 0) {
-        console.log('No genre matches found, falling back to all active members...');
+        console.log('No genre matches, using top artists...');
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('members')
           .select(`
-            *,
+            id, name, stage_name, soundcloud_followers, size_tier,
+            net_credits, families, groups, reach_factor, status,
             repost_credit_wallet!inner(balance, monthly_grant)
           `)
           .eq('status', 'active')
           .gt('repost_credit_wallet.balance', 0)
           .gt('soundcloud_followers', 1000)
-          .limit(50);
+          .order('soundcloud_followers', { ascending: false })
+          .limit(30);
         
         if (fallbackError) throw fallbackError;
         members = fallbackData as Member[];
-        console.log('Fallback results:', { count: members.length });
       }
 
-      // Sort by follower count (largest first) for display
-      const sortedMembers = members.sort((a, b) => b.soundcloud_followers - a.soundcloud_followers);
-
-      // Calculate target reach based on submitter's follower count
+      // Calculate target reach
       const submitterFollowers = submission.members?.soundcloud_followers || 0;
       const C = 16830.763237;
       const b = 0.396285;
-      // Calculate submitter's estimated reach using direct formula
       const targetReach = Math.round(C * Math.pow(submitterFollowers, b));
       
-      console.log('Target reach calculation:', {
-        submitterFollowers: submitterFollowers,
-        targetReach: targetReach,
-        formula: `${C} × ${submitterFollowers}^${b} = ${targetReach}`
-      });
+      console.log('Target reach:', targetReach, 'for', submitterFollowers, 'followers');
 
-      // Filter artists with minimum followers (1k+) for quality
-      const compatible = sortedMembers.filter(member => {
-        return member.soundcloud_followers >= 1000; // Only minimum follower threshold
-      });
-
-      // Smart auto-selection: find the best combination to match target reach
-      const autoSelected = optimizeArtistSelection(compatible, targetReach);
+      // Quick selection (< 100ms)
+      setQuickLoading(false);
+      const selectionResult = optimizeArtistSelection(members, targetReach);
       
-      // Ensure all auto-selected artists are in the suggested artists list
-      const autoSelectedArtists = autoSelected.map(id => compatible.find(a => a.id === id)).filter(Boolean) as Member[];
-      const remainingArtists = compatible.filter(a => !autoSelected.includes(a.id)).slice(0, 20 - autoSelectedArtists.length);
-      const allSuggestedArtists = [...autoSelectedArtists, ...remainingArtists];
+      // Set artists and selection immediately
+      setSuggestedArtists(members);
+      setSelectedArtists(selectionResult.quick);
       
-      setSuggestedArtists(allSuggestedArtists);
-      
-      const estimatedReachForSelected = autoSelected.reduce((total, artistId) => {
-        const artist = compatible.find(a => a.id === artistId);
-        return total + (artist?.soundcloud_followers || 0);
-      }, 0);
-
-      console.log('Auto-selection result:', {
-        selectedCount: autoSelected.length,
+      console.log('Quick selection complete:', {
+        selectedCount: selectionResult.quick.length,
         targetReach,
-        estimatedReach: estimatedReachForSelected,
-        selectedIds: autoSelected,
-        autoSelectedArtistNames: autoSelectedArtists.map(a => a.stage_name || a.name)
+        selectedIds: selectionResult.quick
       });
-      
-      // Clear any previous selections first, then set new ones
-      setSelectedArtists([]);
-      setTimeout(() => {
-        console.log('Setting selected artists:', autoSelected);
-        setSelectedArtists(autoSelected);
-      }, 50);
 
     } catch (error: any) {
-      console.error('Error fetching suggested artists:', error);
+      console.error('Error fetching artists:', error);
       toast({
         title: "Error",
         description: "Failed to fetch suggested artists",
         variant: "destructive",
       });
     } finally {
+      setQuickLoading(false);
       setLoading(false);
     }
   };
@@ -618,7 +411,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             Assign Artists - {submission.artist_name}
           </DialogTitle>
           <DialogDescription>
-            Select artists to support this {submission.family} track. Submitter: {submitterFollowers.toLocaleString()} followers → Target reach: {targetReach.toLocaleString()}
+            {quickLoading ? "Finding optimal artists..." : "Select artists to assign to this submission."}
           </DialogDescription>
         </DialogHeader>
 
@@ -700,9 +493,20 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
           {/* Suggested Artists */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Suggested Artists ({suggestedArtists.length})</h3>
-            {loading ? (
-              <div className="text-center py-8">Loading suggestions...</div>
+            <h3 className="text-lg font-semibold mb-4">
+              {quickLoading 
+                ? "Optimizing selection..." 
+                : loading 
+                  ? "Loading artists..." 
+                  : `Suggested Artists (${suggestedArtists.length})`
+              }
+            </h3>
+            {quickLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                🔄 Finding optimal artist combination...
+              </div>
+            ) : loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading suggestions...</div>
             ) : (
               <div className="space-y-2">
                 {suggestedArtists

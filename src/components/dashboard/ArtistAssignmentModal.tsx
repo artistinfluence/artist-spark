@@ -35,12 +35,7 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number, submitt
   if (artists.length === 0) return { quick: [] };
   
   // Limit dataset for performance - use top 30 artists
-  const limitedArtists = artists
-    .slice(0, 30)
-    .map(artist => ({
-      ...artist,
-      estimatedReach: estimateReach(artist.soundcloud_followers)?.reach_median || 0
-    }));
+  const limitedArtists = artists.slice(0, 30);
 
   console.log('Starting smart artist selection:', {
     totalArtists: artists.length,
@@ -58,45 +53,87 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number, submitt
   };
 };
 
-// Smart artist selection prioritizing similar-sized artists first
-const findQuickGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number, submitterFollowers: number) => {
-  // Calculate similarity scores based on submitter's follower count
-  const artistsWithSimilarity = artists.map(artist => ({
-    ...artist,
-    similarityScore: calculateSimilarityScore(artist.estimatedReach, submitterFollowers)
-  }));
+// Smart artist selection prioritizing similar-sized artists first  
+const findQuickGreedy = (artists: Member[], targetReach: number, submitterFollowers: number) => {
+  // Calculate similarity scores and tier-based weighting
+  const artistsWithSimilarity = artists.map(artist => {
+    const followers = artist.soundcloud_followers || 0;
+    const similarityScore = calculateSimilarityScore(followers, submitterFollowers);
+    
+    // Add tier-based selection logic
+    const submitterTier = getArtistTier(submitterFollowers);
+    const artistTier = getArtistTier(followers);
+    const tierBonus = getTierCompatibilityBonus(submitterTier, artistTier);
+    
+    return {
+      ...artist,
+      followers,
+      similarityScore: similarityScore * tierBonus
+    };
+  });
   
-  // Sort by similarity first, then by reach efficiency
+  // Sort by similarity first, then by followers for tie-breaking
   const sorted = artistsWithSimilarity.sort((a, b) => {
     const similarityDiff = b.similarityScore - a.similarityScore;
     if (Math.abs(similarityDiff) > 0.1) return similarityDiff;
-    return b.estimatedReach - a.estimatedReach;
+    return b.followers - a.followers;
   });
   
   const selected: string[] = [];
-  let currentReach = 0;
+  let currentFollowerSum = 0;
   
-  // Phase 1: Add similar-sized artists first
+  // Use knapsack-style approach to get close to target reach
   for (const artist of sorted) {
     if (selected.length >= 8) break;
     
-    const newReach = currentReach + artist.estimatedReach;
-    const currentDistance = Math.abs(targetReach - currentReach);
-    const newDistance = Math.abs(targetReach - newReach);
+    const newSum = currentFollowerSum + artist.followers;
+    const currentDistance = Math.abs(targetReach - currentFollowerSum);
+    const newDistance = Math.abs(targetReach - newSum);
     
-    // Add if it gets us closer or if we need more reach
-    if (newDistance < currentDistance || currentReach < targetReach * 0.8) {
+    // Add if it gets us closer or if we're still far from target
+    if (newDistance < currentDistance || currentFollowerSum < targetReach * 0.8) {
       selected.push(artist.id);
-      currentReach = newReach;
+      currentFollowerSum = newSum;
+      
+      console.log('Selected artist:', {
+        name: artist.stage_name || artist.name,
+        followers: artist.followers,
+        similarityScore: artist.similarityScore,
+        currentSum: currentFollowerSum,
+        targetReach
+      });
       
       // Stop if we're close enough (within 15%)
-      if (Math.abs(currentReach - targetReach) <= targetReach * 0.15) {
+      if (Math.abs(currentFollowerSum - targetReach) <= targetReach * 0.15) {
         break;
       }
     }
   }
   
-  return { selected, totalReach: currentReach };
+  return { selected, totalReach: currentFollowerSum };
+};
+
+// Helper functions for tier-based matching
+const getArtistTier = (followers: number): string => {
+  if (followers < 50000) return 'small';
+  if (followers < 500000) return 'medium';
+  return 'large';
+};
+
+const getTierCompatibilityBonus = (submitterTier: string, artistTier: string): number => {
+  // Same tier gets highest bonus
+  if (submitterTier === artistTier) return 1.5;
+  
+  // Small submitters should avoid large artists
+  if (submitterTier === 'small' && artistTier === 'large') return 0.6;
+  
+  // Medium submitters can work with anyone
+  if (submitterTier === 'medium') return 1.2;
+  
+  // Large submitters prefer medium/large artists
+  if (submitterTier === 'large' && artistTier === 'small') return 0.8;
+  
+  return 1.0;
 };
 
 // Calculate similarity score based on follower count tiers
@@ -107,8 +144,8 @@ const calculateSimilarityScore = (artistFollowers: number, submitterFollowers: n
   
   // Bonus for same tier
   const getTier = (followers: number) => {
-    if (followers < 10000) return 'small';
-    if (followers < 100000) return 'medium';
+    if (followers < 50000) return 'small';
+    if (followers < 500000) return 'medium';
     return 'large';
   };
   

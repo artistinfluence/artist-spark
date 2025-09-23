@@ -30,7 +30,9 @@ import {
   Edit,
   Trash2,
   ExternalLink,
-  BarChart3
+  BarChart3,
+  Mail,
+  Eye
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -47,6 +49,7 @@ import {
 } from "@/components/ui/select";
 import { CampaignForm } from "./CampaignForm";
 import { CampaignAttributionAnalytics } from "./CampaignAttributionAnalytics";
+import { CampaignDetailModal } from "./CampaignDetailModal";
 
 interface Campaign {
   id: string;
@@ -63,6 +66,7 @@ interface Campaign {
   submission_date: string;
   client_id: string;
   notes: string;
+  weekly_reporting_enabled?: boolean;
   client: {
     name: string;
     email: string;
@@ -78,6 +82,7 @@ export default function CampaignsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -296,10 +301,19 @@ export default function CampaignsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                    <TableRow 
+                      key={campaign.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedCampaign(campaign)}
+                    >
                       <TableCell>
                         <div>
-                          <p className="font-medium">{campaign.track_name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{campaign.track_name}</p>
+                            {campaign.weekly_reporting_enabled && (
+                              <Mail className="h-3 w-3 text-blue-500" />
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">by {campaign.artist_name}</p>
                         </div>
                       </TableCell>
@@ -357,16 +371,38 @@ export default function CampaignsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.open(campaign.track_url, '_blank')}>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCampaign(campaign);
+                              }}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(campaign.track_url, '_blank');
+                              }}
+                            >
                               <ExternalLink className="mr-2 h-4 w-4" />
                               View Track
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setEditingCampaign(campaign)}>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCampaign(campaign);
+                              }}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => deleteCampaign(campaign.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteCampaign(campaign.id);
+                              }}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -410,6 +446,14 @@ export default function CampaignsPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Campaign Detail Modal */}
+      <CampaignDetailModal
+        campaign={selectedCampaign}
+        isOpen={!!selectedCampaign}
+        onClose={() => setSelectedCampaign(null)}
+        onCampaignUpdate={fetchCampaigns}
+      />
     </div>
   );
 }

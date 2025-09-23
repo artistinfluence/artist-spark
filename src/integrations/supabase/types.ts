@@ -1830,6 +1830,7 @@ export type Database = {
           track_name: string
           track_url: string
           updated_at: string
+          weekly_reporting_enabled: boolean | null
         }
         Insert: {
           artist_name: string
@@ -1852,6 +1853,7 @@ export type Database = {
           track_name: string
           track_url: string
           updated_at?: string
+          weekly_reporting_enabled?: boolean | null
         }
         Update: {
           artist_name?: string
@@ -1874,6 +1876,7 @@ export type Database = {
           track_name?: string
           track_url?: string
           updated_at?: string
+          weekly_reporting_enabled?: boolean | null
         }
         Relationships: [
           {

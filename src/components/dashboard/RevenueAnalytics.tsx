@@ -342,28 +342,28 @@ export const RevenueAnalytics: React.FC = () => {
                 <CardTitle>Key Insights</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                <div className="p-4 bg-card border border-border rounded-lg shadow-card">
                   <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <span className="font-semibold text-green-700 dark:text-green-300">Strong Growth</span>
+                    <TrendingUp className="h-4 w-4 text-success" />
+                    <span className="font-semibold text-success">Strong Growth</span>
                   </div>
-                  <p className="text-sm">Revenue grew 23.5% month-over-month, driven by increased campaign volume and premium subscriptions.</p>
+                  <p className="text-sm text-muted-foreground">Revenue grew {metrics.revenueGrowth >= 0 ? metrics.revenueGrowth.toFixed(1) : 0}% month-over-month, driven by increased campaign volume.</p>
                 </div>
 
-                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="p-4 bg-card border border-border rounded-lg shadow-card">
                   <div className="flex items-center gap-2 mb-2">
-                    <Target className="h-4 w-4 text-blue-600" />
-                    <span className="font-semibold text-blue-700 dark:text-blue-300">Campaign Success</span>
+                    <Target className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-primary">Campaign Success</span>
                   </div>
-                  <p className="text-sm">SoundCloud campaigns represent 50.2% of revenue with highest margins and customer satisfaction.</p>
+                  <p className="text-sm text-muted-foreground">SoundCloud campaigns generate {metrics.totalRevenue > 0 ? '100%' : '0%'} of revenue with focus on repost services.</p>
                 </div>
 
-                <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <div className="p-4 bg-card border border-border rounded-lg shadow-card">
                   <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-4 w-4 text-orange-600" />
-                    <span className="font-semibold text-orange-700 dark:text-orange-300">Customer Value</span>
+                    <Users className="h-4 w-4 text-accent" />
+                    <span className="font-semibold text-accent">Campaign Value</span>
                   </div>
-                  <p className="text-sm">Customer lifetime value increased to $2,847 with improved retention strategies.</p>
+                  <p className="text-sm text-muted-foreground">Average campaign value is ${metrics.averageOrderValue.toFixed(0)} across {metrics.totalCampaigns} total campaigns.</p>
                 </div>
               </CardContent>
             </Card>

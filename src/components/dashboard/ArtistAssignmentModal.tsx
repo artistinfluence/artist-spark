@@ -144,9 +144,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       // Sort by follower count (largest first) for display
       const sortedMembers = members.sort((a, b) => b.soundcloud_followers - a.soundcloud_followers);
 
-      // Calculate target follower count based on submission's expected reach
-      const dbTarget = submission.expected_reach_planned || 50000;
-      const targetFollowerCount = Math.max(dbTarget * 2, 100000); // Convert reach target to follower target
+  // Calculate target follower count using inverse of reach estimation formula
+  const dbTarget = submission.expected_reach_planned || 50000;
+  const C = 16830.763237;
+  const b = 0.396285;
+  // Inverse formula: followers = (reach / C) ^ (1/b)
+  const targetFollowerCount = Math.round(Math.pow(dbTarget / C, 1 / b));
       
       console.log('Target follower calculation:', {
         dbTarget: dbTarget,
@@ -169,15 +172,18 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       
       console.log('Auto-selection targets:', { target: targetFollowerCount, targetMin, targetMax, totalArtists: compatible.length });
       
+      // Sort by follower count (smallest first) for better combinations
+      const sortedCompatible = compatible.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
+      
       // Select artists until we reach target follower count
-      for (const artist of compatible) {
+      for (const artist of sortedCompatible) {
         const artistFollowers = artist.soundcloud_followers;
         
         console.log(`Evaluating artist ${artist.stage_name}: ${artistFollowers} followers, current total: ${currentFollowers}`);
         
-        // Add artist if we're under target, or if we need at least one
-        if (currentFollowers < targetMin || autoSelected.length === 0) {
-          // Check if adding this artist would put us way over target
+        // Continue selecting if we haven't reached the target yet
+        if (currentFollowers < targetFollowerCount) {
+          // Don't add if it would put us way over target (unless we have no artists yet)
           if (currentFollowers + artistFollowers <= targetMax || autoSelected.length === 0) {
             autoSelected.push(artist.id);
             currentFollowers += artistFollowers;
@@ -185,11 +191,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           }
         }
         
-        // Stop if we've reached a good target range
-        if (currentFollowers >= targetMin) {
+        // Stop if we've reached a good target range or have too many artists
+        if (currentFollowers >= targetMin && currentFollowers <= targetMax) {
           break;
         }
-        if (autoSelected.length >= 10) {
+        if (autoSelected.length >= 15) { // Increased limit to allow for more artists
           break;
         }
       }
@@ -329,9 +335,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  // Calculate target follower count
+  // Calculate target follower count using inverse of reach estimation formula
   const dbTarget = submission.expected_reach_planned || 50000;
-  const targetFollowerCount = Math.max(dbTarget * 2, 100000); // Convert reach target to follower target
+  const C = 16830.763237;
+  const b = 0.396285;
+  // Inverse formula: followers = (reach / C) ^ (1/b)
+  const targetFollowerCount = Math.round(Math.pow(dbTarget / C, 1 / b));
   const followerPercentage = (totalReach / targetFollowerCount) * 100;
   const isFollowerCountGood = followerPercentage >= 90 && followerPercentage <= 110;
 
@@ -344,7 +353,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             Assign Artists - {submission.artist_name}
           </DialogTitle>
           <DialogDescription>
-            Select artists to support this {submission.family} track. Target followers: {targetFollowerCount.toLocaleString()}
+            Select artists to support this {submission.family} track. Target reach: {dbTarget.toLocaleString()} → Required total supporter followers: {targetFollowerCount.toLocaleString()}
           </DialogDescription>
         </DialogHeader>
 

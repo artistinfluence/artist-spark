@@ -27,6 +27,10 @@ export interface SubmissionWithMember {
     size_tier: string;
     status: string;
     net_credits: number;
+    repost_credit_wallet: {
+      balance: number;
+      monthly_grant: number;
+    };
   };
 }
 
@@ -63,7 +67,8 @@ export const useSubmissionsList = (status?: string | 'all') => {
             primary_email,
             size_tier,
             status,
-            net_credits
+            net_credits,
+            repost_credit_wallet!inner(balance, monthly_grant)
           )
         `)
         .order('submitted_at', { ascending: false });

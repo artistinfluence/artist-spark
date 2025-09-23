@@ -36,7 +36,7 @@ interface Member {
   groups: string[];
   reach_factor: number;
   status: string;
-  repost_credit_wallet?: {
+  repost_credit_wallet: {
     balance: number;
     monthly_grant: number;
   };
@@ -245,7 +245,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
               })()} reach
             </div>
             <div className="text-xs text-muted-foreground">
-              {artist.repost_credit_wallet?.[0]?.balance || 0} credits
+              {artist.repost_credit_wallet?.balance || 0} credits
             </div>
           </div>
         </div>

@@ -134,9 +134,9 @@ export const QueuePage = () => {
               </TableCell>
               <TableCell>
                 <div className="text-sm">
-                  <div>{submission.members?.net_credits} available</div>
-                  <Badge variant={submission.members?.net_credits > 0 ? 'default' : 'destructive'} className="text-xs">
-                    {submission.members?.net_credits > 0 ? 'Sufficient' : 'Insufficient'}
+                  <div>{submission.members?.repost_credit_wallet?.balance || 0} available</div>
+                  <Badge variant={(submission.members?.repost_credit_wallet?.balance || 0) > 0 ? 'default' : 'destructive'} className="text-xs">
+                    {(submission.members?.repost_credit_wallet?.balance || 0) > 0 ? 'Sufficient' : 'Insufficient'}
                   </Badge>
                 </div>
               </TableCell>

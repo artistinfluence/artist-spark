@@ -72,6 +72,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalReach, setTotalReach] = useState(0);
+  const [addedFromSearch, setAddedFromSearch] = useState<Set<string>>(new Set());
 
   // Calculate total expected reach based on selected artists using new reach estimator
   useEffect(() => {
@@ -141,8 +142,8 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         console.log('Fallback results:', { count: members.length });
       }
 
-      // Sort by follower count (smallest first) for strategic selection
-      const sortedMembers = members.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
+      // Sort by follower count (largest first) for display
+      const sortedMembers = members.sort((a, b) => b.soundcloud_followers - a.soundcloud_followers);
 
       // Calculate realistic target reach using member's follower count with power-law model
       const memberFollowers = submission.members?.soundcloud_followers || 25000;
@@ -257,11 +258,45 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   }, [searchTerm]);
 
   const handleArtistToggle = (artistId: string) => {
-    setSelectedArtists(prev => 
-      prev.includes(artistId) 
-        ? prev.filter(id => id !== artistId)
-        : [...prev, artistId]
-    );
+    setSelectedArtists(prev => {
+      if (prev.includes(artistId)) {
+        // Deselecting - remove from selected and from suggested if it was added from search
+        if (addedFromSearch.has(artistId)) {
+          setSuggestedArtists(current => current.filter(artist => artist.id !== artistId));
+          setAddedFromSearch(current => {
+            const newSet = new Set(current);
+            newSet.delete(artistId);
+            return newSet;
+          });
+        }
+        return prev.filter(id => id !== artistId);
+      } else {
+        // Selecting
+        return [...prev, artistId];
+      }
+    });
+  };
+
+  const handleSearchArtistSelect = (artist: Member) => {
+    // Add to selected artists
+    setSelectedArtists(prev => [...prev, artist.id]);
+    
+    // Add to suggested artists if not already there
+    setSuggestedArtists(current => {
+      if (current.find(a => a.id === artist.id)) {
+        return current;
+      }
+      const updated = [...current, artist];
+      // Sort by follower count (highest first)
+      return updated.sort((a, b) => b.soundcloud_followers - a.soundcloud_followers);
+    });
+    
+    // Track that this was added from search
+    setAddedFromSearch(current => new Set(current).add(artist.id));
+    
+    // Clear search
+    setSearchTerm('');
+    setSearchResults([]);
   };
 
   const handleConfirm = () => {
@@ -383,11 +418,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
                       <div
                         key={artist.id}
                         className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0"
-                        onClick={() => {
-                          handleArtistToggle(artist.id);
-                          setSearchTerm('');
-                          setSearchResults([]);
-                        }}
+                        onClick={() => handleSearchArtistSelect(artist)}
                       >
                         <span className="font-medium">{artist.stage_name || artist.name}</span>
                         <span className="text-muted-foreground">
@@ -412,9 +443,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
               <div className="text-center py-8">Loading suggestions...</div>
             ) : (
               <div className="space-y-2">
-                {suggestedArtists.map(artist => 
-                  renderArtistItem(artist, selectedArtists.includes(artist.id))
-                )}
+                {suggestedArtists
+                  .sort((a, b) => b.soundcloud_followers - a.soundcloud_followers)
+                  .map(artist => 
+                    renderArtistItem(artist, selectedArtists.includes(artist.id))
+                  )}
               </div>
             )}
           </div>

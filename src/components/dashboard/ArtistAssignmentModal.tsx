@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
 import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
-// Smart artist selection algorithm to find the best combination for target reach
+// Advanced artist selection algorithm to achieve 95%+ accuracy
 const optimizeArtistSelection = (artists: Member[], targetReach: number): string[] => {
   if (artists.length === 0) return [];
   
@@ -35,178 +35,252 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number): string
     estimatedReach: artist.soundcloud_followers || 0
   }));
 
-  console.log('Starting artist selection:', {
+  console.log('Starting advanced artist selection:', {
     totalArtists: artists.length,
     targetReach,
-    avgArtistReach: artistsWithReach.reduce((sum, a) => sum + a.estimatedReach, 0) / artistsWithReach.length
+    artistsWithReach: artistsWithReach.slice(0, 5).map(a => ({ 
+      name: a.stage_name || a.name, 
+      reach: a.estimatedReach 
+    }))
   });
-  
-  // Strategy 1: Smallest first - create separate copy to avoid mutation
-  const strategy1 = findBestCombination(
-    [...artistsWithReach].sort((a, b) => a.estimatedReach - b.estimatedReach),
-    targetReach
-  );
-  
-  // Strategy 2: Largest first - create separate copy to avoid mutation
-  const strategy2 = findBestCombination(
-    [...artistsWithReach].sort((a, b) => b.estimatedReach - a.estimatedReach),
-    targetReach
-  );
-  
-  // Strategy 3: Medium-sized first - create separate copy to avoid mutation
-  const strategy3 = findBestCombination(
-    [...artistsWithReach].sort((a, b) => Math.abs(a.estimatedReach - targetReach/3) - Math.abs(b.estimatedReach - targetReach/3)),
-    targetReach
-  );
-  
-  // Evaluate all strategies and pick the best one
-  const strategies = [strategy1, strategy2, strategy3].filter(s => s.artistIds.length > 0);
-  
-  if (strategies.length === 0) {
-    // Fallback: select top 3-5 artists by reach if no strategy worked
-    console.log('All strategies failed, using fallback selection');
-    const fallbackCount = Math.min(5, Math.max(3, Math.ceil(artistsWithReach.length * 0.2)));
-    const fallbackSelection = [...artistsWithReach]
-      .sort((a, b) => b.estimatedReach - a.estimatedReach)
-      .slice(0, fallbackCount)
-      .map(a => a.id);
-    return fallbackSelection;
+
+  // Try multiple advanced algorithms
+  const algorithms = [
+    () => findExactMatch(artistsWithReach, targetReach),
+    () => findNearPerfectMatch(artistsWithReach, targetReach),
+    () => findOptimizedGreedy(artistsWithReach, targetReach),
+    () => findSmartMixMatch(artistsWithReach, targetReach)
+  ];
+
+  let bestCombination: string[] = [];
+  let bestAccuracy = 0;
+  let bestDifference = Infinity;
+
+  for (let i = 0; i < algorithms.length; i++) {
+    try {
+      const result = algorithms[i]();
+      const difference = Math.abs(result.totalReach - targetReach);
+      const accuracy = result.totalReach > 0 ? (Math.min(result.totalReach, targetReach) / Math.max(result.totalReach, targetReach)) * 100 : 0;
+      
+      console.log(`Algorithm ${i + 1} result:`, {
+        selectedCount: result.selected.length,
+        totalReach: result.totalReach,
+        difference,
+        accuracy: accuracy.toFixed(2) + '%'
+      });
+
+      if (accuracy > bestAccuracy || (accuracy === bestAccuracy && difference < bestDifference)) {
+        bestCombination = result.selected;
+        bestAccuracy = accuracy;
+        bestDifference = difference;
+      }
+
+      // If we achieve 95%+ accuracy, we can stop
+      if (accuracy >= 95) {
+        console.log('Achieved 95%+ accuracy, stopping early');
+        break;
+      }
+    } catch (error) {
+      console.log(`Algorithm ${i + 1} failed:`, error);
+    }
   }
+
+  console.log('Final advanced selection:', {
+    artistIds: bestCombination,
+    accuracy: bestAccuracy.toFixed(2) + '%',
+    difference: bestDifference
+  });
+
+  return bestCombination;
+};
+
+// Algorithm 1: Find exact match using dynamic programming
+const findExactMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  const n = Math.min(artists.length, 15); // Limit for performance
+  const dp: boolean[][] = Array(n + 1).fill(null).map(() => Array(targetReach + 1).fill(false));
+  const parent: number[][] = Array(n + 1).fill(null).map(() => Array(targetReach + 1).fill(-1));
   
-  let bestStrategy = strategies[0];
+  dp[0][0] = true;
   
-  for (const strategy of strategies) {
-    // Prefer strategies that get closer to target (lower accuracy = better)
-    if (strategy.accuracy < bestStrategy.accuracy) {
-      bestStrategy = strategy;
-    } else if (Math.abs(strategy.accuracy - bestStrategy.accuracy) < targetReach * 0.05) {
-      // If accuracy is similar (within 5% of target), prefer fewer artists
-      if (strategy.artistIds.length < bestStrategy.artistIds.length) {
-        bestStrategy = strategy;
+  for (let i = 1; i <= n; i++) {
+    const artistReach = artists[i - 1].estimatedReach;
+    for (let j = 0; j <= targetReach; j++) {
+      // Don't take this artist
+      if (dp[i - 1][j]) {
+        dp[i][j] = true;
+        parent[i][j] = 0;
+      }
+      // Take this artist (if it fits)
+      if (j >= artistReach && dp[i - 1][j - artistReach]) {
+        dp[i][j] = true;
+        parent[i][j] = 1;
       }
     }
   }
   
-  console.log('Strategy evaluation:', {
-    targetReach,
-    strategy1: { reach: strategy1.totalReach, accuracy: strategy1.accuracy, count: strategy1.artistIds.length },
-    strategy2: { reach: strategy2.totalReach, accuracy: strategy2.accuracy, count: strategy2.artistIds.length },
-    strategy3: { reach: strategy3.totalReach, accuracy: strategy3.accuracy, count: strategy3.artistIds.length },
-    bestStrategy: { reach: bestStrategy.totalReach, accuracy: bestStrategy.accuracy, count: bestStrategy.artistIds.length },
-    accuracyPercentage: ((bestStrategy.totalReach / targetReach) * 100).toFixed(1) + '%'
-  });
+  // Find closest match to target
+  let bestReach = 0;
+  for (let reach = targetReach; reach >= 0; reach--) {
+    if (dp[n][reach]) {
+      bestReach = reach;
+      break;
+    }
+  }
   
-  return bestStrategy.artistIds;
-};
-
-// Find the best combination using improved greedy approach with relaxed criteria
-const findBestCombination = (sortedArtists: (Member & { estimatedReach: number })[], targetReach: number) => {
-  const selected: string[] = [];
-  let currentReach = 0;
-  
-  console.log('Finding best combination:', {
-    artistCount: sortedArtists.length,
-    targetReach,
-    firstFewArtists: sortedArtists.slice(0, 3).map(a => ({ name: a.stage_name || a.name, reach: a.estimatedReach }))
-  });
-  
-  // Phase 1: Additive selection - keep adding artists until we get close
-  for (const artist of sortedArtists) {
-    if (selected.length >= 12) break; // Reasonable upper limit
-    
-    const newTotal = currentReach + artist.estimatedReach;
-    const currentAccuracy = Math.abs(currentReach - targetReach);
-    const newAccuracy = Math.abs(newTotal - targetReach);
-    
-    // Add artist if:
-    // 1. It improves our accuracy, OR
-    // 2. We're still significantly under target (less than 70%), OR
-    // 3. We have fewer than 2 artists selected
-    if (newAccuracy < currentAccuracy || 
-        currentReach < targetReach * 0.7 || 
-        selected.length < 2) {
-      selected.push(artist.id);
-      currentReach = newTotal;
-      
-      console.log('Added artist:', {
-        name: artist.stage_name || artist.name,
-        reach: artist.estimatedReach,
-        totalReach: currentReach,
-        targetReach,
-        accuracy: newAccuracy,
-        progress: ((currentReach / targetReach) * 100).toFixed(1) + '%'
-      });
-      
-      // Stop if we're reasonably close to target (within 20%)
-      if (currentReach >= targetReach * 0.8 && currentReach <= targetReach * 1.2) {
+  // If no match found below target, check above
+  if (bestReach === 0) {
+    for (let reach = targetReach + 1; reach <= targetReach + Math.floor(targetReach * 0.2); reach++) {
+      if (reach <= targetReach && dp[n][reach]) {
+        bestReach = reach;
         break;
       }
     }
   }
   
-  // Phase 2: Replacement optimization - try to get even closer
-  for (let iteration = 0; iteration < 3; iteration++) {
-    let improved = false;
-    
-    for (let i = 0; i < selected.length; i++) {
-      const currentArtist = sortedArtists.find(a => a.id === selected[i]);
-      if (!currentArtist) continue;
-      
-      const reachWithoutCurrent = currentReach - currentArtist.estimatedReach;
-      const currentAccuracy = Math.abs(currentReach - targetReach);
-      
-      // Try replacing with each unused artist
-      for (const candidate of sortedArtists) {
-        if (selected.includes(candidate.id)) continue;
-        
-        const newReach = reachWithoutCurrent + candidate.estimatedReach;
-        const newAccuracy = Math.abs(newReach - targetReach);
-        
-        // Replace if it significantly improves accuracy (at least 5% better)
-        if (newAccuracy < currentAccuracy * 0.95) {
-          console.log('Replacing artist:', {
-            removed: currentArtist.stage_name || currentArtist.name,
-            added: candidate.stage_name || candidate.name,
-            oldReach: currentReach,
-            newReach: newReach,
-            improvement: currentAccuracy - newAccuracy
-          });
-          
-          selected[i] = candidate.id;
-          currentReach = newReach;
-          improved = true;
-          break;
-        }
+  // Reconstruct solution
+  const selected: string[] = [];
+  let i = n, j = bestReach;
+  while (i > 0 && j > 0) {
+    if (parent[i][j] === 1) {
+      selected.push(artists[i - 1].id);
+      j -= artists[i - 1].estimatedReach;
+    }
+    i--;
+  }
+  
+  return { selected: selected.reverse(), totalReach: bestReach };
+};
+
+// Algorithm 2: Near-perfect match using subset sum with tolerance
+const findNearPerfectMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  // Sort by reach for better pruning
+  const sortedArtists = [...artists].sort((a, b) => b.estimatedReach - a.estimatedReach);
+  const tolerance = Math.floor(targetReach * 0.05); // 5% tolerance
+  
+  let bestCombination: string[] = [];
+  let bestReach = 0;
+  let bestDiff = Infinity;
+  
+  // Recursive backtracking with pruning
+  const backtrack = (index: number, currentReach: number, currentSelection: string[]) => {
+    if (index >= sortedArtists.length || currentSelection.length >= 10) {
+      const diff = Math.abs(currentReach - targetReach);
+      if (diff < bestDiff) {
+        bestCombination = [...currentSelection];
+        bestReach = currentReach;
+        bestDiff = diff;
       }
-      
-      if (improved) break;
+      return;
     }
     
-    if (!improved) break;
-  }
-  
-  // Ensure minimum selection - if we have very few artists, add more
-  if (selected.length < 2 && sortedArtists.length >= 2) {
-    const remaining = sortedArtists.filter(a => !selected.includes(a.id));
-    const toAdd = Math.min(2 - selected.length, remaining.length);
-    for (let i = 0; i < toAdd; i++) {
-      selected.push(remaining[i].id);
-      currentReach += remaining[i].estimatedReach;
+    // Pruning: if already within tolerance, record and continue
+    const currentDiff = Math.abs(currentReach - targetReach);
+    if (currentDiff <= tolerance && currentDiff < bestDiff) {
+      bestCombination = [...currentSelection];
+      bestReach = currentReach;
+      bestDiff = currentDiff;
+      return; // Found good enough solution
     }
-    console.log('Added minimum artists to reach count of:', selected.length);
+    
+    // Skip this artist
+    backtrack(index + 1, currentReach, currentSelection);
+    
+    // Take this artist (if it makes sense)
+    const newReach = currentReach + sortedArtists[index].estimatedReach;
+    if (newReach <= targetReach * 1.3) { // Don't go too far over
+      backtrack(index + 1, newReach, [...currentSelection, sortedArtists[index].id]);
+    }
+  };
+  
+  backtrack(0, 0, []);
+  return { selected: bestCombination, totalReach: bestReach };
+};
+
+// Algorithm 3: Optimized greedy with advanced replacement
+const findOptimizedGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  // Size-based buckets
+  const small = artists.filter(a => a.estimatedReach < targetReach * 0.1);
+  const medium = artists.filter(a => a.estimatedReach >= targetReach * 0.1 && a.estimatedReach < targetReach * 0.4);
+  const large = artists.filter(a => a.estimatedReach >= targetReach * 0.4);
+  
+  const selected: string[] = [];
+  let currentReach = 0;
+  
+  // Phase 1: Use large artists to get close
+  const sortedLarge = large.sort((a, b) => b.estimatedReach - a.estimatedReach);
+  for (const artist of sortedLarge) {
+    if (currentReach + artist.estimatedReach <= targetReach * 1.1) {
+      selected.push(artist.id);
+      currentReach += artist.estimatedReach;
+      if (currentReach >= targetReach * 0.7) break;
+    }
   }
   
-  const accuracy = Math.abs(currentReach - targetReach);
+  // Phase 2: Fill with medium artists
+  const sortedMedium = medium.sort((a, b) => b.estimatedReach - a.estimatedReach);
+  for (const artist of sortedMedium) {
+    if (selected.length >= 8) break;
+    const newReach = currentReach + artist.estimatedReach;
+    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
+      selected.push(artist.id);
+      currentReach = newReach;
+    }
+  }
   
-  console.log('Final combination result:', {
-    selectedCount: selected.length,
-    totalReach: currentReach,
-    targetReach,
-    accuracy,
-    percentage: ((currentReach / targetReach) * 100).toFixed(1) + '%'
-  });
+  // Phase 3: Fine-tune with small artists
+  const sortedSmall = small.sort((a, b) => a.estimatedReach - b.estimatedReach);
+  for (const artist of sortedSmall) {
+    if (selected.length >= 10) break;
+    const newReach = currentReach + artist.estimatedReach;
+    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
+      selected.push(artist.id);
+      currentReach = newReach;
+    }
+  }
   
-  return { artistIds: selected, totalReach: currentReach, accuracy };
+  return { selected, totalReach: currentReach };
+};
+
+// Algorithm 4: Smart mix matching with gap analysis
+const findSmartMixMatch = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
+  const sorted = [...artists].sort((a, b) => b.estimatedReach - a.estimatedReach);
+  const selected: string[] = [];
+  let currentReach = 0;
+  
+  while (selected.length < 12 && sorted.length > 0) {
+    const remaining = targetReach - currentReach;
+    
+    if (remaining <= 0) break;
+    
+    // Find artist that best fills the gap
+    let bestArtist = null;
+    let bestScore = Infinity;
+    
+    for (let i = 0; i < sorted.length; i++) {
+      const artist = sorted[i];
+      if (selected.includes(artist.id)) continue;
+      
+      const gap = Math.abs(remaining - artist.estimatedReach);
+      const efficiency = gap / artist.estimatedReach; // Lower is better
+      
+      if (efficiency < bestScore || (efficiency === bestScore && artist.estimatedReach > (bestArtist?.estimatedReach || 0))) {
+        bestArtist = artist;
+        bestScore = efficiency;
+      }
+    }
+    
+    if (bestArtist) {
+      selected.push(bestArtist.id);
+      currentReach += bestArtist.estimatedReach;
+      
+      // Stop if we're very close
+      if (Math.abs(currentReach - targetReach) <= targetReach * 0.02) break;
+    } else {
+      break;
+    }
+  }
+  
+  return { selected, totalReach: currentReach };
 };
 
 interface Member {

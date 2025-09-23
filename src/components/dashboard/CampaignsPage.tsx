@@ -50,6 +50,8 @@ import {
 import { CampaignForm } from "./CampaignForm";
 import { CampaignAttributionAnalytics } from "./CampaignAttributionAnalytics";
 import { CampaignDetailModal } from "./CampaignDetailModal";
+import { useCampaignReachData } from "@/hooks/useCampaignReachData";
+import { formatReachPerformance, calculateReachProgress } from "@/utils/numberFormatting";
 
 interface Campaign {
   id: string;
@@ -83,6 +85,7 @@ export default function CampaignsPage() {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const { toast } = useToast();
+  const { getTotalReach, loading: reachLoading } = useCampaignReachData();
 
   useEffect(() => {
     fetchCampaigns();
@@ -278,6 +281,7 @@ export default function CampaignsPage() {
                     <TableHead>Client</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Progress</TableHead>
+                    <TableHead>Reach Performance</TableHead>
                     <TableHead>Revenue</TableHead>
                     <TableHead>Invoice</TableHead>
                     <TableHead>Start Date</TableHead>
@@ -324,6 +328,25 @@ export default function CampaignsPage() {
                                 className="bg-primary h-1.5 rounded-full" 
                                 style={{ 
                                   width: `${calculateProgress(campaign.goals, campaign.remaining_metrics)}%` 
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {campaign.goals > 0 ? (
+                          <div className="w-24">
+                            <div className="text-xs mb-1 font-medium">
+                              {formatReachPerformance(getTotalReach(campaign.id), campaign.goals)}
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-green-500 h-1.5 rounded-full transition-all" 
+                                style={{ 
+                                  width: `${calculateReachProgress(getTotalReach(campaign.id), campaign.goals)}%` 
                                 }}
                               ></div>
                             </div>

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
+import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
 interface Member {
   id: string;
@@ -35,6 +36,10 @@ interface Member {
   groups: string[];
   reach_factor: number;
   status: string;
+  repost_credit_wallet?: {
+    balance: number;
+    monthly_grant: number;
+  };
 }
 
 interface ArtistAssignmentModalProps {
@@ -67,12 +72,13 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [totalReach, setTotalReach] = useState(0);
 
-  // Calculate total expected reach based on selected artists
+  // Calculate total expected reach based on selected artists using new reach estimator
   useEffect(() => {
     const reach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
-        return total + (artist.soundcloud_followers * (artist.reach_factor || 0.1));
+        const estimate = estimateReach(artist.soundcloud_followers);
+        return total + (estimate?.reach_median || 0);
       }
       return total;
     }, 0);
@@ -96,9 +102,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       let query = supabase
         .from('members')
-        .select('*')
+        .select(`
+          *,
+          repost_credit_wallet!inner(balance, monthly_grant)
+        `)
         .eq('status', 'active')
-        .gt('net_credits', 0)
+        .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000)
         .order('soundcloud_followers', { ascending: false });
 
@@ -111,10 +120,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       if (error) throw error;
 
-      // Filter and score artists based on reach compatibility
+      // Filter and score artists based on reach compatibility using new estimator
       const targetReach = submission.expected_reach_planned || 50000;
       const compatible = (data as Member[]).filter(member => {
-        const estimatedReach = member.soundcloud_followers * (member.reach_factor || 0.1);
+        const estimate = estimateReach(member.soundcloud_followers);
+        const estimatedReach = estimate?.reach_median || 0;
         // Include artists whose reach is between 10% and 200% of target per artist
         const targetPerArtist = targetReach / 5; // Assuming ~5 artists
         return estimatedReach >= targetPerArtist * 0.1 && estimatedReach <= targetPerArtist * 2;
@@ -122,13 +132,14 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       setSuggestedArtists(compatible.slice(0, 10));
       
-      // Auto-select top artists to meet reach target
+      // Auto-select top artists to meet reach target using new estimator
       const autoSelected = [];
       let currentReach = 0;
       for (const artist of compatible) {
         if (currentReach < targetReach) {
           autoSelected.push(artist.id);
-          currentReach += artist.soundcloud_followers * (artist.reach_factor || 0.1);
+          const estimate = estimateReach(artist.soundcloud_followers);
+          currentReach += estimate?.reach_median || 0;
         }
         if (autoSelected.length >= 8 || currentReach >= targetReach * 1.2) break;
       }
@@ -156,9 +167,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     try {
       const { data, error } = await supabase
         .from('members')
-        .select('*')
+        .select(`
+          *,
+          repost_credit_wallet!inner(balance, monthly_grant)
+        `)
         .eq('status', 'active')
-        .gt('net_credits', 0)
+        .gt('repost_credit_wallet.balance', 0)
         .or(`name.ilike.%${term}%,stage_name.ilike.%${term}%`)
         .limit(10);
 
@@ -225,10 +239,13 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           </div>
           <div className="text-right">
             <div className="text-sm font-medium">
-              {Math.round(artist.soundcloud_followers * (artist.reach_factor || 0.1)).toLocaleString()} reach
+              {(() => {
+                const estimate = estimateReach(artist.soundcloud_followers);
+                return estimate ? estimate.reach_median.toLocaleString() : '0';
+              })()} reach
             </div>
             <div className="text-xs text-muted-foreground">
-              {artist.net_credits} credits
+              {artist.repost_credit_wallet?.[0]?.balance || 0} credits
             </div>
           </div>
         </div>

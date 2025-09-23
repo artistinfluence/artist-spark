@@ -10,8 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
   Search,
   Users,
@@ -20,80 +24,96 @@ import {
   Plus,
   Minus,
   AlertCircle,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
 import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
 // Fast-first artist selection with progressive optimization
-const optimizeArtistSelection = (artists: Member[], targetReach: number): { quick: string[], optimized?: string[] } => {
+const optimizeArtistSelection = (artists: Member[], targetReach: number, submitterFollowers: number): { quick: string[], optimized?: string[] } => {
   if (artists.length === 0) return { quick: [] };
   
-  // Limit dataset for performance - use top 20 artists
+  // Limit dataset for performance - use top 30 artists
   const limitedArtists = artists
-    .sort((a, b) => (b.soundcloud_followers || 0) - (a.soundcloud_followers || 0))
-    .slice(0, 20)
+    .slice(0, 30)
     .map(artist => ({
       ...artist,
       estimatedReach: artist.soundcloud_followers || 0
     }));
 
-  console.log('Starting fast artist selection:', {
+  console.log('Starting smart artist selection:', {
     totalArtists: artists.length,
     limitedArtists: limitedArtists.length,
-    targetReach
+    targetReach,
+    submitterFollowers
   });
 
-  // Quick selection using simple greedy (< 50ms)
-  const quickResult = findQuickGreedy(limitedArtists, targetReach);
+  // Smart selection prioritizing similar-sized artists
+  const quickResult = findQuickGreedy(limitedArtists, targetReach, submitterFollowers);
   
   return { 
     quick: quickResult.selected,
-    optimized: quickResult.selected // For now, use same result
+    optimized: quickResult.selected
   };
 };
 
-// Fast greedy algorithm for immediate results
-const findQuickGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number) => {
-  // Sort by efficiency (reach per artist)
-  const sorted = [...artists].sort((a, b) => b.estimatedReach - a.estimatedReach);
+// Smart artist selection prioritizing similar-sized artists first
+const findQuickGreedy = (artists: (Member & { estimatedReach: number })[], targetReach: number, submitterFollowers: number) => {
+  // Calculate similarity scores based on submitter's follower count
+  const artistsWithSimilarity = artists.map(artist => ({
+    ...artist,
+    similarityScore: calculateSimilarityScore(artist.estimatedReach, submitterFollowers)
+  }));
+  
+  // Sort by similarity first, then by reach efficiency
+  const sorted = artistsWithSimilarity.sort((a, b) => {
+    const similarityDiff = b.similarityScore - a.similarityScore;
+    if (Math.abs(similarityDiff) > 0.1) return similarityDiff;
+    return b.estimatedReach - a.estimatedReach;
+  });
   
   const selected: string[] = [];
   let currentReach = 0;
   
-  // Phase 1: Add largest artists until we're close
+  // Phase 1: Add similar-sized artists first
   for (const artist of sorted) {
-    if (selected.length >= 6) break; // Limit for speed
+    if (selected.length >= 8) break;
     
     const newReach = currentReach + artist.estimatedReach;
     const currentDistance = Math.abs(targetReach - currentReach);
     const newDistance = Math.abs(targetReach - newReach);
     
-    // Add if it gets us closer or if we're still far from target
-    if (newDistance < currentDistance || currentReach < targetReach * 0.7) {
+    // Add if it gets us closer or if we need more reach
+    if (newDistance < currentDistance || currentReach < targetReach * 0.8) {
       selected.push(artist.id);
       currentReach = newReach;
       
-      // Stop if we're close enough (within 20%)
-      if (Math.abs(currentReach - targetReach) <= targetReach * 0.2) {
+      // Stop if we're close enough (within 15%)
+      if (Math.abs(currentReach - targetReach) <= targetReach * 0.15) {
         break;
       }
     }
   }
   
-  // Phase 2: Quick fine-tuning with remaining artists
-  const remaining = sorted.filter(a => !selected.includes(a.id));
-  for (const artist of remaining) {
-    if (selected.length >= 8) break;
-    
-    const newReach = currentReach + artist.estimatedReach;
-    if (Math.abs(newReach - targetReach) < Math.abs(currentReach - targetReach)) {
-      selected.push(artist.id);
-      currentReach = newReach;
-    }
-  }
-  
   return { selected, totalReach: currentReach };
+};
+
+// Calculate similarity score based on follower count tiers
+const calculateSimilarityScore = (artistFollowers: number, submitterFollowers: number): number => {
+  if (submitterFollowers === 0) return 0.5; // Default for unknown submitters
+  
+  const ratio = Math.min(artistFollowers, submitterFollowers) / Math.max(artistFollowers, submitterFollowers);
+  
+  // Bonus for same tier
+  const getTier = (followers: number) => {
+    if (followers < 10000) return 'small';
+    if (followers < 100000) return 'medium';
+    return 'large';
+  };
+  
+  const sameTier = getTier(artistFollowers) === getTier(submitterFollowers);
+  return ratio * (sameTier ? 1.2 : 1.0);
 };
 
 // Removed complex algorithms to improve performance
@@ -118,7 +138,7 @@ interface Member {
 interface ArtistAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (selectedArtists: string[]) => void;
+  onConfirm: (selectedArtists: string[], supportDate: Date) => void;
   submission: {
     id: string;
     artist_name: string;
@@ -147,6 +167,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [quickLoading, setQuickLoading] = useState(false);
   const [totalReach, setTotalReach] = useState(0);
   const [addedFromSearch, setAddedFromSearch] = useState<Set<string>>(new Set());
+  const [supportDate, setSupportDate] = useState<Date>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  });
 
   // Calculate total estimated reach of selected artists
   useEffect(() => {
@@ -191,19 +216,23 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         memberFollowers: submission.members?.soundcloud_followers
       });
 
-      // Optimized query with proper indexing
+      // Optimized query filtering out disconnected artists
       let query = supabase
         .from('members')
         .select(`
           id, name, stage_name, soundcloud_followers, size_tier, 
           net_credits, families, groups, reach_factor, status,
-          repost_credit_wallet!inner(balance, monthly_grant)
+          repost_credit_wallet!inner(balance, monthly_grant),
+          member_accounts!inner(platform, status),
+          integration_status!inner(status)
         `)
         .eq('status', 'active')
+        .eq('member_accounts.platform', 'soundcloud')
+        .neq('integration_status.status', 'disconnected')
         .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000)
         .order('soundcloud_followers', { ascending: false })
-        .limit(30); // Limit for performance
+        .limit(30);
 
       // Apply genre filter for precision
       if (submission.subgenres?.length > 0) {
@@ -225,9 +254,13 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           .select(`
             id, name, stage_name, soundcloud_followers, size_tier,
             net_credits, families, groups, reach_factor, status,
-            repost_credit_wallet!inner(balance, monthly_grant)
+            repost_credit_wallet!inner(balance, monthly_grant),
+            member_accounts!inner(platform, status),
+            integration_status!inner(status)
           `)
           .eq('status', 'active')
+          .eq('member_accounts.platform', 'soundcloud')
+          .neq('integration_status.status', 'disconnected')
           .gt('repost_credit_wallet.balance', 0)
           .gt('soundcloud_followers', 1000)
           .order('soundcloud_followers', { ascending: false })
@@ -245,9 +278,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       
       console.log('Target reach:', targetReach, 'for', submitterFollowers, 'followers');
 
-      // Quick selection (< 100ms)
+      // Smart selection prioritizing similar-sized artists
       setQuickLoading(false);
-      const selectionResult = optimizeArtistSelection(members, targetReach);
+      const selectionResult = optimizeArtistSelection(members, targetReach, submitterFollowers);
       
       // Set artists and selection immediately
       setSuggestedArtists(members);
@@ -284,9 +317,13 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .from('members')
         .select(`
           *,
-          repost_credit_wallet!inner(balance, monthly_grant)
+          repost_credit_wallet!inner(balance, monthly_grant),
+          member_accounts!inner(platform, status),
+          integration_status!inner(status)
         `)
         .eq('status', 'active')
+        .eq('member_accounts.platform', 'soundcloud')
+        .neq('integration_status.status', 'disconnected')
         .gt('repost_credit_wallet.balance', 0)
         .or(`name.ilike.${term}%,stage_name.ilike.${term}%`)
         .order('name')
@@ -366,7 +403,16 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       return;
     }
 
-    onConfirm(selectedArtists);
+    if (!supportDate) {
+      toast({
+        title: "No Support Date Selected",
+        description: "Please select when reposts should start",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onConfirm(selectedArtists, supportDate);
     onClose();
   };
 
@@ -454,6 +500,47 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             </CardContent>
           </Card>
 
+          {/* Support Date Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5" />
+                Support Date
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Select when the reposts should start
+                </p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[240px] justify-start text-left font-normal",
+                        !supportDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {supportDate ? format(supportDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={supportDate}
+                      onSelect={(date) => date && setSupportDate(date)}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Search Additional Artists */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Add More Artists</h3>
@@ -527,9 +614,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
               <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleConfirm} disabled={selectedArtists.length === 0}>
+              <Button onClick={handleConfirm} disabled={selectedArtists.length === 0 || !supportDate}>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Approve with Selected Artists
+                {supportDate ? `Approve for ${format(supportDate, 'MMM d')}` : 'Approve with Selected Artists'}
               </Button>
             </div>
           </div>

@@ -403,15 +403,10 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     }
   };
 
-  // Search for additional artists
+  // Search for additional artists with follower count sorting
   const searchArtists = async (term: string) => {
-    if (!term.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('members')
         .select(`
           *,
@@ -419,15 +414,27 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         `)
         .eq('status', 'active')
         .gt('repost_credit_wallet.balance', 0)
-        .or(`name.ilike.${term}%,stage_name.ilike.${term}%`)
-        .order('name')
-        .limit(20);
+        .order('soundcloud_followers', { ascending: false })
+        .limit(50);
 
+      // If there's a search term, filter by it - otherwise show all artists
+      if (term.trim()) {
+        query = query.or(`name.ilike.${term}%,stage_name.ilike.${term}%`);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       setSearchResults(data as Member[]);
     } catch (error: any) {
       console.error('Error searching artists:', error);
+    }
+  };
+
+  // Show all artists on focus
+  const handleSearchFocus = () => {
+    if (searchResults.length === 0) {
+      searchArtists(''); // Load all artists sorted by follower count
     }
   };
 
@@ -668,25 +675,39 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or stage name..."
+                placeholder="Click to see all artists sorted by followers, or type to filter..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={handleSearchFocus}
                 className="pl-9"
               />
-              {searchTerm && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+                  <div className="px-3 py-2 border-b bg-muted text-xs text-muted-foreground">
+                    {searchTerm 
+                      ? `Artists starting with "${searchTerm}" (${searchResults.filter(artist => !suggestedArtists.find(s => s.id === artist.id)).length} results)` 
+                      : `All artists sorted by followers (${searchResults.filter(artist => !suggestedArtists.find(s => s.id === artist.id)).length} available)`
+                    }
+                  </div>
                   {searchResults
                     .filter(artist => !suggestedArtists.find(s => s.id === artist.id))
                     .map(artist => (
                       <div
                         key={artist.id}
-                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0"
+                        className="flex items-center justify-between gap-3 p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0"
                         onClick={() => handleSearchArtistSelect(artist)}
                       >
-                        <span className="font-medium">{artist.stage_name || artist.name}</span>
-                        <span className="text-muted-foreground">
-                          ({formatFollowerCount(artist.soundcloud_followers)})
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{artist.stage_name || artist.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">
+                            {formatFollowerCount(artist.soundcloud_followers)}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {getFollowerTier(artist.soundcloud_followers)}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                 </div>

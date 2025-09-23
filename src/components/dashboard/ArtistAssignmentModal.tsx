@@ -92,6 +92,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
     setLoading(true);
     try {
+      console.log('Fetching artists for submission:', {
+        family: submission.family,
+        subgenres: submission.subgenres,
+        memberFollowers: submission.members?.soundcloud_followers
+      });
+
       let query = supabase
         .from('members')
         .select(`
@@ -102,20 +108,15 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000);
 
-      // Apply genre filters if available using proper PostgreSQL array syntax
-      const genreConditions = [];
+      // Apply genre filters if available using proper Supabase array methods
       if (submission.family) {
-        genreConditions.push(`families@>{"${submission.family}"}`);
+        console.log('Adding family filter:', submission.family);
+        query = query.overlaps('families', [submission.family]);
       }
       if (submission.subgenres?.length > 0) {
-        // Check if any of the subgenres match
-        submission.subgenres.forEach(subgenre => {
-          genreConditions.push(`groups@>{"${subgenre}"}`);
-        });
-      }
-
-      if (genreConditions.length > 0) {
-        query = query.or(genreConditions.join(','));
+        console.log('Adding subgenres filter:', submission.subgenres);
+        // Filter for any matching subgenres
+        query = query.overlaps('groups', submission.subgenres);
       }
 
       const { data, error } = await query;
@@ -124,8 +125,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       let members = data as Member[];
       
+      console.log('Query results:', { count: members.length, hasGenreFilters: !!submission.family || !!submission.subgenres?.length });
+      
       // If no genre matches found, fall back to all active members
       if (members.length === 0) {
+        console.log('No genre matches found, falling back to all active members...');
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('members')
           .select(`
@@ -134,10 +138,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           `)
           .eq('status', 'active')
           .gt('repost_credit_wallet.balance', 0)
-          .gt('soundcloud_followers', 1000);
+          .gt('soundcloud_followers', 1000)
+          .limit(50);
         
         if (fallbackError) throw fallbackError;
         members = fallbackData as Member[];
+        console.log('Fallback results:', { count: members.length });
       }
 
       // Sort by follower count (smallest first) for strategic selection

@@ -29,7 +29,7 @@ const AnalyticsDashboard = React.lazy(() => import("@/components/dashboard/Analy
 const RevenueAnalytics = React.lazy(() => import("@/components/dashboard/RevenueAnalytics").then(m => ({ default: m.RevenueAnalytics })));
 const MemberInsights = React.lazy(() => import("@/components/dashboard/MemberInsights").then(m => ({ default: m.MemberInsights })));
 const CampaignAnalytics = React.lazy(() => import("@/components/dashboard/CampaignAnalytics").then(m => ({ default: m.CampaignAnalytics })));
-const ReportBuilder = React.lazy(() => import("@/components/dashboard/ReportBuilder").then(m => ({ default: m.ReportBuilder })));
+const WeeklyCampaignReports = React.lazy(() => import("@/components/dashboard/WeeklyCampaignReports").then(m => ({ default: m.WeeklyCampaignReports })));
 const DataExportManager = React.lazy(() => import("@/components/dashboard/DataExportManager").then(m => ({ default: m.DataExportManager })));
 const BusinessIntelligence = React.lazy(() => import("@/components/dashboard/BusinessIntelligence").then(m => ({ default: m.BusinessIntelligence })));
 const IntegratedAnalytics = React.lazy(() => import("@/components/dashboard/IntegratedAnalytics").then(m => ({ default: m.IntegratedAnalytics })));
@@ -133,7 +133,7 @@ const App = () => (
                 <Route path="analytics/revenue" element={<Suspense fallback={<PageLoadingSpinner />}><RevenueAnalytics /></Suspense>} />
                 <Route path="analytics/members" element={<Suspense fallback={<PageLoadingSpinner />}><MemberInsights /></Suspense>} />
                 <Route path="analytics/campaigns" element={<Suspense fallback={<PageLoadingSpinner />}><CampaignAnalytics /></Suspense>} />
-                <Route path="analytics/reports" element={<Suspense fallback={<PageLoadingSpinner />}><ReportBuilder /></Suspense>} />
+                <Route path="analytics/reports" element={<Suspense fallback={<PageLoadingSpinner />}><WeeklyCampaignReports /></Suspense>} />
                 <Route path="analytics/exports" element={<Suspense fallback={<PageLoadingSpinner />}><DataExportManager /></Suspense>} />
                 <Route path="analytics/intelligence" element={<Suspense fallback={<PageLoadingSpinner />}><BusinessIntelligence /></Suspense>} />
                 <Route path="analytics/integrated" element={<Suspense fallback={<PageLoadingSpinner />}><IntegratedAnalytics /></Suspense>} />

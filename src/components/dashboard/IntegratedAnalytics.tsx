@@ -9,7 +9,7 @@ import { RevenueAnalytics } from './RevenueAnalytics';
 import { MemberInsights } from './MemberInsights';
 import { CampaignAnalytics } from './CampaignAnalytics';
 import { QueueAnalytics } from './QueueAnalytics';
-import { ReportBuilder } from './ReportBuilder';
+import { WeeklyCampaignReports } from './WeeklyCampaignReports';
 import { DataExportManager } from './DataExportManager';
 import { BusinessIntelligence } from './BusinessIntelligence';
 import { AnomalyMonitor } from './AnomalyMonitor';
@@ -300,7 +300,7 @@ export const IntegratedAnalytics: React.FC<UnifiedAnalyticsProps> = ({
         </TabsContent>
 
         <TabsContent value="reports">
-          <ReportBuilder />
+          <WeeklyCampaignReports />
         </TabsContent>
 
         <TabsContent value="exports">

@@ -67,7 +67,7 @@ const analyticsNavigation: NavItem[] = [
   { name: "Revenue Analytics", href: "/dashboard/analytics/revenue", icon: TrendingUp, description: "Financial performance & forecasting" },
   { name: "Member Insights", href: "/dashboard/analytics/members", icon: Users, description: "Member behavior & performance analysis" },
   { name: "Campaign Analytics", href: "/dashboard/analytics/campaigns", icon: PieChart, description: "Campaign ROI & effectiveness" },
-  { name: "Report Builder", href: "/dashboard/analytics/reports", icon: FileBarChart, description: "Custom analytics reports" },
+  { name: "Weekly Campaign Reports", href: "/dashboard/analytics/reports", icon: FileBarChart, description: "SoundCloud campaign weekly reports" },
   { name: "Data Exports", href: "/dashboard/analytics/exports", icon: Download, description: "Export & schedule reports" },
   { name: "Business Intelligence", href: "/dashboard/analytics/intelligence", icon: Brain, description: "Advanced BI & insights" },
   { name: "Integrated View", href: "/dashboard/analytics/integrated", icon: BarChart3, description: "Unified analytics dashboard" },

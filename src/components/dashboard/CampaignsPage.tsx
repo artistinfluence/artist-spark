@@ -79,7 +79,6 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -91,7 +90,7 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     filterCampaigns();
-  }, [campaigns, searchTerm, statusFilter, typeFilter]);
+  }, [campaigns, searchTerm, statusFilter]);
 
   const fetchCampaigns = async () => {
     try {
@@ -130,10 +129,6 @@ export default function CampaignsPage() {
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(campaign => campaign.status === statusFilter);
-    }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(campaign => campaign.campaign_type === typeFilter);
     }
 
     setFilteredCampaigns(filtered);
@@ -266,17 +261,6 @@ export default function CampaignsPage() {
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="Reposts">Reposts</SelectItem>
-                    <SelectItem value="Hyppedit">Hyppedit</SelectItem>
-                    <SelectItem value="Followers">Followers</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
           </Card>
@@ -292,7 +276,6 @@ export default function CampaignsPage() {
                   <TableRow>
                     <TableHead>Track</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Progress</TableHead>
                     <TableHead>Revenue</TableHead>
@@ -324,9 +307,6 @@ export default function CampaignsPage() {
                           <p className="font-medium">{campaign.client.name}</p>
                           <p className="text-sm text-muted-foreground">{campaign.client.email}</p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{campaign.campaign_type}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={`${getStatusColor(campaign.status)} text-white`}>

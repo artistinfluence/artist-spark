@@ -173,7 +173,9 @@ export default function CampaignsPage() {
     }
   };
 
-  const calculateProgress = (goals: number, remaining: number) => {
+  // Calculate progress based on remaining metrics (legacy approach)
+  // Progress based on receipt links will be shown in the campaign modal
+  const calculateProgress = (goals: number, remaining: number): number => {
     if (!goals) return 0;
     return Math.max(0, Math.min(100, ((goals - remaining) / goals) * 100));
   };

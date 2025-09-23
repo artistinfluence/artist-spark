@@ -5,11 +5,14 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Progress } from "@/components/ui/progress";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useWeeklyCampaignReports } from "@/hooks/useWeeklyCampaignReports";
-import { Mail, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { ReceiptLinksManager } from "./ReceiptLinksManager";
+import { Mail, TrendingUp, TrendingDown, ExternalLink, BarChart3 } from "lucide-react";
+import { formatFollowerCount } from "@/utils/creditCalculations";
 
 interface Campaign {
   id: string;
@@ -42,6 +45,7 @@ interface CampaignDetailModalProps {
 export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdate }: CampaignDetailModalProps) {
   const [weeklyReporting, setWeeklyReporting] = useState(campaign?.weekly_reporting_enabled || false);
   const [sendingReport, setSendingReport] = useState(false);
+  const [totalReceiptsReach, setTotalReceiptsReach] = useState(0);
   const { toast } = useToast();
   const { fetchCampaignWeeklyReport } = useWeeklyCampaignReports();
 
@@ -110,9 +114,13 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
     }
   };
 
-  const calculateProgress = (goals: number, remaining: number) => {
+  const calculateProgress = (goals: number, totalReach: number) => {
     if (!goals) return 0;
-    return Math.max(0, Math.min(100, ((goals - remaining) / goals) * 100));
+    return Math.max(0, Math.min(100, (totalReach / goals) * 100));
+  };
+
+  const handleReachUpdate = (newTotalReach: number) => {
+    setTotalReceiptsReach(newTotalReach);
   };
 
   // Mock streaming data for visualization
@@ -121,13 +129,6 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
     { week: 'W2', plays: 1890, likes: 134, reposts: 23, comments: 15 },
     { week: 'W3', plays: 2340, likes: 178, reposts: 31, comments: 22 },
     { week: 'W4', plays: 2850, likes: 215, reposts: 38, comments: 28 },
-  ];
-
-  // Mock influence receipts data
-  const mockInfluenceReceipts = [
-    { supporter: 'DJ Beatmaker', handle: '@djbeatmaker', scheduledDate: '2024-01-15', proofUrl: 'https://soundcloud.com/djbeatmaker/sets/reposts', status: 'completed' },
-    { supporter: 'Electronic Vibes', handle: '@electronicvibes', scheduledDate: '2024-01-16', proofUrl: 'https://soundcloud.com/electronicvibes/sets/reposts', status: 'completed' },
-    { supporter: 'Bass Drop Central', handle: '@bassdropcentral', scheduledDate: '2024-01-17', proofUrl: null, status: 'pending' },
   ];
 
   return (
@@ -152,14 +153,25 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Campaign Type</p>
                   <p className="font-medium">{campaign.campaign_type}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Progress</p>
-                  <p className="font-medium">{Math.round(calculateProgress(campaign.goals, campaign.remaining_metrics))}% Complete</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{Math.round(calculateProgress(campaign.goals, totalReceiptsReach))}% Complete</span>
+                    </div>
+                    <Progress 
+                      value={calculateProgress(campaign.goals, totalReceiptsReach)} 
+                      className="w-full h-2" 
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      {formatFollowerCount(totalReceiptsReach)} / {formatFollowerCount(campaign.goals)} reach
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Revenue</p>
@@ -172,6 +184,11 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
               </div>
             </CardContent>
           </Card>
+
+          <ReceiptLinksManager 
+            campaignId={campaign.id}
+            onReachUpdate={handleReachUpdate}
+          />
 
           {/* Weekly Reporting Controls */}
           <Card>
@@ -199,7 +216,13 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
               </div>
               
               {weeklyReporting && (
-                <div className="mt-4 pt-4 border-t">
+                <div className="mt-6 pt-4 border-t">
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Report Preview - What will be sent to client:
+                    </h4>
+                  </div>
                   <Button 
                     onClick={handleSendWeeklyReport}
                     disabled={sendingReport}
@@ -229,9 +252,28 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
                       <XAxis dataKey="week" />
                       <YAxis />
                       <Tooltip />
-                      <Line type="monotone" dataKey="plays" stroke="hsl(var(--primary))" strokeWidth={2} />
-                      <Line type="monotone" dataKey="likes" stroke="hsl(var(--secondary))" strokeWidth={2} />
-                      <Line type="monotone" dataKey="reposts" stroke="hsl(var(--accent))" strokeWidth={2} />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="plays" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2} 
+                        name="Plays"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="likes" 
+                        stroke="hsl(var(--secondary))" 
+                        strokeWidth={2} 
+                        name="Likes"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="reposts" 
+                        stroke="hsl(var(--accent))" 
+                        strokeWidth={2} 
+                        name="Reposts"
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                   <div className="grid grid-cols-3 gap-4 mt-4">
@@ -263,55 +305,19 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
                 </CardContent>
               </Card>
 
-              {/* Influence Planner Receipts */}
+              {/* Live Receipt Links Preview */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Influence Planner Receipt Links</CardTitle>
+                  <CardTitle>Live Receipt Links</CardTitle>
                   <CardDescription>
-                    Supporter activity and proof of promotion
+                    Current receipt links that will be included in the report
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Supporter</TableHead>
-                        <TableHead>Handle</TableHead>
-                        <TableHead>Scheduled Date</TableHead>
-                        <TableHead>Proof URL</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockInfluenceReceipts.map((receipt, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{receipt.supporter}</TableCell>
-                          <TableCell className="text-muted-foreground">{receipt.handle}</TableCell>
-                          <TableCell>{new Date(receipt.scheduledDate).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            {receipt.proofUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(receipt.proofUrl!, '_blank')}
-                                className="flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                View Proof
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={receipt.status === 'completed' ? 'default' : 'secondary'}>
-                              {receipt.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <ReceiptLinksManager 
+                    campaignId={campaign.id}
+                    onReachUpdate={() => {}} // No need to update here, just display
+                  />
                 </CardContent>
               </Card>
             </>

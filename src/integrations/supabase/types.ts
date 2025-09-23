@@ -436,6 +436,45 @@ export type Database = {
           },
         ]
       }
+      campaign_receipt_links: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          proof_url: string | null
+          reach_amount: number
+          scheduled_date: string | null
+          status: string
+          supporter_handle: string
+          supporter_name: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          reach_amount?: number
+          scheduled_date?: string | null
+          status?: string
+          supporter_handle: string
+          supporter_name: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          reach_amount?: number
+          scheduled_date?: string | null
+          status?: string
+          supporter_handle?: string
+          supporter_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           approved_at: string | null

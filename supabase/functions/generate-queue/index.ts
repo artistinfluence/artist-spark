@@ -45,16 +45,29 @@ Deno.serve(async (req) => {
       .eq('date', date)
       .single()
 
+    let queueId = existingQueue?.id
+
+    // If queue exists, check if it already has assignments
     if (existingQueue) {
-      return new Response(
-        JSON.stringify({ 
-          error: `Queue already exists for ${date} with status: ${existingQueue.status}` 
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      const { data: existingAssignments } = await supabaseClient
+        .from('queue_assignments')
+        .select('id')
+        .eq('queue_id', existingQueue.id)
+        .limit(1)
+
+      if (existingAssignments && existingAssignments.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: `Queue for ${date} already has assignments. Delete existing assignments first to regenerate.` 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      
+      console.log(`Using existing queue ${existingQueue.id} for ${date}`)
     }
 
     // Get approved submissions that need support
@@ -112,31 +125,34 @@ Deno.serve(async (req) => {
       .select('adjacency_matrix, target_band_mode')
       .single()
 
-    // Create the queue
-    const { data: newQueue, error: queueError } = await supabaseClient
-      .from('queues')
-      .insert({
-        date,
-        status: 'draft',
-        total_slots: 0,
-        filled_slots: 0,
-        notes: `Auto-generated queue for ${submissions.length} submissions`
-      })
-      .select('id')
-      .single()
+    // Create the queue if it doesn't exist
+    if (!existingQueue) {
+      const { data: newQueue, error: queueError } = await supabaseClient
+        .from('queues')
+        .insert({
+          date,
+          status: 'draft',
+          total_slots: 0,
+          filled_slots: 0,
+          notes: `Auto-generated queue for ${submissions.length} submissions`
+        })
+        .select('id')
+        .single()
 
-    if (queueError) {
-      console.error('Error creating queue:', queueError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to create queue' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      if (queueError) {
+        console.error('Error creating queue:', queueError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create queue' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      queueId = newQueue.id
+      console.log(`Created queue with ID: ${newQueue.id}`)
     }
-
-    console.log(`Created queue with ID: ${newQueue.id}`)
 
     // Generate assignments using fairness algorithm
     const assignments: Array<{
@@ -192,7 +208,7 @@ Deno.serve(async (req) => {
         const creditsToAllocate = Math.max(50, Math.ceil(baseCredits * 0.7))
 
         assignments.push({
-          queue_id: newQueue.id,
+          queue_id: queueId,
           submission_id: submission.id,
           supporter_id: supporter.id,
           position: position++,
@@ -243,14 +259,14 @@ Deno.serve(async (req) => {
         total_slots: assignments.length,
         filled_slots: assignments.length
       })
-      .eq('id', newQueue.id)
+      .eq('id', queueId)
 
     console.log(`Queue generation completed successfully`)
 
     return new Response(
       JSON.stringify({
         success: true,
-        queue_id: newQueue.id,
+        queue_id: queueId,
         assignments_created: assignments.length,
         message: `Queue generated with ${assignments.length} assignments for ${submissions.length} submissions`
       }),

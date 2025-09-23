@@ -9,11 +9,11 @@ export interface QueueAssignment {
   credits_allocated: number;
   proof_url: string | null;
   completed_at: string | null;
-  supporter: {
+  members: {
     id: string;
     name: string;
     soundcloud_followers: number;
-  };
+  } | null;
 }
 
 export const useQueueAssignments = (submissionId: string | null) => {
@@ -35,7 +35,7 @@ export const useQueueAssignments = (submissionId: string | null) => {
           credits_allocated,
           proof_url,
           completed_at,
-          supporter:supporter_id (
+          members!supporter_id (
             id,
             name,
             soundcloud_followers

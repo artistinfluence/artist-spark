@@ -23,13 +23,21 @@ export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ subm
   const [generating, setGenerating] = useState(false);
 
   const generateQueue = async () => {
-    if (!submission?.support_date) return;
+    if (!submission?.support_date) {
+      console.log('No support_date found:', submission);
+      return;
+    }
+    
+    console.log('Calling generate-queue with date:', submission.support_date);
+    console.log('Submission ID:', submissionId);
     
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-queue', {
         body: { date: submission.support_date }
       });
+
+      console.log('Generate-queue response:', { data, error });
 
       if (error) throw error;
 
@@ -39,10 +47,13 @@ export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ subm
 
       toast({
         title: "Success",
-        description: data.message,
+        description: data.message || "Queue generated successfully",
       });
 
-      await refetch();
+      // Wait a bit for the assignments to be created
+      setTimeout(async () => {
+        await refetch();
+      }, 1000);
     } catch (error: any) {
       console.error('Error generating queue:', error);
       toast({
@@ -138,12 +149,12 @@ export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ subm
                 </TableCell>
                 <TableCell>
                   <div className="text-sm font-medium">
-                    {assignment.supporter?.name || 'Unknown Artist'}
+                    {assignment.members?.name || 'Unknown Artist'}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {assignment.supporter?.soundcloud_followers?.toLocaleString() || 'N/A'}
+                    {assignment.members?.soundcloud_followers?.toLocaleString() || 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>

@@ -26,11 +26,4 @@ export const generateQueueAssignments = async (date: string) => {
   }
 };
 
-// Call this immediately to generate assignments for 2025-09-25
-generateQueueAssignments('2025-09-25')
-  .then(result => {
-    console.log('Queue generation completed:', result);
-  })
-  .catch(error => {
-    console.error('Queue generation failed:', error);
-  });
+// This function can be called to generate queue assignments for a given date

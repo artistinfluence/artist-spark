@@ -184,12 +184,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     const totalEstimatedReach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
-        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
+        const artistReach = artist.soundcloud_followers || 0;
         console.log('Found artist for reach calculation:', {
           artistId,
           name: artist.stage_name || artist.name,
           followers: artist.soundcloud_followers,
-          estimatedReach: artistReach
+          followerCount: artistReach
         });
         return total + artistReach;
       } else {

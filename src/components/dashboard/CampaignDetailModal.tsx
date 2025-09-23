@@ -190,6 +190,74 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
             onReachUpdate={handleReachUpdate}
           />
 
+          {/* Streaming Metrics Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Week-over-Week Streaming Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={mockStreamingData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="plays" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2} 
+                    name="Plays"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="likes" 
+                    stroke="hsl(var(--secondary))" 
+                    strokeWidth={2} 
+                    name="Likes"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="reposts" 
+                    stroke="hsl(var(--accent))" 
+                    strokeWidth={2} 
+                    name="Reposts"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">2,850</p>
+                  <p className="text-sm text-muted-foreground">Total Plays</p>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <TrendingUp className="h-3 w-3 text-green-500" />
+                    <span className="text-xs text-green-500">+22% vs last week</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-secondary">215</p>
+                  <p className="text-sm text-muted-foreground">Total Likes</p>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <TrendingUp className="h-3 w-3 text-green-500" />
+                    <span className="text-xs text-green-500">+21% vs last week</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-accent">38</p>
+                  <p className="text-sm text-muted-foreground">Total Reposts</p>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <TrendingUp className="h-3 w-3 text-green-500" />
+                    <span className="text-xs text-green-500">+23% vs last week</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Weekly Reporting Controls */}
           <Card>
             <CardHeader>
@@ -234,79 +302,6 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
               )}
             </CardContent>
           </Card>
-
-          {weeklyReporting && (
-            <>
-              {/* Streaming Metrics Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Week-over-Week Streaming Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={mockStreamingData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="plays" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2} 
-                        name="Plays"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="likes" 
-                        stroke="hsl(var(--secondary))" 
-                        strokeWidth={2} 
-                        name="Likes"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="reposts" 
-                        stroke="hsl(var(--accent))" 
-                        strokeWidth={2} 
-                        name="Reposts"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  <div className="grid grid-cols-3 gap-4 mt-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">2,850</p>
-                      <p className="text-sm text-muted-foreground">Total Plays</p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                        <span className="text-xs text-green-500">+22% vs last week</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-secondary">215</p>
-                      <p className="text-sm text-muted-foreground">Total Likes</p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                        <span className="text-xs text-green-500">+21% vs last week</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-accent">38</p>
-                      <p className="text-sm text-muted-foreground">Total Reposts</p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                        <span className="text-xs text-green-500">+23% vs last week</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>

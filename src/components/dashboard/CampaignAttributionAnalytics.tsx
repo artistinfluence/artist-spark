@@ -20,10 +20,10 @@ export const CampaignAttributionAnalytics: React.FC = () => {
   const completedCampaigns = campaigns.filter(c => c.status === 'completed' || c.status === 'ended')
 
   // Calculate summary metrics
-  const totalSpent = campaigns.reduce((sum, c) => sum + (c.price_usd || 0), 0)
+  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.price_usd || 0), 0)
   const totalPlaysGained = campaigns.reduce((sum, c) => sum + c.plays_gained, 0)
   const totalRepostsGained = campaigns.reduce((sum, c) => sum + c.reposts_gained, 0)
-  const avgCostPerRepost = totalSpent > 0 && totalRepostsGained > 0 ? totalSpent / totalRepostsGained : 0
+  const avgCostPerRepost = totalRevenue > 0 && totalRepostsGained > 0 ? totalRevenue / totalRepostsGained : 0
 
   // Prepare chart data for active campaigns
   const performanceData = activeCampaigns.map(campaign => ({
@@ -98,11 +98,11 @@ export const CampaignAttributionAnalytics: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Investment</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               Across all campaigns
             </p>

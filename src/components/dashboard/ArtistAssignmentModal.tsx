@@ -144,47 +144,46 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       // Sort by follower count (smallest first) for strategic selection
       const sortedMembers = members.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
 
-      // Calculate target reach using power-law algorithm from member's follower count
-      const memberFollowers = submission.members?.soundcloud_followers || 25000;
-      const memberReachEstimate = estimateReach(memberFollowers);
-      const targetReach = memberReachEstimate?.reach_median || 50000;
+      // Use the submission's expected reach as target
+      const targetReach = submission.expected_reach_planned || 50000;
       
       console.log('Target reach calculation:', {
-        memberFollowers,
-        memberReachEstimate,
         targetReach,
         dbExpectedReach: submission.expected_reach_planned
       });
+
+      // Filter artists with minimum reach but no maximum (allow big artists)
       const compatible = sortedMembers.filter(member => {
         const estimate = estimateReach(member.soundcloud_followers);
         const estimatedReach = estimate?.reach_median || 0;
-        // Include artists whose individual reach is reasonable for the target
-        return estimatedReach >= 1000 && estimatedReach <= targetReach;
+        return estimatedReach >= 1000; // Only minimum threshold
       });
 
-      setSuggestedArtists(compatible.slice(0, 15));
+      setSuggestedArtists(compatible.slice(0, 20));
       
-      // Smart auto-selection: start with smaller artists and build up
+      // Improved auto-selection: aggressively target 95-105% of goal
       const autoSelected = [];
       let currentReach = 0;
+      const targetMin = targetReach * 0.95;
+      const targetMax = targetReach * 1.05;
       
-      // First pass: select smaller artists (up to 30k followers)
-      for (const artist of compatible.filter(a => a.soundcloud_followers <= 30000)) {
-        if (currentReach < targetReach * 0.7) { // Fill 70% with smaller artists
-          autoSelected.push(artist.id);
+      // Select artists to reach target range
+      for (const artist of compatible) {
+        if (currentReach < targetMax) {
           const estimate = estimateReach(artist.soundcloud_followers);
-          currentReach += estimate?.reach_median || 0;
+          const artistReach = estimate?.reach_median || 0;
+          
+          // Add if it helps us get closer to target without massive overshoot
+          if (currentReach + artistReach <= targetMax * 1.2) {
+            autoSelected.push(artist.id);
+            currentReach += artistReach;
+          }
+          
+          // Stop if we're in the good range
+          if (currentReach >= targetMin && autoSelected.length >= 3) {
+            break;
+          }
         }
-      }
-      
-      // Second pass: add larger artists if needed
-      for (const artist of compatible.filter(a => a.soundcloud_followers > 30000)) {
-        if (currentReach < targetReach && currentReach < targetReach * 1.15) { // Don't over-deliver by more than 15%
-          autoSelected.push(artist.id);
-          const estimate = estimateReach(artist.soundcloud_followers);
-          currentReach += estimate?.reach_median || 0;
-        }
-        if (autoSelected.length >= 8 || currentReach >= targetReach * 1.15) break;
       }
       
       setSelectedArtists(autoSelected);
@@ -282,12 +281,6 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <div className="text-sm font-medium">
-              {(() => {
-                const estimate = estimateReach(artist.soundcloud_followers);
-                return estimate ? estimate.reach_median.toLocaleString() : '0';
-              })()} reach
-            </div>
             <div className="text-xs text-muted-foreground">
               {artist.repost_credit_wallet?.balance || 0} credits
             </div>
@@ -308,10 +301,8 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  // Calculate target reach using power-law algorithm from member's follower count
-  const memberFollowers = submission.members?.soundcloud_followers || 25000;
-  const memberReachEstimate = estimateReach(memberFollowers);
-  const targetReach = memberReachEstimate?.reach_median || 50000;
+  // Use the submission's expected reach as target
+  const targetReach = submission.expected_reach_planned || 50000;
   const reachPercentage = (totalReach / targetReach) * 100;
   const isReachGood = reachPercentage >= 80 && reachPercentage <= 120;
 

@@ -15,6 +15,7 @@ export interface SubmissionWithMember {
   expected_reach_min: number;
   expected_reach_max: number;
   support_date: string;
+  scheduled_date: string | null;
   notes: string;
   qa_reason: string;
   need_live_link: boolean;
@@ -57,6 +58,7 @@ export const useSubmissionsList = (status?: string | 'all') => {
           expected_reach_min,
           expected_reach_max,
           support_date,
+          scheduled_date,
           notes,
           qa_reason,
           need_live_link,

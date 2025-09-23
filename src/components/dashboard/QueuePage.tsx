@@ -73,6 +73,7 @@ export const QueuePage = () => {
             <TableHead>Member</TableHead>
             <TableHead>Genre</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Scheduled Date</TableHead>
             <TableHead>Expected Reach</TableHead>
             <TableHead>Suggested Reach</TableHead>
             <TableHead>Credits</TableHead>
@@ -82,7 +83,11 @@ export const QueuePage = () => {
         </TableHeader>
         <TableBody>
           {submissionsList.map((submission) => (
-            <TableRow key={submission.id}>
+            <TableRow 
+              key={submission.id} 
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => handleViewDetails(submission)}
+            >
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div>
@@ -125,11 +130,23 @@ export const QueuePage = () => {
                   submission.status === 'approved' ? 'default' :
                   submission.status === 'rejected' ? 'destructive' :
                   submission.status === 'pending' ? 'secondary' : 'outline'
-                }>
-                  {submission.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
+                 }>
+                   {submission.status}
+                 </Badge>
+               </TableCell>
+               <TableCell>
+                 <div className="text-sm">
+                   {submission.scheduled_date ? (
+                     <div className="flex items-center gap-1">
+                       <span>{new Date(submission.scheduled_date).toLocaleDateString()}</span>
+                       <Badge variant="default" className="text-xs">Scheduled</Badge>
+                     </div>
+                   ) : (
+                     <span className="text-muted-foreground">Not scheduled</span>
+                   )}
+                 </div>
+               </TableCell>
+               <TableCell>
                 <div className="text-sm">
                   {submission.expected_reach_planned?.toLocaleString() || 'Not set'}
                 </div>
@@ -155,40 +172,37 @@ export const QueuePage = () => {
               <TableCell className="text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  {activeTab === 'new' && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        className="h-8 px-2 bg-green-600 hover:bg-green-700"
-                        onClick={() => handleApprove(submission)}
-                      >
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Approve
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        className="h-8 px-2"
-                        onClick={() => handleReject(submission.id)}
-                      >
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Reject
-                      </Button>
-                    </>
-                  )}
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-8 px-2"
-                    onClick={() => handleViewDetails(submission)}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Details
-                  </Button>
-                </div>
-              </TableCell>
+               <TableCell>
+                 <div className="flex items-center gap-1">
+                   {activeTab === 'new' && (
+                     <>
+                       <Button 
+                         size="sm" 
+                         className="h-8 px-2 bg-green-600 hover:bg-green-700"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleApprove(submission);
+                         }}
+                       >
+                         <CheckCircle className="h-3 w-3 mr-1" />
+                         Approve
+                       </Button>
+                       <Button 
+                         size="sm" 
+                         variant="destructive" 
+                         className="h-8 px-2"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleReject(submission.id);
+                         }}
+                       >
+                         <XCircle className="h-3 w-3 mr-1" />
+                         Reject
+                       </Button>
+                     </>
+                   )}
+                 </div>
+               </TableCell>
             </TableRow>
           ))}
         </TableBody>

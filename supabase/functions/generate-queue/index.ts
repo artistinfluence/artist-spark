@@ -219,6 +219,18 @@ Deno.serve(async (req) => {
           }
         )
       }
+
+      // Update submissions with scheduled_date
+      const submissionIds = [...new Set(assignments.map(a => a.submission_id))]
+      const { error: updateError } = await supabaseClient
+        .from('submissions')
+        .update({ scheduled_date: date })
+        .in('id', submissionIds)
+
+      if (updateError) {
+        console.error('Error updating submission scheduled_date:', updateError)
+        // Don't fail the entire process, just log the error
+      }
     }
 
     // Update queue with final counts

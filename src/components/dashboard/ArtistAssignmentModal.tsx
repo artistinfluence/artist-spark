@@ -275,6 +275,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [quickLoading, setQuickLoading] = useState(false);
   const [totalReach, setTotalReach] = useState(0);
   const [addedFromSearch, setAddedFromSearch] = useState<Set<string>>(new Set());
+  const [hasSearchFocus, setHasSearchFocus] = useState(false);
   const [supportDate, setSupportDate] = useState<Date>(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -433,24 +434,41 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   // Show all artists on focus
   const handleSearchFocus = () => {
+    setHasSearchFocus(true);
     if (searchResults.length === 0) {
       searchArtists(''); // Load all artists sorted by follower count
     }
   };
 
+  const handleSearchBlur = () => {
+    // Delay hiding to allow clicking on dropdown items
+    setTimeout(() => {
+      setHasSearchFocus(false);
+      setSearchResults([]);
+    }, 150);
+  };
+
   useEffect(() => {
     if (isOpen && submission) {
       fetchSuggestedArtists();
+    } else if (!isOpen) {
+      // Reset search state when modal closes
+      setSearchTerm('');
+      setSearchResults([]);
+      setHasSearchFocus(false);
     }
   }, [isOpen, submission]);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      searchArtists(searchTerm);
+      // Only search if user has focused the input or there's an actual search term
+      if (hasSearchFocus || searchTerm.trim()) {
+        searchArtists(searchTerm);
+      }
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchTerm]);
+  }, [searchTerm, hasSearchFocus]);
 
   const handleArtistToggle = (artistId: string) => {
     setSelectedArtists(prev => {
@@ -679,9 +697,10 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
                 className="pl-9"
               />
-              {searchResults.length > 0 && (
+              {hasSearchFocus && searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
                   <div className="px-3 py-2 border-b bg-muted text-xs text-muted-foreground">
                     {searchTerm 

@@ -170,39 +170,31 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       setSuggestedArtists(compatible.slice(0, 20));
       
-      // Improved auto-selection: target 90-110% of goal with better algorithm
+      // Improved auto-selection: select artists to meet target reach
       const autoSelected = [];
       let currentReach = 0;
-      const targetMin = targetReach * 0.90;
-      const targetMax = targetReach * 1.10;
+      const targetMin = targetReach * 0.85; // Allow slightly under target
       
-      console.log('Auto-selection targets:', { targetMin, targetMax, totalArtists: compatible.length });
+      console.log('Auto-selection targets:', { target: targetReach, targetMin, totalArtists: compatible.length });
       
-      // Select artists to reach target range - be more flexible
+      // Select artists until we reach target - be more aggressive
       for (const artist of compatible) {
         const estimate = estimateReach(artist.soundcloud_followers);
         const artistReach = estimate?.reach_median || 0;
         
         console.log(`Evaluating artist ${artist.stage_name}: ${artistReach} reach, current total: ${currentReach}`);
         
-        // Add artist if it gets us closer to target, even if we overshoot slightly
-        const newTotal = currentReach + artistReach;
-        const currentDistance = Math.abs(targetReach - currentReach);
-        const newDistance = Math.abs(targetReach - newTotal);
-        
-        // Select if it gets us closer to target OR if we have no artists selected yet
-        if (newDistance < currentDistance || autoSelected.length === 0) {
+        // Always add if we're under target, or if it's the first artist
+        if (currentReach < targetMin || autoSelected.length === 0) {
           autoSelected.push(artist.id);
-          currentReach = newTotal;
+          currentReach += artistReach;
           console.log(`Selected artist ${artist.stage_name}, new total: ${currentReach}`);
         }
         
-        // Stop if we're reasonably close and have at least 2 artists
-        if (currentReach >= targetMin && autoSelected.length >= 2 && newDistance > currentDistance) {
+        // Stop if we've reached reasonable target or selected too many
+        if (currentReach >= targetMin && autoSelected.length >= 2) {
           break;
         }
-        
-        // Safety stop to avoid selecting too many
         if (autoSelected.length >= 8) {
           break;
         }
@@ -285,40 +277,25 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     onClose();
   };
 
-  const renderArtistCard = (artist: Member, isSelected: boolean) => (
-    <Card key={artist.id} className={`cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => handleArtistToggle(artist.id)}
-            />
-            <div>
-              <h4 className="font-medium">{artist.stage_name || artist.name}</h4>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{formatFollowerCount(artist.soundcloud_followers)} followers</span>
-                <Badge variant="outline">{getFollowerTier(artist.soundcloud_followers)}</Badge>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">
-              {artist.repost_credit_wallet?.balance || 0} credits
-            </div>
-          </div>
-        </div>
-        {artist.families?.length > 0 && (
-          <div className="flex gap-1 mt-2">
-            {artist.families.slice(0, 3).map(family => (
-              <Badge key={family} variant="secondary" className="text-xs">
-                {family}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+  const renderArtistItem = (artist: Member, isSelected: boolean) => (
+    <div 
+      key={artist.id} 
+      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
+        isSelected ? 'bg-primary/5 border-primary' : 'border-border'
+      }`}
+      onClick={() => handleArtistToggle(artist.id)}
+    >
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={() => handleArtistToggle(artist.id)}
+      />
+      <div className="flex-1">
+        <span className="font-medium">{artist.stage_name || artist.name}</span>
+        <span className="text-muted-foreground ml-2">
+          ({formatFollowerCount(artist.soundcloud_followers)})
+        </span>
+      </div>
+    </div>
   );
 
   if (!submission) return null;
@@ -392,9 +369,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             {loading ? (
               <div className="text-center py-8">Loading suggestions...</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
                 {suggestedArtists.map(artist => 
-                  renderArtistCard(artist, selectedArtists.includes(artist.id))
+                  renderArtistItem(artist, selectedArtists.includes(artist.id))
                 )}
               </div>
             )}
@@ -413,11 +390,11 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
               />
             </div>
             {searchResults.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
                 {searchResults
                   .filter(artist => !suggestedArtists.find(s => s.id === artist.id))
                   .map(artist => 
-                    renderArtistCard(artist, selectedArtists.includes(artist.id))
+                    renderArtistItem(artist, selectedArtists.includes(artist.id))
                   )}
               </div>
             )}

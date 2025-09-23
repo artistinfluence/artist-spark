@@ -260,14 +260,30 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   // Calculate total estimated reach of selected artists
   useEffect(() => {
+    console.log('Calculating total reach for selected artists:', {
+      selectedArtists,
+      suggestedArtistsCount: suggestedArtists.length,
+      searchResultsCount: searchResults.length
+    });
+    
     const totalEstimatedReach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
         const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
+        console.log('Found artist for reach calculation:', {
+          artistId,
+          name: artist.stage_name || artist.name,
+          followers: artist.soundcloud_followers,
+          reach: artistReach
+        });
         return total + artistReach;
+      } else {
+        console.log('Artist not found for reach calculation:', artistId);
       }
       return total;
     }, 0);
+    
+    console.log('Setting total reach:', totalEstimatedReach);
     setTotalReach(totalEstimatedReach);
   }, [selectedArtists, suggestedArtists, searchResults]);
 
@@ -347,21 +363,35 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         return member.soundcloud_followers >= 1000; // Only minimum follower threshold
       });
 
-      setSuggestedArtists(compatible.slice(0, 20));
-      
       // Smart auto-selection: find the best combination to match target reach
       const autoSelected = optimizeArtistSelection(compatible, targetReach);
       
+      // Ensure all auto-selected artists are in the suggested artists list
+      const autoSelectedArtists = autoSelected.map(id => compatible.find(a => a.id === id)).filter(Boolean) as Member[];
+      const remainingArtists = compatible.filter(a => !autoSelected.includes(a.id)).slice(0, 20 - autoSelectedArtists.length);
+      const allSuggestedArtists = [...autoSelectedArtists, ...remainingArtists];
+      
+      setSuggestedArtists(allSuggestedArtists);
+      
+      const estimatedReachForSelected = autoSelected.reduce((total, artistId) => {
+        const artist = compatible.find(a => a.id === artistId);
+        return total + (estimateReach(artist?.soundcloud_followers || 0)?.reach_median || 0);
+      }, 0);
+
       console.log('Auto-selection result:', {
         selectedCount: autoSelected.length,
         targetReach,
-        estimatedReach: autoSelected.reduce((total, artistId) => {
-          const artist = compatible.find(a => a.id === artistId);
-          return total + (estimateReach(artist?.soundcloud_followers || 0)?.reach_median || 0);
-        }, 0)
+        estimatedReach: estimatedReachForSelected,
+        selectedIds: autoSelected,
+        autoSelectedArtistNames: autoSelectedArtists.map(a => a.stage_name || a.name)
       });
       
-      setSelectedArtists(autoSelected);
+      // Clear any previous selections first, then set new ones
+      setSelectedArtists([]);
+      setTimeout(() => {
+        console.log('Setting selected artists:', autoSelected);
+        setSelectedArtists(autoSelected);
+      }, 50);
 
     } catch (error: any) {
       console.error('Error fetching suggested artists:', error);

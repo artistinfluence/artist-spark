@@ -30,22 +30,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFollowerCount, getFollowerTier } from '@/utils/creditCalculations';
 import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 
-// Fast-first artist selection with progressive optimization
+// Enhanced artist selection with large pool support (12-50 artists)
 const optimizeArtistSelection = (artists: Member[], targetReach: number, submitterFollowers: number): { quick: string[], optimized?: string[] } => {
   if (artists.length === 0) return { quick: [] };
   
-  // Limit dataset for performance - use top 30 artists
-  const limitedArtists = artists.slice(0, 30);
+  // Use larger dataset for better combinations - expand to 100+ artists
+  const limitedArtists = artists.slice(0, 100);
 
-  console.log('Starting smart artist selection:', {
+  console.log('Starting enhanced artist selection:', {
     totalArtists: artists.length,
     limitedArtists: limitedArtists.length,
     targetReach,
-    submitterFollowers
+    submitterFollowers,
+    targetArtistRange: '12-50 artists'
   });
 
-  // Smart selection prioritizing similar-sized artists
-  const quickResult = findQuickGreedy(limitedArtists, targetReach, submitterFollowers);
+  // Enhanced selection for 12-50 artist optimization
+  const quickResult = findOptimalSelection(limitedArtists, targetReach, submitterFollowers);
   
   return { 
     quick: quickResult.selected,
@@ -53,8 +54,8 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number, submitt
   };
 };
 
-// Smart artist selection prioritizing similar-sized artists first  
-const findQuickGreedy = (artists: Member[], targetReach: number, submitterFollowers: number) => {
+// Enhanced selection algorithm for 12-50 artists with tight tolerance
+const findOptimalSelection = (artists: Member[], targetReach: number, submitterFollowers: number) => {
   // Calculate similarity scores and tier-based weighting
   const artistsWithSimilarity = artists.map(artist => {
     const followers = artist.soundcloud_followers || 0;
@@ -72,7 +73,7 @@ const findQuickGreedy = (artists: Member[], targetReach: number, submitterFollow
     };
   });
   
-  // Sort by similarity first, then by followers for tie-breaking
+  // Sort by similarity first, but keep variety of sizes
   const sorted = artistsWithSimilarity.sort((a, b) => {
     const similarityDiff = b.similarityScore - a.similarityScore;
     if (Math.abs(similarityDiff) > 0.1) return similarityDiff;
@@ -81,34 +82,79 @@ const findQuickGreedy = (artists: Member[], targetReach: number, submitterFollow
   
   const selected: string[] = [];
   let currentFollowerSum = 0;
+  const targetTolerance = targetReach * 0.06; // Tightened to 6% tolerance
   
-  // Use knapsack-style approach to get close to target reach
+  console.log('Starting selection with tight tolerance:', {
+    targetReach,
+    tolerance: targetTolerance,
+    maxArtists: 50,
+    availableArtists: sorted.length
+  });
+  
+  // Enhanced algorithm for 12-50 artists
   for (const artist of sorted) {
-    if (selected.length >= 8) break;
+    if (selected.length >= 50) break; // Hard cap at 50 artists
     
     const newSum = currentFollowerSum + artist.followers;
     const currentDistance = Math.abs(targetReach - currentFollowerSum);
     const newDistance = Math.abs(targetReach - newSum);
     
-    // Add if it gets us closer or if we're still far from target
-    if (newDistance < currentDistance || currentFollowerSum < targetReach * 0.8) {
+    // More aggressive selection - always add if we're under target or if it gets us closer
+    const shouldAdd = currentFollowerSum < targetReach || newDistance <= currentDistance;
+    
+    if (shouldAdd) {
       selected.push(artist.id);
       currentFollowerSum = newSum;
       
-      console.log('Selected artist:', {
+      console.log('Added artist:', {
         name: artist.stage_name || artist.name,
         followers: artist.followers,
-        similarityScore: artist.similarityScore,
+        similarityScore: artist.similarityScore.toFixed(2),
         currentSum: currentFollowerSum,
-        targetReach
+        targetReach,
+        distance: Math.abs(currentFollowerSum - targetReach),
+        tolerance: targetTolerance,
+        selectedCount: selected.length
       });
       
-      // Stop if we're close enough (within 15%)
-      if (Math.abs(currentFollowerSum - targetReach) <= targetReach * 0.15) {
+      // Success criteria: within 6% tolerance AND at least 12 artists
+      if (selected.length >= 12 && Math.abs(currentFollowerSum - targetReach) <= targetTolerance) {
+        console.log('✅ Target reached successfully:', {
+          selectedCount: selected.length,
+          finalReach: currentFollowerSum,
+          targetReach,
+          accuracy: `${((1 - Math.abs(currentFollowerSum - targetReach) / targetReach) * 100).toFixed(1)}%`
+        });
         break;
       }
     }
   }
+  
+  // If we haven't reached minimum, fill with smaller artists
+  if (selected.length < 12) {
+    const remainingArtists = sorted.filter(a => !selected.includes(a.id));
+    const smallerArtists = remainingArtists.sort((a, b) => a.followers - b.followers);
+    
+    for (const artist of smallerArtists) {
+      if (selected.length >= 12) break;
+      selected.push(artist.id);
+      currentFollowerSum += artist.followers;
+      
+      console.log('Filling minimum requirement:', {
+        name: artist.stage_name || artist.name,
+        followers: artist.followers,
+        selectedCount: selected.length
+      });
+    }
+  }
+  
+  console.log('Final selection result:', {
+    selectedCount: selected.length,
+    totalReach: currentFollowerSum,
+    targetReach,
+    accuracy: `${((1 - Math.abs(currentFollowerSum - targetReach) / targetReach) * 100).toFixed(1)}%`,
+    withinTolerance: Math.abs(currentFollowerSum - targetReach) <= targetTolerance
+  });
   
   return { selected, totalReach: currentFollowerSum };
 };
@@ -265,7 +311,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000)
         .order('soundcloud_followers', { ascending: false })
-        .limit(30);
+        .limit(100);
 
       // Apply genre filter for precision
       if (submission.subgenres?.length > 0) {
@@ -293,7 +339,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           .gt('repost_credit_wallet.balance', 0)
           .gt('soundcloud_followers', 1000)
           .order('soundcloud_followers', { ascending: false })
-          .limit(30);
+          .limit(100);
         
         if (fallbackError) throw fallbackError;
         members = fallbackData as Member[];
@@ -466,7 +512,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const submitterFollowers = submission.members?.soundcloud_followers || 0;
   const targetReach = estimateReach(submitterFollowers)?.reach_median || 0;
   const reachPercentage = (totalReach / targetReach) * 100;
-  const isReachGood = reachPercentage >= 90 && reachPercentage <= 110;
+  const isReachGood = reachPercentage >= 94 && reachPercentage <= 106; // Tightened to 6% tolerance
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

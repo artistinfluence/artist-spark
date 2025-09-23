@@ -74,16 +74,17 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
   const [totalReach, setTotalReach] = useState(0);
   const [addedFromSearch, setAddedFromSearch] = useState<Set<string>>(new Set());
 
-  // Calculate total follower count of selected artists
+  // Calculate total estimated reach of selected artists
   useEffect(() => {
-    const totalFollowers = selectedArtists.reduce((total, artistId) => {
+    const totalEstimatedReach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
-        return total + artist.soundcloud_followers;
+        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
+        return total + artistReach;
       }
       return total;
     }, 0);
-    setTotalReach(totalFollowers);
+    setTotalReach(totalEstimatedReach);
   }, [selectedArtists, suggestedArtists, searchResults]);
 
   // Fetch suggested artists based on submission criteria
@@ -144,17 +145,17 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       // Sort by follower count (largest first) for display
       const sortedMembers = members.sort((a, b) => b.soundcloud_followers - a.soundcloud_followers);
 
-  // Calculate target follower count using inverse of reach estimation formula
-  const dbTarget = submission.expected_reach_planned || 50000;
-  const C = 16830.763237;
-  const b = 0.396285;
-  // Inverse formula: followers = (reach / C) ^ (1/b)
-  const targetFollowerCount = Math.round(Math.pow(dbTarget / C, 1 / b));
+      // Calculate target reach based on submitter's follower count
+      const submitterFollowers = submission.members?.soundcloud_followers || 0;
+      const C = 16830.763237;
+      const b = 0.396285;
+      // Calculate submitter's estimated reach using direct formula
+      const targetReach = Math.round(C * Math.pow(submitterFollowers, b));
       
-      console.log('Target follower calculation:', {
-        dbTarget: dbTarget,
-        finalTarget: targetFollowerCount,
-        dbExpectedReach: submission.expected_reach_planned
+      console.log('Target reach calculation:', {
+        submitterFollowers: submitterFollowers,
+        targetReach: targetReach,
+        formula: `${C} × ${submitterFollowers}^${b} = ${targetReach}`
       });
 
       // Filter artists with minimum followers (1k+) for quality
@@ -164,35 +165,35 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       setSuggestedArtists(compatible.slice(0, 20));
       
-      // Auto-selection: select artists to meet target follower count
+      // Auto-selection: select artists to meet target reach
       const autoSelected = [];
-      let currentFollowers = 0;
-      const targetMin = targetFollowerCount * 0.9; // Allow 10% under target
-      const targetMax = targetFollowerCount * 1.1; // Don't go more than 10% over
+      let currentEstimatedReach = 0;
+      const targetMin = targetReach * 0.9; // Allow 10% under target
+      const targetMax = targetReach * 1.1; // Don't go more than 10% over
       
-      console.log('Auto-selection targets:', { target: targetFollowerCount, targetMin, targetMax, totalArtists: compatible.length });
+      console.log('Auto-selection targets:', { targetReach, targetMin, targetMax, totalArtists: compatible.length });
       
       // Sort by follower count (smallest first) for better combinations
       const sortedCompatible = compatible.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
       
-      // Select artists until we reach target follower count
+      // Select artists until we reach target estimated reach
       for (const artist of sortedCompatible) {
-        const artistFollowers = artist.soundcloud_followers;
+        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
         
-        console.log(`Evaluating artist ${artist.stage_name}: ${artistFollowers} followers, current total: ${currentFollowers}`);
+        console.log(`Evaluating artist ${artist.stage_name}: ${artist.soundcloud_followers} followers → ${artistReach} reach, current total: ${currentEstimatedReach}`);
         
         // Continue selecting if we haven't reached the target yet
-        if (currentFollowers < targetFollowerCount) {
+        if (currentEstimatedReach < targetReach) {
           // Don't add if it would put us way over target (unless we have no artists yet)
-          if (currentFollowers + artistFollowers <= targetMax || autoSelected.length === 0) {
+          if (currentEstimatedReach + artistReach <= targetMax || autoSelected.length === 0) {
             autoSelected.push(artist.id);
-            currentFollowers += artistFollowers;
-            console.log(`Selected artist ${artist.stage_name}, new total: ${currentFollowers}`);
+            currentEstimatedReach += artistReach;
+            console.log(`Selected artist ${artist.stage_name}, new total reach: ${currentEstimatedReach}`);
           }
         }
         
         // Stop if we've reached a good target range or have too many artists
-        if (currentFollowers >= targetMin && currentFollowers <= targetMax) {
+        if (currentEstimatedReach >= targetMin && currentEstimatedReach <= targetMax) {
           break;
         }
         if (autoSelected.length >= 15) { // Increased limit to allow for more artists
@@ -335,14 +336,14 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  // Calculate target follower count using inverse of reach estimation formula
-  const dbTarget = submission.expected_reach_planned || 50000;
+  // Calculate target reach based on submitter's follower count
+  const submitterFollowers = submission.members?.soundcloud_followers || 0;
   const C = 16830.763237;
   const b = 0.396285;
-  // Inverse formula: followers = (reach / C) ^ (1/b)
-  const targetFollowerCount = Math.round(Math.pow(dbTarget / C, 1 / b));
-  const followerPercentage = (totalReach / targetFollowerCount) * 100;
-  const isFollowerCountGood = followerPercentage >= 90 && followerPercentage <= 110;
+  // Calculate submitter's estimated reach using direct formula
+  const targetReach = Math.round(C * Math.pow(submitterFollowers, b));
+  const reachPercentage = (totalReach / targetReach) * 100;
+  const isReachGood = reachPercentage >= 90 && reachPercentage <= 110;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -353,7 +354,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             Assign Artists - {submission.artist_name}
           </DialogTitle>
           <DialogDescription>
-            Select artists to support this {submission.family} track. Target reach: {dbTarget.toLocaleString()} → Required total supporter followers: {targetFollowerCount.toLocaleString()}
+            Select artists to support this {submission.family} track. Submitter: {submitterFollowers.toLocaleString()} followers → Target reach: {targetReach.toLocaleString()}
           </DialogDescription>
         </DialogHeader>
 
@@ -369,27 +370,27 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Target Followers</div>
-                  <div className="text-2xl font-bold">{targetFollowerCount.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Target Reach</div>
+                  <div className="text-2xl font-bold">{targetReach.toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Selected Followers</div>
-                  <div className={`text-2xl font-bold ${isFollowerCountGood ? 'text-green-600' : 'text-orange-600'}`}>
+                  <div className="text-sm text-muted-foreground">Current Estimated Reach</div>
+                  <div className={`text-2xl font-bold ${isReachGood ? 'text-green-600' : 'text-orange-600'}`}>
                     {totalReach.toLocaleString()}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Progress</div>
-                  <div className={`text-2xl font-bold ${isFollowerCountGood ? 'text-green-600' : 'text-orange-600'}`}>
-                    {followerPercentage.toFixed(0)}%
+                  <div className={`text-2xl font-bold ${isReachGood ? 'text-green-600' : 'text-orange-600'}`}>
+                    {reachPercentage.toFixed(0)}%
                   </div>
                 </div>
               </div>
-              {!isFollowerCountGood && (
+              {!isReachGood && (
                 <div className="flex items-center gap-2 mt-3 p-3 bg-orange-50 rounded-lg">
                   <AlertCircle className="w-4 h-4 text-orange-600" />
                   <span className="text-sm text-orange-800">
-                    {followerPercentage < 90 ? 'Consider adding more artists to reach target followers' : 'Consider removing artists to avoid over-delivery'}
+                    {reachPercentage < 90 ? 'Consider adding more artists to reach target reach' : 'Consider removing artists to avoid over-delivery'}
                   </span>
                 </div>
               )}

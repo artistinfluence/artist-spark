@@ -29,10 +29,10 @@ import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 const optimizeArtistSelection = (artists: Member[], targetReach: number): string[] => {
   if (artists.length === 0) return [];
   
-  // Calculate reach for each artist
+  // Calculate reach for each artist (using follower count)
   const artistsWithReach = artists.map(artist => ({
     ...artist,
-    estimatedReach: estimateReach(artist.soundcloud_followers)?.reach_median || 0
+    estimatedReach: artist.soundcloud_followers || 0
   }));
 
   console.log('Starting artist selection:', {
@@ -269,7 +269,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     const totalEstimatedReach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
-        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
+        const artistReach = artist.soundcloud_followers || 0;
         console.log('Found artist for reach calculation:', {
           artistId,
           name: artist.stage_name || artist.name,
@@ -375,7 +375,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       
       const estimatedReachForSelected = autoSelected.reduce((total, artistId) => {
         const artist = compatible.find(a => a.id === artistId);
-        return total + (estimateReach(artist?.soundcloud_followers || 0)?.reach_median || 0);
+        return total + (artist?.soundcloud_followers || 0);
       }, 0);
 
       console.log('Auto-selection result:', {

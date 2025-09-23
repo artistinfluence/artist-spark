@@ -22,6 +22,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import '@/utils/generateQueueAssignments'; // Generate missing queue assignments
 
 type SubmissionStatus = 'new' | 'pending' | 'approved' | 'rejected' | 'qa_flag';
 
@@ -31,6 +32,7 @@ interface Submission {
   artist_name: string;
   status: string;
   submitted_at: string;
+  support_date: string | null;
   notes: string;
   qa_reason: string;
   family: string;
@@ -336,6 +338,7 @@ export const SubmissionsPage = () => {
                       </div>
                     </TableHead>
                     <TableHead>Genre</TableHead>
+                    <TableHead>Scheduled Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -382,6 +385,16 @@ export const SubmissionsPage = () => {
                             </div>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {submission.support_date ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="w-3 h-3" />
+                            {format(new Date(submission.support_date), 'MMM d, yyyy')}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Not scheduled</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">

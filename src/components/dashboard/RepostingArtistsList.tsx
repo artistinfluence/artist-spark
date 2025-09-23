@@ -1,17 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, Users, RefreshCw } from 'lucide-react';
 import { useQueueAssignments } from '@/hooks/useQueueAssignments';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface RepostingArtistsListProps {
   submissionId: string;
+  submission?: {
+    status: string;
+    support_date: string | null;
+  };
 }
 
-export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ submissionId }) => {
-  const { assignments, loading } = useQueueAssignments(submissionId);
+export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ submissionId, submission }) => {
+  const { toast } = useToast();
+  const { assignments, loading, refetch } = useQueueAssignments(submissionId);
+  const [generating, setGenerating] = useState(false);
+
+  const generateQueue = async () => {
+    if (!submission?.support_date) return;
+    
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-queue', {
+        body: { date: submission.support_date }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+
+      await refetch();
+    } catch (error: any) {
+      console.error('Error generating queue:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate queue assignments",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -43,6 +85,8 @@ export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ subm
   }
 
   if (assignments.length === 0) {
+    const canGenerateQueue = submission?.status === 'approved' && submission?.support_date;
+    
     return (
       <div className="space-y-4">
         <h4 className="text-md font-semibold flex items-center gap-2">
@@ -52,6 +96,16 @@ export const RepostingArtistsList: React.FC<RepostingArtistsListProps> = ({ subm
         <div className="text-center py-8 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No artists assigned to repost this track yet.</p>
+          {canGenerateQueue && (
+            <Button 
+              className="mt-4" 
+              onClick={generateQueue}
+              disabled={generating}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+              {generating ? 'Assigning Artists...' : 'Assign Artists'}
+            </Button>
+          )}
         </div>
       </div>
     );

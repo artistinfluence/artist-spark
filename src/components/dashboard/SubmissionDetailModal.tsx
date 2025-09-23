@@ -463,7 +463,13 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           {status === 'approved' && (
             <div className="mt-6 space-y-6">
               <ReceiptLinksManager submissionId={submission.id} />
-              <RepostingArtistsList submissionId={submission.id} />
+              <RepostingArtistsList 
+                submissionId={submission.id} 
+                submission={{
+                  status: status,
+                  support_date: supportDate ? supportDate.toISOString().split('T')[0] : null
+                }}
+              />
             </div>
           )}
 

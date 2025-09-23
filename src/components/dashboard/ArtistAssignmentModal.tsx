@@ -416,7 +416,7 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .eq('status', 'active')
         .gt('repost_credit_wallet.balance', 0)
         .order('soundcloud_followers', { ascending: false })
-        .limit(50);
+        .limit(500);
 
       // If there's a search term, filter by it - otherwise show all artists
       if (term.trim()) {

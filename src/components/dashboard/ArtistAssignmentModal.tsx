@@ -144,15 +144,24 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
       // Sort by follower count (smallest first) for strategic selection
       const sortedMembers = members.sort((a, b) => a.soundcloud_followers - b.soundcloud_followers);
 
-      // Use the submission's expected reach as target
-      const targetReach = submission.expected_reach_planned || 50000;
+      // Calculate realistic target reach using member's follower count with power-law model
+      const memberFollowers = submission.members?.soundcloud_followers || 25000;
+      const memberReachEstimate = estimateReach(memberFollowers);
+      const calculatedTarget = memberReachEstimate?.reach_median || 50000;
+      
+      // Use calculated target, but fallback to scaled database value if too small
+      const dbTarget = submission.expected_reach_planned || 50000;
+      const targetReach = Math.max(calculatedTarget, dbTarget * 10); // Scale up small DB values
       
       console.log('Target reach calculation:', {
-        targetReach,
+        memberFollowers,
+        calculatedTarget: calculatedTarget,
+        dbTarget: dbTarget,
+        finalTarget: targetReach,
         dbExpectedReach: submission.expected_reach_planned
       });
 
-      // Filter artists with minimum reach but no maximum (allow big artists)
+      // Filter artists with minimum reach (no maximum to allow flexibility)
       const compatible = sortedMembers.filter(member => {
         const estimate = estimateReach(member.soundcloud_followers);
         const estimatedReach = estimate?.reach_median || 0;
@@ -161,28 +170,41 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
       setSuggestedArtists(compatible.slice(0, 20));
       
-      // Improved auto-selection: aggressively target 95-105% of goal
+      // Improved auto-selection: target 90-110% of goal with better algorithm
       const autoSelected = [];
       let currentReach = 0;
-      const targetMin = targetReach * 0.95;
-      const targetMax = targetReach * 1.05;
+      const targetMin = targetReach * 0.90;
+      const targetMax = targetReach * 1.10;
       
-      // Select artists to reach target range
+      console.log('Auto-selection targets:', { targetMin, targetMax, totalArtists: compatible.length });
+      
+      // Select artists to reach target range - be more flexible
       for (const artist of compatible) {
-        if (currentReach < targetMax) {
-          const estimate = estimateReach(artist.soundcloud_followers);
-          const artistReach = estimate?.reach_median || 0;
-          
-          // Add if it helps us get closer to target without massive overshoot
-          if (currentReach + artistReach <= targetMax * 1.2) {
-            autoSelected.push(artist.id);
-            currentReach += artistReach;
-          }
-          
-          // Stop if we're in the good range
-          if (currentReach >= targetMin && autoSelected.length >= 3) {
-            break;
-          }
+        const estimate = estimateReach(artist.soundcloud_followers);
+        const artistReach = estimate?.reach_median || 0;
+        
+        console.log(`Evaluating artist ${artist.stage_name}: ${artistReach} reach, current total: ${currentReach}`);
+        
+        // Add artist if it gets us closer to target, even if we overshoot slightly
+        const newTotal = currentReach + artistReach;
+        const currentDistance = Math.abs(targetReach - currentReach);
+        const newDistance = Math.abs(targetReach - newTotal);
+        
+        // Select if it gets us closer to target OR if we have no artists selected yet
+        if (newDistance < currentDistance || autoSelected.length === 0) {
+          autoSelected.push(artist.id);
+          currentReach = newTotal;
+          console.log(`Selected artist ${artist.stage_name}, new total: ${currentReach}`);
+        }
+        
+        // Stop if we're reasonably close and have at least 2 artists
+        if (currentReach >= targetMin && autoSelected.length >= 2 && newDistance > currentDistance) {
+          break;
+        }
+        
+        // Safety stop to avoid selecting too many
+        if (autoSelected.length >= 8) {
+          break;
         }
       }
       
@@ -301,8 +323,14 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  // Use the submission's expected reach as target
-  const targetReach = submission.expected_reach_planned || 50000;
+  // Calculate realistic target reach using member's follower count with power-law model
+  const memberFollowers = submission.members?.soundcloud_followers || 25000;
+  const memberReachEstimate = estimateReach(memberFollowers);
+  const calculatedTarget = memberReachEstimate?.reach_median || 50000;
+  
+  // Use calculated target, but fallback to scaled database value if too small
+  const dbTarget = submission.expected_reach_planned || 50000;
+  const targetReach = Math.max(calculatedTarget, dbTarget * 10); // Scale up small DB values
   const reachPercentage = (totalReach / targetReach) * 100;
   const isReachGood = reachPercentage >= 80 && reachPercentage <= 120;
 

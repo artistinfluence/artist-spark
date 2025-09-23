@@ -34,32 +34,56 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number): string
     ...artist,
     estimatedReach: estimateReach(artist.soundcloud_followers)?.reach_median || 0
   }));
+
+  console.log('Starting artist selection:', {
+    totalArtists: artists.length,
+    targetReach,
+    avgArtistReach: artistsWithReach.reduce((sum, a) => sum + a.estimatedReach, 0) / artistsWithReach.length
+  });
   
-  // Strategy 1: Smallest first (good for precise targeting)
+  // Strategy 1: Smallest first - create separate copy to avoid mutation
   const strategy1 = findBestCombination(
-    artistsWithReach.sort((a, b) => a.estimatedReach - b.estimatedReach),
+    [...artistsWithReach].sort((a, b) => a.estimatedReach - b.estimatedReach),
     targetReach
   );
   
-  // Strategy 2: Largest first (good for efficiency)  
+  // Strategy 2: Largest first - create separate copy to avoid mutation
   const strategy2 = findBestCombination(
-    artistsWithReach.sort((a, b) => b.estimatedReach - a.estimatedReach),
+    [...artistsWithReach].sort((a, b) => b.estimatedReach - a.estimatedReach),
     targetReach
   );
   
-  // Strategy 3: Medium-sized first (balanced approach)
+  // Strategy 3: Medium-sized first - create separate copy to avoid mutation
   const strategy3 = findBestCombination(
-    artistsWithReach.sort((a, b) => Math.abs(a.estimatedReach - targetReach/3) - Math.abs(b.estimatedReach - targetReach/3)),
+    [...artistsWithReach].sort((a, b) => Math.abs(a.estimatedReach - targetReach/3) - Math.abs(b.estimatedReach - targetReach/3)),
     targetReach
   );
   
   // Evaluate all strategies and pick the best one
-  const strategies = [strategy1, strategy2, strategy3];
-  let bestStrategy: { artistIds: string[], totalReach: number, accuracy: number } = strategies[0];
+  const strategies = [strategy1, strategy2, strategy3].filter(s => s.artistIds.length > 0);
+  
+  if (strategies.length === 0) {
+    // Fallback: select top 3-5 artists by reach if no strategy worked
+    console.log('All strategies failed, using fallback selection');
+    const fallbackCount = Math.min(5, Math.max(3, Math.ceil(artistsWithReach.length * 0.2)));
+    const fallbackSelection = [...artistsWithReach]
+      .sort((a, b) => b.estimatedReach - a.estimatedReach)
+      .slice(0, fallbackCount)
+      .map(a => a.id);
+    return fallbackSelection;
+  }
+  
+  let bestStrategy = strategies[0];
   
   for (const strategy of strategies) {
+    // Prefer strategies that get closer to target (lower accuracy = better)
     if (strategy.accuracy < bestStrategy.accuracy) {
       bestStrategy = strategy;
+    } else if (Math.abs(strategy.accuracy - bestStrategy.accuracy) < targetReach * 0.05) {
+      // If accuracy is similar (within 5% of target), prefer fewer artists
+      if (strategy.artistIds.length < bestStrategy.artistIds.length) {
+        bestStrategy = strategy;
+      }
     }
   }
   
@@ -68,54 +92,87 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number): string
     strategy1: { reach: strategy1.totalReach, accuracy: strategy1.accuracy, count: strategy1.artistIds.length },
     strategy2: { reach: strategy2.totalReach, accuracy: strategy2.accuracy, count: strategy2.artistIds.length },
     strategy3: { reach: strategy3.totalReach, accuracy: strategy3.accuracy, count: strategy3.artistIds.length },
-    bestStrategy: { reach: bestStrategy.totalReach, accuracy: bestStrategy.accuracy, count: bestStrategy.artistIds.length }
+    bestStrategy: { reach: bestStrategy.totalReach, accuracy: bestStrategy.accuracy, count: bestStrategy.artistIds.length },
+    accuracyPercentage: ((bestStrategy.totalReach / targetReach) * 100).toFixed(1) + '%'
   });
   
   return bestStrategy.artistIds;
 };
 
-// Find the best combination using greedy approach with replacement optimization
+// Find the best combination using improved greedy approach with relaxed criteria
 const findBestCombination = (sortedArtists: (Member & { estimatedReach: number })[], targetReach: number) => {
   const selected: string[] = [];
   let currentReach = 0;
   
-  // Phase 1: Initial greedy selection
+  console.log('Finding best combination:', {
+    artistCount: sortedArtists.length,
+    targetReach,
+    firstFewArtists: sortedArtists.slice(0, 3).map(a => ({ name: a.stage_name || a.name, reach: a.estimatedReach }))
+  });
+  
+  // Phase 1: Additive selection - keep adding artists until we get close
   for (const artist of sortedArtists) {
     if (selected.length >= 12) break; // Reasonable upper limit
     
     const newTotal = currentReach + artist.estimatedReach;
-    const currentDiff = Math.abs(currentReach - targetReach);
-    const newDiff = Math.abs(newTotal - targetReach);
+    const currentAccuracy = Math.abs(currentReach - targetReach);
+    const newAccuracy = Math.abs(newTotal - targetReach);
     
-    // Add artist if it improves our accuracy or if we're still under target
-    if (newDiff < currentDiff || currentReach < targetReach * 0.8) {
+    // Add artist if:
+    // 1. It improves our accuracy, OR
+    // 2. We're still significantly under target (less than 70%), OR
+    // 3. We have fewer than 2 artists selected
+    if (newAccuracy < currentAccuracy || 
+        currentReach < targetReach * 0.7 || 
+        selected.length < 2) {
       selected.push(artist.id);
       currentReach = newTotal;
+      
+      console.log('Added artist:', {
+        name: artist.stage_name || artist.name,
+        reach: artist.estimatedReach,
+        totalReach: currentReach,
+        targetReach,
+        accuracy: newAccuracy,
+        progress: ((currentReach / targetReach) * 100).toFixed(1) + '%'
+      });
+      
+      // Stop if we're reasonably close to target (within 20%)
+      if (currentReach >= targetReach * 0.8 && currentReach <= targetReach * 1.2) {
+        break;
+      }
     }
   }
   
-  // Phase 2: Replacement optimization
-  // Try replacing artists to get closer to target
-  for (let i = 0; i < 5; i++) { // Max 5 replacement iterations
+  // Phase 2: Replacement optimization - try to get even closer
+  for (let iteration = 0; iteration < 3; iteration++) {
     let improved = false;
     
-    for (let j = 0; j < selected.length; j++) {
-      const currentArtist = sortedArtists.find(a => a.id === selected[j]);
+    for (let i = 0; i < selected.length; i++) {
+      const currentArtist = sortedArtists.find(a => a.id === selected[i]);
       if (!currentArtist) continue;
       
       const reachWithoutCurrent = currentReach - currentArtist.estimatedReach;
+      const currentAccuracy = Math.abs(currentReach - targetReach);
       
       // Try replacing with each unused artist
       for (const candidate of sortedArtists) {
         if (selected.includes(candidate.id)) continue;
         
         const newReach = reachWithoutCurrent + candidate.estimatedReach;
-        const currentAccuracy = Math.abs(currentReach - targetReach);
         const newAccuracy = Math.abs(newReach - targetReach);
         
-        // Replace if it's more accurate
-        if (newAccuracy < currentAccuracy) {
-          selected[j] = candidate.id;
+        // Replace if it significantly improves accuracy (at least 5% better)
+        if (newAccuracy < currentAccuracy * 0.95) {
+          console.log('Replacing artist:', {
+            removed: currentArtist.stage_name || currentArtist.name,
+            added: candidate.stage_name || candidate.name,
+            oldReach: currentReach,
+            newReach: newReach,
+            improvement: currentAccuracy - newAccuracy
+          });
+          
+          selected[i] = candidate.id;
           currentReach = newReach;
           improved = true;
           break;
@@ -128,7 +185,27 @@ const findBestCombination = (sortedArtists: (Member & { estimatedReach: number }
     if (!improved) break;
   }
   
+  // Ensure minimum selection - if we have very few artists, add more
+  if (selected.length < 2 && sortedArtists.length >= 2) {
+    const remaining = sortedArtists.filter(a => !selected.includes(a.id));
+    const toAdd = Math.min(2 - selected.length, remaining.length);
+    for (let i = 0; i < toAdd; i++) {
+      selected.push(remaining[i].id);
+      currentReach += remaining[i].estimatedReach;
+    }
+    console.log('Added minimum artists to reach count of:', selected.length);
+  }
+  
   const accuracy = Math.abs(currentReach - targetReach);
+  
+  console.log('Final combination result:', {
+    selectedCount: selected.length,
+    totalReach: currentReach,
+    targetReach,
+    accuracy,
+    percentage: ((currentReach / targetReach) * 100).toFixed(1) + '%'
+  });
+  
   return { artistIds: selected, totalReach: currentReach, accuracy };
 };
 

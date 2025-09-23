@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
         members!inner(name, status, size_tier)
       `)
       .eq('status', 'approved')
-      .eq('support_date', date)
+      .or(`support_date.eq.${date},support_date.is.null`)
       .eq('members.status', 'active')
 
     if (!submissions || submissions.length === 0) {
@@ -220,11 +220,14 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Update submissions with scheduled_date
+      // Update submissions with scheduled_date and support_date (for null support_dates)
       const submissionIds = [...new Set(assignments.map(a => a.submission_id))]
       const { error: updateError } = await supabaseClient
         .from('submissions')
-        .update({ scheduled_date: date })
+        .update({ 
+          scheduled_date: date,
+          support_date: date  // Set support_date for submissions that had null
+        })
         .in('id', submissionIds)
 
       if (updateError) {

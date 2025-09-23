@@ -11,13 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ReceiptLinksManager } from './ReceiptLinksManager';
 import { RepostingArtistsList } from './RepostingArtistsList';
 import {
   ExternalLink,
-  Calendar,
+  Calendar as CalendarIcon,
   User,
   Music,
   FileText,
@@ -75,6 +77,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   const [qaReason, setQaReason] = useState('');
   const [status, setStatus] = useState<SubmissionStatus>('new');
   const [family, setFamily] = useState('');
+  const [supportDate, setSupportDate] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [classifying, setClassifying] = useState(false);
 
@@ -84,8 +87,10 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
       setQaReason(submission.qa_reason || '');
       setStatus(submission.status as SubmissionStatus);
       setFamily(submission.family || 'none');
+      // Set support date to tomorrow as default for new approvals
+      setSupportDate(status === 'approved' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined);
     }
-  }, [submission]);
+  }, [submission, status]);
 
   const statusConfig = {
     new: { label: 'New', color: 'bg-primary', icon: FileText },
@@ -147,16 +152,33 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   const handleSave = async () => {
     if (!submission) return;
 
+    // Validate support date for approved submissions
+    if (status === 'approved' && !supportDate) {
+      toast({
+        title: "Support Date Required",
+        description: "Please select a support date when approving submissions",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
+      const updateData: any = {
+        status,
+        notes,
+        qa_reason: qaReason,
+        family: family === 'none' ? null : family,
+      };
+
+      // Add support_date for approved submissions
+      if (status === 'approved' && supportDate) {
+        updateData.support_date = supportDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+
       const { error } = await supabase
         .from('submissions')
-        .update({
-          status,
-          notes,
-          qa_reason: qaReason,
-          family: family === 'none' ? null : family,
-        })
+        .update(updateData)
         .eq('id', submission.id);
 
       if (error) throw error;
@@ -225,7 +247,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             <div>
               <Label className="text-sm font-medium">Submitted</Label>
               <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <Calendar className="w-4 h-4" />
+                <CalendarIcon className="w-4 h-4" />
                 {format(new Date(submission.submitted_at), 'MMM d, yyyy HH:mm')}
               </div>
             </div>
@@ -375,6 +397,35 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {status === 'approved' && (
+                <div>
+                  <Label className="text-sm font-medium">
+                    Support Date <span className="text-red-500">*</span>
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal mt-1"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {supportDate ? format(supportDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={supportDate}
+                        onSelect={setSupportDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
             </div>
 
             <div>

@@ -445,6 +445,7 @@ export type Database = {
           reach_amount: number
           scheduled_date: string | null
           status: string
+          submission_id: string | null
           supporter_handle: string | null
           supporter_name: string | null
           updated_at: string
@@ -457,6 +458,7 @@ export type Database = {
           reach_amount?: number
           scheduled_date?: string | null
           status?: string
+          submission_id?: string | null
           supporter_handle?: string | null
           supporter_name?: string | null
           updated_at?: string
@@ -469,11 +471,20 @@ export type Database = {
           reach_amount?: number
           scheduled_date?: string | null
           status?: string
+          submission_id?: string | null
           supporter_handle?: string | null
           supporter_name?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_receipt_links_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaigns: {
         Row: {

@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { CreateReceiptLinkData, CampaignReceiptLink } from '@/hooks/useCampaignReceiptLinks';
 
 interface AddReceiptLinkFormProps {
-  campaignId: string;
+  campaignId?: string;
+  submissionId?: string;
   initialData?: CampaignReceiptLink;
   onSuccess?: () => void;
   onSubmit: (data: CreateReceiptLinkData | Partial<CampaignReceiptLink>) => Promise<any>;
@@ -13,6 +14,7 @@ interface AddReceiptLinkFormProps {
 
 export const AddReceiptLinkForm = ({ 
   campaignId, 
+  submissionId,
   initialData, 
   onSuccess, 
   onSubmit 
@@ -34,7 +36,8 @@ export const AddReceiptLinkForm = ({
     try {
       const submitData: CreateReceiptLinkData | Partial<CampaignReceiptLink> = {
         ...formData,
-        campaign_id: campaignId,
+        ...(campaignId && { campaign_id: campaignId }),
+        ...(submissionId && { submission_id: submissionId }),
         status: 'scheduled',
         supporter_name: null,
         supporter_handle: null

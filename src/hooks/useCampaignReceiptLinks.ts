@@ -4,7 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface CampaignReceiptLink {
   id: string;
-  campaign_id: string;
+  campaign_id?: string;
+  submission_id?: string;
   supporter_name: string;
   supporter_handle: string;
   reach_amount: number;
@@ -16,7 +17,8 @@ export interface CampaignReceiptLink {
 }
 
 export interface CreateReceiptLinkData {
-  campaign_id: string;
+  campaign_id?: string;
+  submission_id?: string;
   supporter_name: string;
   supporter_handle: string;
   reach_amount: number;
@@ -25,18 +27,19 @@ export interface CreateReceiptLinkData {
   status?: string;
 }
 
-export const useCampaignReceiptLinks = (campaignId?: string) => {
+export const useReceiptLinks = (campaignId?: string, submissionId?: string) => {
   const [receiptLinks, setReceiptLinks] = useState<CampaignReceiptLink[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchReceiptLinks = async (id: string) => {
+  const fetchReceiptLinks = async (id: string, type: 'campaign' | 'submission') => {
     setLoading(true);
     try {
+      const column = type === 'campaign' ? 'campaign_id' : 'submission_id';
       const { data, error } = await supabase
         .from('campaign_receipt_links')
         .select('*')
-        .eq('campaign_id', id)
+        .eq(column, id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -56,7 +59,7 @@ export const useCampaignReceiptLinks = (campaignId?: string) => {
     try {
       const { data: newLink, error } = await supabase
         .from('campaign_receipt_links')
-        .insert([data])
+        .insert([data as any])
         .select()
         .single();
 
@@ -137,9 +140,11 @@ export const useCampaignReceiptLinks = (campaignId?: string) => {
 
   useEffect(() => {
     if (campaignId) {
-      fetchReceiptLinks(campaignId);
+      fetchReceiptLinks(campaignId, 'campaign');
+    } else if (submissionId) {
+      fetchReceiptLinks(submissionId, 'submission');
     }
-  }, [campaignId]);
+  }, [campaignId, submissionId]);
 
   return {
     receiptLinks,
@@ -148,6 +153,17 @@ export const useCampaignReceiptLinks = (campaignId?: string) => {
     updateReceiptLink,
     deleteReceiptLink,
     getTotalReach,
-    refetch: () => campaignId && fetchReceiptLinks(campaignId)
+    refetch: () => {
+      if (campaignId) {
+        fetchReceiptLinks(campaignId, 'campaign');
+      } else if (submissionId) {
+        fetchReceiptLinks(submissionId, 'submission');
+      }
+    }
   };
+};
+
+// Legacy export for backwards compatibility
+export const useCampaignReceiptLinks = (campaignId?: string) => {  
+  return useReceiptLinks(campaignId, undefined);
 };

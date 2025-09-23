@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { ReceiptLinksManager } from './ReceiptLinksManager';
 import {
   ExternalLink,
   Calendar,
@@ -405,6 +406,13 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Receipt Links Section - Only show for approved submissions */}
+          {status === 'approved' && (
+            <div className="mt-6">
+              <ReceiptLinksManager submissionId={submission.id} />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4 border-t">

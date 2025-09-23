@@ -5,17 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, ExternalLink, Edit, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useCampaignReceiptLinks, CampaignReceiptLink } from '@/hooks/useCampaignReceiptLinks';
+import { useReceiptLinks, CampaignReceiptLink } from '@/hooks/useCampaignReceiptLinks';
 import { AddReceiptLinkForm } from './AddReceiptLinkForm';
 import { formatFollowerCount } from '@/utils/creditCalculations';
 import { format } from 'date-fns';
 
 interface ReceiptLinksManagerProps {
-  campaignId: string;
+  campaignId?: string;
+  submissionId?: string;
   onReachUpdate?: (totalReach: number) => void;
 }
 
-export const ReceiptLinksManager = ({ campaignId, onReachUpdate }: ReceiptLinksManagerProps) => {
+export const ReceiptLinksManager = ({ campaignId, submissionId, onReachUpdate }: ReceiptLinksManagerProps) => {
   const [editingLink, setEditingLink] = useState<CampaignReceiptLink | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -27,7 +28,7 @@ export const ReceiptLinksManager = ({ campaignId, onReachUpdate }: ReceiptLinksM
     updateReceiptLink, 
     deleteReceiptLink, 
     getTotalReach 
-  } = useCampaignReceiptLinks(campaignId);
+  } = useReceiptLinks(campaignId, submissionId);
 
   const totalReach = getTotalReach();
 
@@ -105,6 +106,7 @@ export const ReceiptLinksManager = ({ campaignId, onReachUpdate }: ReceiptLinksM
               </DialogHeader>
               <AddReceiptLinkForm 
                 campaignId={campaignId}
+                submissionId={submissionId}
                 onSuccess={handleAddSuccess}
                 onSubmit={addReceiptLink}
               />
@@ -210,6 +212,7 @@ export const ReceiptLinksManager = ({ campaignId, onReachUpdate }: ReceiptLinksM
             {editingLink && (
               <AddReceiptLinkForm 
                 campaignId={campaignId}
+                submissionId={submissionId}
                 initialData={editingLink}
                 onSuccess={handleEditSuccess}
                 onSubmit={async (data) => {

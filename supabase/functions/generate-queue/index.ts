@@ -103,9 +103,20 @@ Deno.serve(async (req) => {
     // Get active members available for supporting
     const { data: availableMembers } = await supabaseClient
       .from('members')
-      .select('id, name, status, size_tier, net_credits, families, subgenres')
+      .select(`
+        id, 
+        name, 
+        status, 
+        size_tier, 
+        families, 
+        subgenres,
+        repost_credit_wallet!inner(
+          balance,
+          monthly_grant
+        )
+      `)
       .eq('status', 'active')
-      .gt('net_credits', 0)
+      .gt('repost_credit_wallet.balance', 0)
 
     if (!availableMembers || availableMembers.length === 0) {
       return new Response(
@@ -191,7 +202,7 @@ Deno.serve(async (req) => {
       }
 
       // Sort by credits (prioritize members with more credits for fairness)
-      compatibleSupporters.sort((a, b) => b.net_credits - a.net_credits)
+      compatibleSupporters.sort((a, b) => b.repost_credit_wallet.balance - a.repost_credit_wallet.balance)
 
       // Assign multiple supporters based on expected reach
       const targetReach = submission.expected_reach_planned || 1000
@@ -204,7 +215,7 @@ Deno.serve(async (req) => {
         const supporter = compatibleSupporters[i]
         
         // Calculate credits to allocate (basic algorithm)
-        const baseCredits = Math.min(100, supporter.net_credits)
+        const baseCredits = Math.min(100, supporter.repost_credit_wallet.balance)
         const creditsToAllocate = Math.max(50, Math.ceil(baseCredits * 0.7))
 
         assignments.push({

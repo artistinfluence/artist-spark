@@ -39,7 +39,7 @@ const optimizeArtistSelection = (artists: Member[], targetReach: number, submitt
     .slice(0, 30)
     .map(artist => ({
       ...artist,
-      estimatedReach: artist.soundcloud_followers || 0
+      estimatedReach: estimateReach(artist.soundcloud_followers)?.reach_median || 0
     }));
 
   console.log('Starting smart artist selection:', {
@@ -184,12 +184,12 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
     const totalEstimatedReach = selectedArtists.reduce((total, artistId) => {
       const artist = [...suggestedArtists, ...searchResults].find(a => a.id === artistId);
       if (artist) {
-        const artistReach = artist.soundcloud_followers || 0;
+        const artistReach = estimateReach(artist.soundcloud_followers)?.reach_median || 0;
         console.log('Found artist for reach calculation:', {
           artistId,
           name: artist.stage_name || artist.name,
           followers: artist.soundcloud_followers,
-          reach: artistReach
+          estimatedReach: artistReach
         });
         return total + artistReach;
       } else {
@@ -262,11 +262,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         members = fallbackData as Member[];
       }
 
-      // Calculate target reach
+      // Calculate target reach using estimateReach function
       const submitterFollowers = submission.members?.soundcloud_followers || 0;
-      const C = 16830.763237;
-      const b = 0.396285;
-      const targetReach = Math.round(C * Math.pow(submitterFollowers, b));
+      const targetReach = estimateReach(submitterFollowers)?.reach_median || 0;
       
       console.log('Target reach:', targetReach, 'for', submitterFollowers, 'followers');
 
@@ -427,12 +425,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
 
   if (!submission) return null;
 
-  // Calculate target reach based on submitter's follower count
+  // Calculate target reach based on submitter's follower count using estimateReach
   const submitterFollowers = submission.members?.soundcloud_followers || 0;
-  const C = 16830.763237;
-  const b = 0.396285;
-  // Calculate submitter's estimated reach using direct formula
-  const targetReach = Math.round(C * Math.pow(submitterFollowers, b));
+  const targetReach = estimateReach(submitterFollowers)?.reach_median || 0;
   const reachPercentage = (totalReach / targetReach) * 100;
   const isReachGood = reachPercentage >= 90 && reachPercentage <= 110;
 
@@ -585,7 +580,17 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
             ) : (
               <div className="space-y-2">
                 {suggestedArtists
-                  .sort((a, b) => b.soundcloud_followers - a.soundcloud_followers)
+                  .sort((a, b) => {
+                    const aSelected = selectedArtists.includes(a.id);
+                    const bSelected = selectedArtists.includes(b.id);
+                    
+                    // Selected artists first
+                    if (aSelected && !bSelected) return -1;
+                    if (!aSelected && bSelected) return 1;
+                    
+                    // Within same selection status, sort by followers
+                    return b.soundcloud_followers - a.soundcloud_followers;
+                  })
                   .map(artist => 
                     renderArtistItem(artist, selectedArtists.includes(artist.id))
                   )}

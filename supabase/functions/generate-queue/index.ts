@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
 
     for (const submission of submissions) {
       // Find compatible supporters based on genre matching
-      const compatibleSupporters = availableMembers.filter(member => {
+      let compatibleSupporters = availableMembers.filter(member => {
         // Don't let members support their own submissions
         if (member.id === submission.member_id) return false
 
@@ -196,9 +196,20 @@ Deno.serve(async (req) => {
         return familyMatch || subgenreMatch
       })
 
+      // Fallback: if no genre matches found, use any available supporters
       if (compatibleSupporters.length === 0) {
-        console.log(`No compatible supporters found for submission ${submission.id}`)
-        continue
+        console.log(`No compatible supporters found for submission ${submission.id}, using fallback matching`)
+        compatibleSupporters = availableMembers.filter(member => {
+          // Don't let members support their own submissions
+          return member.id !== submission.member_id
+        })
+        
+        if (compatibleSupporters.length === 0) {
+          console.log(`No available supporters at all for submission ${submission.id}`)
+          continue
+        }
+      } else {
+        console.log(`Found ${compatibleSupporters.length} genre-compatible supporters for submission ${submission.id}`)
       }
 
       // Sort by credits (prioritize members with more credits for fairness)

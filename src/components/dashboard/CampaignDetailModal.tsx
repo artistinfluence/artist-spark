@@ -305,21 +305,6 @@ export function CampaignDetailModal({ campaign, isOpen, onClose, onCampaignUpdat
                 </CardContent>
               </Card>
 
-              {/* Live Receipt Links Preview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Live Receipt Links</CardTitle>
-                  <CardDescription>
-                    Current receipt links that will be included in the report
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ReceiptLinksManager 
-                    campaignId={campaign.id}
-                    onReachUpdate={() => {}} // No need to update here, just display
-                  />
-                </CardContent>
-              </Card>
             </>
           )}
         </div>

@@ -216,19 +216,15 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         memberFollowers: submission.members?.soundcloud_followers
       });
 
-      // Optimized query filtering out disconnected artists
+      // Start with basic query (without integration status filtering)
       let query = supabase
         .from('members')
         .select(`
           id, name, stage_name, soundcloud_followers, size_tier, 
           net_credits, families, groups, reach_factor, status,
-          repost_credit_wallet!inner(balance, monthly_grant),
-          member_accounts!inner(platform, status),
-          integration_status!inner(status)
+          repost_credit_wallet!inner(balance, monthly_grant)
         `)
         .eq('status', 'active')
-        .eq('member_accounts.platform', 'soundcloud')
-        .neq('integration_status.status', 'disconnected')
         .gt('repost_credit_wallet.balance', 0)
         .gt('soundcloud_followers', 1000)
         .order('soundcloud_followers', { ascending: false })
@@ -254,13 +250,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
           .select(`
             id, name, stage_name, soundcloud_followers, size_tier,
             net_credits, families, groups, reach_factor, status,
-            repost_credit_wallet!inner(balance, monthly_grant),
-            member_accounts!inner(platform, status),
-            integration_status!inner(status)
+            repost_credit_wallet!inner(balance, monthly_grant)
           `)
           .eq('status', 'active')
-          .eq('member_accounts.platform', 'soundcloud')
-          .neq('integration_status.status', 'disconnected')
           .gt('repost_credit_wallet.balance', 0)
           .gt('soundcloud_followers', 1000)
           .order('soundcloud_followers', { ascending: false })
@@ -317,13 +309,9 @@ export const ArtistAssignmentModal: React.FC<ArtistAssignmentModalProps> = ({
         .from('members')
         .select(`
           *,
-          repost_credit_wallet!inner(balance, monthly_grant),
-          member_accounts!inner(platform, status),
-          integration_status!inner(status)
+          repost_credit_wallet!inner(balance, monthly_grant)
         `)
         .eq('status', 'active')
-        .eq('member_accounts.platform', 'soundcloud')
-        .neq('integration_status.status', 'disconnected')
         .gt('repost_credit_wallet.balance', 0)
         .or(`name.ilike.${term}%,stage_name.ilike.${term}%`)
         .order('name')

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Play, CheckCircle, AlertCircle, Users, Clock, Plus } from 'lucide-react';
+import { Calendar, Play, CheckCircle, AlertCircle, Users, Clock, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +152,40 @@ export const QueueManagement: React.FC = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to generate queue",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const regenerateQueue = async (date: string) => {
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-queue', {
+        body: { date }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+
+      await fetchQueues();
+      if (selectedQueue?.date === date) {
+        await fetchQueueAssignments(selectedQueue.id);
+      }
+    } catch (error) {
+      console.error('Error regenerating queue:', error);
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to regenerate queue",
         variant: "destructive",
       });
     } finally {
@@ -320,6 +354,20 @@ export const QueueManagement: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
+                      {queue.status === 'published' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            regenerateQueue(queue.date);
+                          }}
+                          disabled={generating}
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-1 ${generating ? 'animate-spin' : ''}`} />
+                          Regenerate
+                        </Button>
+                      )}
                       {queue.status === 'draft' && (
                         <Button
                           size="sm"

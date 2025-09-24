@@ -52,12 +52,15 @@ interface Submission {
   expected_reach_planned: number;
   expected_reach_max: number;
   expected_reach_min: number;
+  support_date?: string;
+  suggested_supporters?: string[];
   members: {
     id: string;
     name: string;
     primary_email: string;
     size_tier: string;
     status: string;
+    soundcloud_followers?: number;
   };
 }
 
@@ -526,8 +529,17 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
               <RepostingArtistsList 
                 submissionId={submission.id} 
                 submission={{
+                  id: submission.id,
                   status: status,
-                  support_date: supportDate ? supportDate.toISOString().split('T')[0] : null
+                  support_date: supportDate ? supportDate.toISOString().split('T')[0] : null,
+                  suggested_supporters: submission.suggested_supporters || [],
+                  expected_reach_planned: submission.expected_reach_planned || 0,
+                  artist_name: submission.artist_name || '',
+                  family: submission.family || '',
+                  subgenres: submission.subgenres || [],
+                  members: submission.members ? {
+                    soundcloud_followers: submission.members.soundcloud_followers || 0
+                  } : undefined
                 }}
               />
             </div>

@@ -82,7 +82,8 @@ export const SubmissionsPage = () => {
             name,
             primary_email,
             size_tier,
-            status
+            status,
+            soundcloud_followers
           )
         `)
         .order(sortBy, { ascending: sortDirection === 'asc' });

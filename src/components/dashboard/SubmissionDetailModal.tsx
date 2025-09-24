@@ -221,13 +221,15 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
     );
   };
 
+  if (!submission) return null;
+
   // Calculate reach estimates based on assigned artists
   const calculateReachEstimates = () => {
-    if (!assignments || assignments.length === 0) {
+    if (!submission || !assignments || assignments.length === 0) {
       return {
-        min: submission.expected_reach_min || 0,
-        planned: submission.expected_reach_planned || 0,
-        max: submission.expected_reach_max || 0,
+        min: submission?.expected_reach_min || 0,
+        planned: submission?.expected_reach_planned || 0,
+        max: submission?.expected_reach_max || 0,
         isCalculated: false
       };
     }
@@ -266,8 +268,6 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   };
 
   const reachEstimates = calculateReachEstimates();
-
-  if (!submission) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

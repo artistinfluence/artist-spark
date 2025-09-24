@@ -15,6 +15,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueueAssignments } from '@/hooks/useQueueAssignments';
+import { estimateReach } from '@/components/ui/soundcloud-reach-estimator';
 import { ReceiptLinksManager } from './ReceiptLinksManager';
 import { RepostingArtistsList } from './RepostingArtistsList';
 import {
@@ -80,6 +82,9 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   const [supportDate, setSupportDate] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [classifying, setClassifying] = useState(false);
+
+  // Fetch queue assignments to calculate reach
+  const { assignments } = useQueueAssignments(submission?.id || null);
 
   React.useEffect(() => {
     if (submission) {
@@ -216,6 +221,52 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
     );
   };
 
+  // Calculate reach estimates based on assigned artists
+  const calculateReachEstimates = () => {
+    if (!assignments || assignments.length === 0) {
+      return {
+        min: submission.expected_reach_min || 0,
+        planned: submission.expected_reach_planned || 0,
+        max: submission.expected_reach_max || 0,
+        isCalculated: false
+      };
+    }
+
+    const followerCounts = assignments
+      .filter(a => a.members?.soundcloud_followers)
+      .map(a => a.members!.soundcloud_followers);
+
+    if (followerCounts.length === 0) {
+      return {
+        min: submission.expected_reach_min || 0,
+        planned: submission.expected_reach_planned || 0,
+        max: submission.expected_reach_max || 0,
+        isCalculated: false
+      };
+    }
+
+    // Calculate total reach using the power-law model
+    const totalReach = followerCounts.reduce((total, followers) => {
+      const estimate = estimateReach(followers);
+      return total + (estimate?.reach_median || 0);
+    }, 0);
+
+    // Conservative estimate (70% of median)
+    const minReach = Math.round(totalReach * 0.7);
+    
+    // Aggressive estimate (130% of median)
+    const maxReach = Math.round(totalReach * 1.3);
+
+    return {
+      min: minReach,
+      planned: totalReach,
+      max: maxReach,
+      isCalculated: true
+    };
+  };
+
+  const reachEstimates = calculateReachEstimates();
+
   if (!submission) return null;
 
   return (
@@ -339,19 +390,28 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
               <div>
                 <Label className="text-sm font-medium">Expected Reach (Min)</Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {submission.expected_reach_min?.toLocaleString() || 'Not set'}
+                  {reachEstimates.min?.toLocaleString() || 'Not set'}
+                  {reachEstimates.isCalculated && (
+                    <span className="text-xs text-green-600 ml-1">(calculated)</span>
+                  )}
                 </p>
               </div>
               <div>
                 <Label className="text-sm font-medium">Expected Reach (Planned)</Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {submission.expected_reach_planned?.toLocaleString() || 'Not set'}
+                  {reachEstimates.planned?.toLocaleString() || 'Not set'}
+                  {reachEstimates.isCalculated && (
+                    <span className="text-xs text-green-600 ml-1">(calculated)</span>
+                  )}
                 </p>
               </div>
               <div>
                 <Label className="text-sm font-medium">Expected Reach (Max)</Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {submission.expected_reach_max?.toLocaleString() || 'Not set'}
+                  {reachEstimates.max?.toLocaleString() || 'Not set'}
+                  {reachEstimates.isCalculated && (
+                    <span className="text-xs text-green-600 ml-1">(calculated)</span>
+                  )}
                 </p>
               </div>
             </div>
